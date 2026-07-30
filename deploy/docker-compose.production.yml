@@ -1,0 +1,83 @@
+# Production overlay: Keycloak switched to MySQL + production mode,
+# resource limits on all services, no dev ports exposed publicly.
+#
+# Usage (on production server):
+#   export IMAGE_TAG=main-abc1234 REGISTRY=ghcr.io/owner/repo UAV_DOMAIN=prod.example.com
+#   docker compose --env-file deploy/.env \
+#     -f deploy/docker-compose.yml \
+#     -f deploy/docker-compose.staging.yml \
+#     -f deploy/docker-compose.production.yml \
+#     pull && ... up -d --no-build
+
+services:
+  mysql:
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: '1.0'
+
+  redis:
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: '0.5'
+
+  rabbitmq:
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '0.5'
+
+  minio:
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '0.5'
+
+  temporal:
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '0.5'
+
+  keycloak:
+    # Switch to production mode with MySQL backend.
+    # 002_keycloak.sh in mysql/init/ creates the keycloak database.
+    command: start --import-realm
+    environment:
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://mysql:3306/keycloak?characterEncoding=utf8
+      KC_DB_USERNAME: ${MYSQL_USER}
+      KC_DB_PASSWORD: ${MYSQL_PASSWORD}
+      KC_HOSTNAME: https://${UAV_DOMAIN}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: '1.0'
+
+  backend-ai:
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    cpus: '2.0'
+
+  backend-java:
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: '1.0'
+
+  backend-node:
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: '0.5'
+
+  gateway:
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '1.0'
+
+  frontend:
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: '0.25'
+
+  caddy:
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: '0.5'

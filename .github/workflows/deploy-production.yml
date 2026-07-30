@@ -1,0 +1,48 @@
+name: Deploy (production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (e.g. main-abc1234 or latest)"
+        required: true
+        default: latest
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          envs: IMAGE_TAG,REGISTRY,UAV_DOMAIN,GHCR_PAT,GHCR_USER
+          script: |
+            set -euo pipefail
+            echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+            cd /opt/uav
+            git fetch origin main --quiet
+            git reset --hard origin/main
+            bash scripts/deploy-production.sh
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          REGISTRY: ghcr.io/${{ github.repository }}
+          UAV_DOMAIN: ${{ secrets.PROD_DOMAIN }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHCR_USER: ${{ github.repository_owner }}
+
+      - name: Tag release in git
+        run: |
+          tag="deploy-prod-$(date -u +%Y%m%dT%H%M%SZ)"
+          git tag "$tag" -m "Production deploy: ${{ inputs.image_tag }}"
+          git push origin "$tag"
