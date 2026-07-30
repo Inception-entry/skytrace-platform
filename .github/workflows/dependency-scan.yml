@@ -1,0 +1,50 @@
+name: Dependency Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '15 4 * * 2'  # Tuesday 04:15 UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-fs:
+    name: Trivy manifest scan (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend-java
+            path: backend-java
+          - name: gateway-java
+            path: gateway-java
+          - name: backend-node
+            path: backend-node
+          - name: frontend
+            path: frontend
+          - name: backend-ai
+            path: backend-ai
+    steps:
+      - uses: actions/checkout@v6
+      - name: Scan ${{ matrix.name }} dependencies
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ matrix.path }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-${{ matrix.name }}.sarif
+      - name: Upload SARIF results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.name }}.sarif
+          category: trivy-${{ matrix.name }}

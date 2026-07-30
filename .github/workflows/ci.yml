@@ -50,6 +50,27 @@ jobs:
       - name: Test and package
         run: mvn --batch-mode --no-transfer-progress verify
 
+  backend-ai:
+    name: AI service (Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend-ai
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv --quiet
+      - name: Install dependencies
+        run: uv sync --group dev
+      - name: Run tests
+        run: uv run pytest tests/ -v
+
   backend-node:
     name: Node BFF
     runs-on: ubuntu-latest
@@ -70,6 +91,8 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
       - name: Build and test JWT authorization
         run: npm test
 
@@ -93,12 +116,15 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
       - name: Type-check and build
         run: npm run build
 
   docker-e2e:
     name: Docker full-stack integration
     needs:
+      - backend-ai
       - backend-java
       - gateway-java
       - backend-node
@@ -170,6 +196,20 @@ jobs:
             --env-file "$UAV_ENV_FILE" \
             -f deploy/docker-compose.yml \
             build backend-ai backend-java backend-node gateway frontend
+
+      - name: Scan application images for vulnerabilities
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin latest
+          project="$(basename "$GITHUB_WORKSPACE")"
+          for svc in backend-ai backend-java backend-node gateway frontend; do
+            echo "=== Trivy: ${svc} ==="
+            trivy image \
+              --severity HIGH,CRITICAL \
+              --exit-code 1 \
+              --ignore-unfixed \
+              "${project}-${svc}"
+          done
 
       - name: Start backend integration stack
         run: |
