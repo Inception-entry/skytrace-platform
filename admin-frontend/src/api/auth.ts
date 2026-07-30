@@ -12,3 +12,12 @@ export const me = () =>
 
 export const logout = (refreshToken: string) =>
   client.post('/auth/logout', { refresh_token: refreshToken }).catch(() => {})
+
+export const updateProfile = (data: { nickname?: string; email?: string; avatar?: string }) =>
+  client.put<{ id: number; username: string; nickname: string | null; email: string | null; avatar: string | null }>(
+    '/auth/profile',
+    data,
+  ).then(r => r.data)
+
+export const changePassword = (data: { currentPassword: string; newPassword: string }) =>
+  client.put('/auth/password', data)

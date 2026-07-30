@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  username  String     @unique
-  password  String
-  email     String?
-  nickname  String?
-  status    Int        @default(1)
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
+  id             Int            @id @default(autoincrement())
+  username       String         @unique
+  password       String
+  email          String?
+  nickname       String?
+  avatar         String?
+  status         Int            @default(1)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
   userRoles      UserRole[]
   refreshTokens  RefreshToken[]
 
@@ -85,4 +86,21 @@ model RoleMenu {
 
   @@id([roleId, menuId])
   @@map("sys_role_menu")
+}
+
+model OperationLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  username  String
+  module    String
+  action    String
+  method    String
+  path      String
+  params    String?
+  ip        String?
+  status    Int
+  duration  Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sys_operation_log")
 }

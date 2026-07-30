@@ -17,6 +17,7 @@ import { CreateRoleDto } from './dto/create-role.dto'
 import { UpdateRoleDto } from './dto/update-role.dto'
 import { QueryRoleDto } from './dto/query-role.dto'
 import { AssignMenusDto } from './dto/assign-menus.dto'
+import { Log } from '../common/decorators/log.decorator'
 
 @UseGuards(JwtAuthGuard)
 @Controller('roles')
@@ -34,17 +35,20 @@ export class RolesController {
   }
 
   @Post()
+  @Log('角色管理', '创建')
   create(@Body() dto: CreateRoleDto) {
     return this.rolesService.create(dto)
   }
 
   @Put(':id')
+  @Log('角色管理', '更新')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoleDto) {
     return this.rolesService.update(id, dto)
   }
 
   @Delete(':id')
   @HttpCode(204)
+  @Log('角色管理', '删除')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.remove(id)
   }
@@ -55,6 +59,7 @@ export class RolesController {
   }
 
   @Put(':id/menus')
+  @Log('角色管理', '分配菜单')
   assignMenus(@Param('id', ParseIntPipe) id: number, @Body() dto: AssignMenusDto) {
     return this.rolesService.assignMenus(id, dto.menuIds)
   }

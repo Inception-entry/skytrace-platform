@@ -1,10 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { createHash } from 'crypto'
 import * as bcrypt from 'bcryptjs'
 import { PrismaService } from '../prisma/prisma.service'
 import { buildMenuTree } from '../common/utils/menu-tree'
+import { UpdateProfileDto } from './dto/update-profile.dto'
+import { ChangePasswordDto } from './dto/change-password.dto'
 
 interface JwtPayload {
   sub: number
@@ -92,6 +94,28 @@ export class AuthService {
     await this.prisma.refreshToken.deleteMany({ where: { token: tokenHash } })
   }
 
+  async updateProfile(userId: number, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: dto,
+    })
+    return {
+      id: user.id,
+      username: user.username,
+      nickname: user.nickname,
+      email: user.email,
+      avatar: user.avatar,
+    }
+  }
+
+  async changePassword(userId: number, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } })
+    const valid = await bcrypt.compare(dto.currentPassword, user.password)
+    if (!valid) throw new BadRequestException('当前密码不正确')
+    const hashed = await bcrypt.hash(dto.newPassword, 10)
+    await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } })
+  }
+
   async getMe(userId: number) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
@@ -125,6 +149,7 @@ export class AuthService {
       username: user.username,
       nickname: user.nickname,
       email: user.email,
+      avatar: user.avatar,
       roles,
       permissions,
       menus,

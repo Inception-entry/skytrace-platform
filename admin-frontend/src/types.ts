@@ -3,6 +3,7 @@ export interface User {
   username: string
   email: string | null
   nickname: string | null
+  avatar: string | null
   status: number
   createdAt: string
   updatedAt: string
@@ -48,6 +49,7 @@ export interface MeResponse {
   username: string
   nickname: string | null
   email: string | null
+  avatar: string | null
   roles: Pick<Role, 'id' | 'name' | 'code'>[]
   permissions: string[]
   menus: MenuNode[]
@@ -64,4 +66,27 @@ export interface Paginated<T> {
   total: number
   page: number
   pageSize: number
+}
+
+export interface OperationLog {
+  id: number
+  userId: number
+  username: string
+  module: string
+  action: string
+  method: string
+  path: string
+  params: string | null
+  ip: string | null
+  status: number
+  duration: number
+  createdAt: string
+}
+
+export interface DashboardStats {
+  userCount: number
+  roleCount: number
+  menuCount: number
+  sessionCount: number
+  loginTrend: { date: string; count: number }[]
 }
