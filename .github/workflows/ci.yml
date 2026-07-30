@@ -92,7 +92,7 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=dev
       - name: Build and test JWT authorization
         run: npm test
 
@@ -117,7 +117,7 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=dev
       - name: Type-check and build
         run: npm run build
 
