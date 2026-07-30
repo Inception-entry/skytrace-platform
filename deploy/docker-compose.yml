@@ -357,6 +357,8 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-admin_user}:${POSTGRES_PASSWORD:-admin123456}@postgres:5432/${POSTGRES_DB:-uav_admin}
+      JWT_SECRET: ${ADMIN_JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_REFRESH_SECRET: ${ADMIN_JWT_REFRESH_SECRET:-dev-jwt-refresh-secret-change-in-production}
     ports:
       - "127.0.0.1:${ADMIN_SERVICE_PORT:-3100}:3000"
     expose:

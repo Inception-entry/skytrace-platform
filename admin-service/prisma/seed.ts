@@ -1,13 +1,7 @@
 import { PrismaClient } from '@prisma/client'
-import * as crypto from 'crypto'
+import * as bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
-
-// Simple SHA-256 hash placeholder — Phase 2 will switch to bcrypt via auth module.
-// The seed only runs in development; production passwords are set via the admin UI.
-function hashPassword(plain: string): string {
-  return crypto.createHash('sha256').update(plain).digest('hex')
-}
 
 const menus = [
   { name: '系统管理', code: 'system', type: 1, sort: 1, icon: 'SettingOutlined' },
@@ -29,7 +23,6 @@ const menus = [
 async function main() {
   console.log('Seeding database...')
 
-  // Upsert menus (two passes: parents first, then children)
   const parents = menus.filter(m => !m.parentCode)
   const children = menus.filter(m => m.parentCode)
 
@@ -50,14 +43,12 @@ async function main() {
     })
   }
 
-  // Upsert super_admin role
   const role = await prisma.role.upsert({
     where: { code: 'super_admin' },
     update: {},
     create: { name: '超级管理员', code: 'super_admin', description: '拥有全部权限' },
   })
 
-  // Assign all menus to super_admin
   const allMenus = await prisma.menu.findMany()
   for (const menu of allMenus) {
     await prisma.roleMenu.upsert({
@@ -67,13 +58,12 @@ async function main() {
     })
   }
 
-  // Upsert admin user (password: Admin@123 — change immediately after first login)
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
     update: {},
     create: {
       username: 'admin',
-      password: hashPassword('Admin@123'),
+      password: await bcrypt.hash('Admin@123', 10),
       nickname: '管理员',
       email: 'admin@example.com',
     },
@@ -86,7 +76,6 @@ async function main() {
   })
 
   console.log('Seed complete. Default credentials: admin / Admin@123')
-  console.log('NOTE: Phase 2 will replace SHA-256 hashing with bcrypt.')
 }
 
 main()
