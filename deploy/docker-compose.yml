@@ -44,6 +44,26 @@ services:
     networks:
       - backend
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: uav-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-uav_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-admin_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123456}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-admin_user}", "-d", "${POSTGRES_DB:-uav_admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
   rabbitmq:
     image: rabbitmq:4-management
     container_name: uav-rabbitmq
@@ -328,6 +348,31 @@ services:
       - edge
       - backend
 
+  admin-service:
+    build:
+      context: ../admin-service
+    container_name: uav-admin-service
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin_user}:${POSTGRES_PASSWORD:-admin123456}@postgres:5432/${POSTGRES_DB:-uav_admin}
+    ports:
+      - "127.0.0.1:${ADMIN_SERVICE_PORT:-3100}:3000"
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/admin-api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
   frontend:
     build:
       context: ../frontend
@@ -353,6 +398,7 @@ services:
 
 volumes:
   mysql_data:
+  postgres_data:
   redis_data:
   rabbitmq_data:
   minio_data:

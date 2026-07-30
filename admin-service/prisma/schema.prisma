@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  username  String     @unique
+  password  String
+  email     String?
+  nickname  String?
+  status    Int        @default(1)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  userRoles UserRole[]
+
+  @@map("sys_user")
+}
+
+model Role {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  code        String     @unique
+  description String?
+  status      Int        @default(1)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  userRoles   UserRole[]
+  roleMenus   RoleMenu[]
+
+  @@map("sys_role")
+}
+
+model Menu {
+  id        Int        @id @default(autoincrement())
+  name      String
+  code      String     @unique
+  path      String?
+  component String?
+  icon      String?
+  type      Int        @default(1)
+  parentId  Int?       @map("parent_id")
+  parent    Menu?      @relation("MenuTree", fields: [parentId], references: [id])
+  children  Menu[]     @relation("MenuTree")
+  sort      Int        @default(0)
+  visible   Int        @default(1)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  roleMenus RoleMenu[]
+
+  @@map("sys_menu")
+}
+
+model UserRole {
+  userId Int  @map("user_id")
+  roleId Int  @map("role_id")
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("sys_user_role")
+}
+
+model RoleMenu {
+  roleId Int  @map("role_id")
+  menuId Int  @map("menu_id")
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menu   Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, menuId])
+  @@map("sys_role_menu")
+}
