@@ -1,0 +1,12 @@
+{$UAV_DOMAIN} {
+    encode gzip zstd
+
+    # Keycloak: auth, login page resources, and JS adapter
+    @keycloak path /realms/* /resources/* /js/*
+    handle @keycloak {
+        reverse_proxy keycloak:8080
+    }
+
+    # Vue SPA + API proxy (frontend Nginx routes /api/* → gateway internally)
+    reverse_proxy frontend:80
+}

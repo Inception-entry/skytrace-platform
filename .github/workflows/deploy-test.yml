@@ -1,0 +1,45 @@
+name: Deploy (test)
+
+on:
+  workflow_run:
+    workflows: [Publish]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to test environment
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: test
+    steps:
+      - name: Compute image tag
+        id: tag
+        run: |
+          sha="${{ github.event.workflow_run.head_sha }}"
+          echo "value=main-${sha:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.TEST_SSH_HOST }}
+          username: ${{ secrets.TEST_SSH_USER }}
+          key: ${{ secrets.TEST_SSH_KEY }}
+          envs: IMAGE_TAG,REGISTRY,UAV_DOMAIN,GHCR_PAT,GHCR_USER
+          script: |
+            set -euo pipefail
+            echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+            cd /opt/uav
+            git fetch origin main --quiet
+            git reset --hard origin/main
+            bash scripts/deploy-staging.sh
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.value }}
+          REGISTRY: ghcr.io/${{ github.repository }}
+          UAV_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHCR_USER: ${{ github.repository_owner }}

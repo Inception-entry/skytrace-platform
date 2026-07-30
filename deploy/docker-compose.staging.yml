@@ -1,0 +1,58 @@
+# Staging overlay: replace build contexts with pre-built registry images,
+# expose HTTPS via Caddy, and adjust Keycloak to its public URL.
+#
+# Usage (on the test server):
+#   export IMAGE_TAG=main-abc1234 REGISTRY=ghcr.io/owner/repo UAV_DOMAIN=test.example.com
+#   docker compose --env-file deploy/.env \
+#     -f deploy/docker-compose.yml -f deploy/docker-compose.staging.yml \
+#     pull
+#   docker compose ... up -d --no-build
+
+services:
+  backend-ai:
+    image: ${REGISTRY}/backend-ai:${IMAGE_TAG:-latest}
+
+  backend-java:
+    image: ${REGISTRY}/backend-java:${IMAGE_TAG:-latest}
+
+  backend-node:
+    image: ${REGISTRY}/backend-node:${IMAGE_TAG:-latest}
+
+  gateway:
+    image: ${REGISTRY}/gateway:${IMAGE_TAG:-latest}
+
+  frontend:
+    image: ${REGISTRY}/frontend:${IMAGE_TAG:-latest}
+    # Keep loopback binding for health checks; Caddy is the public entry point.
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8888}:80"
+    environment:
+      NGINX_SERVER_NAME: ${UAV_DOMAIN:-localhost}
+
+  keycloak:
+    environment:
+      KC_HOSTNAME: https://${UAV_DOMAIN}
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: uav-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      UAV_DOMAIN: ${UAV_DOMAIN}
+    networks:
+      - edge
+    depends_on:
+      - frontend
+      - keycloak
+
+volumes:
+  caddy_data:
+  caddy_config:
