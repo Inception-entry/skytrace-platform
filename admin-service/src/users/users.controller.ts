@@ -16,6 +16,7 @@ import { UsersService } from './users.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { QueryUserDto } from './dto/query-user.dto'
+import { AssignRolesDto } from './dto/assign-roles.dto'
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
@@ -46,5 +47,10 @@ export class UsersController {
   @HttpCode(204)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id)
+  }
+
+  @Put(':id/roles')
+  assignRoles(@Param('id', ParseIntPipe) id: number, @Body() dto: AssignRolesDto) {
+    return this.usersService.assignRoles(id, dto.roleIds)
   }
 }

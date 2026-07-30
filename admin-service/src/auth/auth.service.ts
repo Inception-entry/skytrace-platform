@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import * as bcrypt from 'bcryptjs'
 import { PrismaService } from '../prisma/prisma.service'
+import { buildMenuTree } from '../common/utils/menu-tree'
 
 interface JwtPayload {
   sub: number
@@ -77,9 +78,11 @@ export class AuthService {
       code: ur.role.code,
     }))
 
-    const permissions = [
-      ...new Set(user.userRoles.flatMap(ur => ur.role.roleMenus.map(rm => rm.menu.code))),
-    ]
+    const allMenus = user.userRoles.flatMap(ur => ur.role.roleMenus.map(rm => rm.menu))
+    const uniqueMenus = [...new Map(allMenus.map(m => [m.id, m])).values()]
+
+    const permissions = uniqueMenus.map(m => m.code)
+    const menus = buildMenuTree(uniqueMenus)
 
     return {
       id: user.id,
@@ -88,6 +91,7 @@ export class AuthService {
       email: user.email,
       roles,
       permissions,
+      menus,
     }
   }
 }
