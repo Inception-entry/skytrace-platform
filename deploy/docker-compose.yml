@@ -331,14 +331,13 @@ services:
   frontend:
     build:
       context: ../frontend
-      args:
-        VITE_KEYCLOAK_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8180}
-        VITE_KEYCLOAK_REALM: uav
-        VITE_KEYCLOAK_CLIENT_ID: uav-web
     container_name: uav-frontend
     restart: always
     environment:
       NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-localhost}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8180}
+      KEYCLOAK_REALM: uav
+      KEYCLOAK_CLIENT_ID: uav-web
     ports:
       - "${FRONTEND_PORT:-8888}:80"
       - "${HTTPS_PORT:-8443}:443"

@@ -1,10 +1,17 @@
 import Keycloak from 'keycloak-js'
 import { reactive, readonly } from 'vue'
 
+interface UavConfig {
+  keycloakUrl?: string
+  keycloakRealm?: string
+  keycloakClientId?: string
+}
+const rc = ((window as unknown as Record<string, unknown>).__UAV_CONFIG__ ?? {}) as UavConfig
+
 const keycloak = new Keycloak({
-  url: import.meta.env.VITE_KEYCLOAK_URL ?? 'http://localhost:8180',
-  realm: import.meta.env.VITE_KEYCLOAK_REALM ?? 'uav',
-  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'uav-web',
+  url: rc.keycloakUrl ?? import.meta.env.VITE_KEYCLOAK_URL ?? 'http://localhost:8180',
+  realm: rc.keycloakRealm ?? import.meta.env.VITE_KEYCLOAK_REALM ?? 'uav',
+  clientId: rc.keycloakClientId ?? import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'uav-web',
 })
 
 interface AuthenticationState {
