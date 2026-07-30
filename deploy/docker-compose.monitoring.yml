@@ -1,0 +1,121 @@
+# Monitoring overlay: Prometheus, Grafana, Loki, Promtail, Node Exporter,
+# cAdvisor, Alertmanager.
+#
+# Usage:
+#   docker compose -f deploy/docker-compose.yml \
+#                  -f deploy/docker-compose.monitoring.yml \
+#                  up -d
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    container_name: uav-prometheus
+    restart: always
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    networks:
+      - backend
+
+  grafana:
+    image: grafana/grafana:12.0.1
+    container_name: uav-grafana
+    restart: always
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3030}:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    networks:
+      - backend
+
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: uav-loki
+    restart: always
+    ports:
+      - "127.0.0.1:${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./loki:/etc/loki:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    networks:
+      - backend
+
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: uav-promtail
+    restart: always
+    volumes:
+      - ./promtail:/etc/promtail:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - backend
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: uav-node-exporter
+    restart: always
+    pid: host
+    ports:
+      - "127.0.0.1:9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    networks:
+      - backend
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    container_name: uav-cadvisor
+    restart: always
+    privileged: true
+    ports:
+      - "127.0.0.1:${CADVISOR_PORT:-8089}:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    networks:
+      - backend
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: uav-alertmanager
+    restart: always
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    networks:
+      - backend
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  alertmanager_data:

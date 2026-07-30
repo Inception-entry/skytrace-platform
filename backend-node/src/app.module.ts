@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { APP_GUARD } from '@nestjs/core';
 import { HealthController } from './health/health.controller';
+import { MetricsController } from './metrics/metrics.controller';
 import { JavaClientService } from './shared/java-client.service';
 import { AlarmController } from './alarm/alarm.controller';
 import { InspectionTaskController } from './inspection-task/inspection-task.controller';
@@ -20,6 +21,7 @@ import { AdminController } from './admin/admin.controller';
   ],
   controllers: [
     HealthController,
+    MetricsController,
     AlarmController,
     InspectionTaskController,
     KnowledgeController,
