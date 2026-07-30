@@ -375,6 +375,22 @@ services:
     networks:
       - backend
 
+  admin-frontend:
+    build:
+      context: ../admin-frontend
+    container_name: uav-admin-frontend
+    restart: always
+    environment:
+      NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-localhost}
+    ports:
+      - "${ADMIN_FRONTEND_PORT:-8889}:80"
+    depends_on:
+      admin-service:
+        condition: service_healthy
+    networks:
+      - edge
+      - backend
+
   frontend:
     build:
       context: ../frontend
