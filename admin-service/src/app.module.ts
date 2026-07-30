@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module'
 import { RolesModule } from './roles/roles.module'
 import { MenusModule } from './menus/menus.module'
 import { HealthController } from './health/health.controller'
+import { MetricsController } from './metrics/metrics.controller'
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { HealthController } from './health/health.controller'
     RolesModule,
     MenusModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, MetricsController],
 })
 export class AppModule {}

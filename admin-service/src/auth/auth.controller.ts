@@ -24,6 +24,13 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  @HttpCode(204)
+  async logout(@Body() dto: RefreshDto) {
+    await this.authService.logout(dto.refresh_token)
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@CurrentUser() user: RequestUser) {
     return this.authService.getMe(user.id)

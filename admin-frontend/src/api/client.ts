@@ -48,11 +48,12 @@ client.interceptors.response.use(
     }
 
     try {
-      const { data } = await axios.post<{ access_token: string }>('/admin-api/auth/refresh', {
-        refresh_token: refreshToken,
-      })
+      const { data } = await axios.post<{ access_token: string; refresh_token: string }>(
+        '/admin-api/auth/refresh',
+        { refresh_token: refreshToken },
+      )
       const newToken = data.access_token
-      useAuthStore.getState().setTokens(newToken, refreshToken)
+      useAuthStore.getState().setTokens(newToken, data.refresh_token)
       flushQueue(null, newToken)
       original.headers.Authorization = `Bearer ${newToken}`
       return client(original)

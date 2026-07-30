@@ -121,6 +121,54 @@ jobs:
       - name: Type-check and build
         run: npm run build
 
+  admin-service:
+    name: Admin service (NestJS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: admin-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: admin-service/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Audit dependencies
+        run: npm audit --audit-level=high --omit=dev
+
+  admin-frontend:
+    name: Admin frontend (React)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: admin-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: admin-frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Audit dependencies
+        run: npm audit --audit-level=high --omit=dev
+      - name: Type-check and build
+        run: npm run build
+
   docker-e2e:
     name: Docker full-stack integration
     needs:
@@ -129,6 +177,8 @@ jobs:
       - gateway-java
       - backend-node
       - frontend
+      - admin-service
+      - admin-frontend
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -195,14 +245,14 @@ jobs:
           docker compose \
             --env-file "$UAV_ENV_FILE" \
             -f deploy/docker-compose.yml \
-            build backend-ai backend-java backend-node gateway frontend
+            build backend-ai backend-java backend-node gateway frontend admin-service admin-frontend
 
       - name: Scan application images for vulnerabilities
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
             | sh -s -- -b /usr/local/bin latest
           project="$(basename "$GITHUB_WORKSPACE")"
-          for svc in backend-ai backend-java backend-node gateway frontend; do
+          for svc in backend-ai backend-java backend-node gateway frontend admin-service admin-frontend; do
             echo "=== Trivy: ${svc} ==="
             trivy image \
               --severity HIGH,CRITICAL \

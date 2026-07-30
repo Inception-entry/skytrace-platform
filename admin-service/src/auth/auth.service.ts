@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
+import { createHash } from 'crypto'
 import * as bcrypt from 'bcryptjs'
 import { PrismaService } from '../prisma/prisma.service'
 import { buildMenuTree } from '../common/utils/menu-tree'
@@ -10,6 +11,12 @@ interface JwtPayload {
   username: string
 }
 
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -17,6 +24,10 @@ export class AuthService {
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
+
+  private get refreshSecret() {
+    return this.config.get<string>('JWT_REFRESH_SECRET', 'dev-jwt-refresh-secret-change-in-production')
+  }
 
   async validateUser(username: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { username } })
@@ -29,31 +40,56 @@ export class AuthService {
 
   async login(userId: number, username: string) {
     const payload: JwtPayload = { sub: userId, username }
-    const refreshSecret = this.config.get<string>('JWT_REFRESH_SECRET', 'dev-jwt-refresh-secret-change-in-production')
-    return {
-      access_token: this.jwtService.sign(payload),
-      refresh_token: this.jwtService.sign(payload, { secret: refreshSecret, expiresIn: '7d' }),
-      expires_in: 900,
-    }
+    const accessToken = this.jwtService.sign(payload)
+    const refreshToken = this.jwtService.sign(payload, { secret: this.refreshSecret, expiresIn: '7d' })
+
+    await this.prisma.refreshToken.create({
+      data: {
+        token: hashToken(refreshToken),
+        userId,
+        expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+      },
+    })
+
+    return { access_token: accessToken, refresh_token: refreshToken, expires_in: 900 }
   }
 
   async refresh(refreshToken: string) {
-    const refreshSecret = this.config.get<string>('JWT_REFRESH_SECRET', 'dev-jwt-refresh-secret-change-in-production')
     let payload: JwtPayload
     try {
-      payload = this.jwtService.verify<JwtPayload>(refreshToken, { secret: refreshSecret })
+      payload = this.jwtService.verify<JwtPayload>(refreshToken, { secret: this.refreshSecret })
     } catch {
       throw new UnauthorizedException('无效或已过期的刷新令牌')
     }
+
+    const tokenHash = hashToken(refreshToken)
+    const stored = await this.prisma.refreshToken.findUnique({ where: { token: tokenHash } })
+    if (!stored) throw new UnauthorizedException('令牌已撤销')
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } })
     if (!user || user.status !== 1) throw new UnauthorizedException('账号不存在或已被禁用')
 
     const newPayload: JwtPayload = { sub: user.id, username: user.username }
-    return {
-      access_token: this.jwtService.sign(newPayload),
-      expires_in: 900,
-    }
+    const newAccessToken = this.jwtService.sign(newPayload)
+    const newRefreshToken = this.jwtService.sign(newPayload, { secret: this.refreshSecret, expiresIn: '7d' })
+
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.delete({ where: { token: tokenHash } }),
+      this.prisma.refreshToken.create({
+        data: {
+          token: hashToken(newRefreshToken),
+          userId: user.id,
+          expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+        },
+      }),
+    ])
+
+    return { access_token: newAccessToken, refresh_token: newRefreshToken, expires_in: 900 }
+  }
+
+  async logout(refreshToken: string) {
+    const tokenHash = hashToken(refreshToken)
+    await this.prisma.refreshToken.deleteMany({ where: { token: tokenHash } })
   }
 
   async getMe(userId: number) {

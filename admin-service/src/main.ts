@@ -1,11 +1,14 @@
 import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
+import { collectDefaultMetrics } from 'prom-client'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
+  collectDefaultMetrics()
+
   const app = await NestFactory.create(AppModule)
 
-  app.setGlobalPrefix('admin-api')
+  app.setGlobalPrefix('admin-api', { exclude: ['metrics'] })
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))
   app.enableCors()
 
