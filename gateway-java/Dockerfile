@@ -9,6 +9,7 @@ RUN mvn -q clean package -DskipTests
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
+RUN rm -f /usr/bin/pebble
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080

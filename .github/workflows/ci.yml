@@ -225,6 +225,7 @@ jobs:
           echo "::add-mask::$test_user_password"
           echo "UAV_ENV_FILE=$ci_env" >> "$GITHUB_ENV"
           echo "KEYCLOAK_CLIENT_SECRET=$service_secret" >> "$GITHUB_ENV"
+          echo "COMPOSE_PROJECT_NAME=uav-ci" >> "$GITHUB_ENV"
 
       - name: Start Ollama health-check mock
         shell: bash
@@ -254,13 +255,11 @@ jobs:
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
             | sh -s -- -b /usr/local/bin latest
           for svc in backend-ai backend-java backend-node gateway frontend admin-service admin-frontend; do
-            image="$(docker compose \
-              --env-file "$UAV_ENV_FILE" \
-              -f deploy/docker-compose.yml \
-              config --images "$svc" | head -n 1)"
-            test -n "$image"
+            image="${COMPOSE_PROJECT_NAME}-${svc}"
+            docker image inspect "$image" >/dev/null
             echo "=== Trivy: ${svc} ==="
             trivy image \
+              --scanners vuln \
               --severity HIGH,CRITICAL \
               --exit-code 1 \
               --ignore-unfixed \
