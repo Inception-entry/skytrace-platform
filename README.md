@@ -67,7 +67,7 @@ uav-java-node-architecture/
 
 本地开发：
 
-- JDK 17、Maven 3.9+
+- JDK 21、Maven 3.9+
 - Node.js 20+、npm
 - 前端推荐 Node.js 22+
 - Ollama，以及 `my-drone-expert` 和 `nomic-embed-text` 模型
@@ -162,7 +162,7 @@ docker compose --env-file deploy/.env \
 
 `.github/workflows/ci.yml` 会在每次 push 和 Pull Request 时并行执行：
 
-- Java 17：Spring Boot 与 Spring Cloud Gateway 的测试和 Maven 打包；
+- Java 21：Spring Boot 与 Spring Cloud Gateway 的测试和 Maven 打包；
 - Python 3.12：AI 服务测试；
 - Node.js 20：BFF 与管理 API 的 lint、测试及依赖审计；
 - Node.js 22：Vue 业务端和 React 管理端的类型检查、构建及依赖审计。
