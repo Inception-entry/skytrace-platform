@@ -37,10 +37,12 @@ jobs:
         with:
           scan-type: fs
           scan-ref: ${{ matrix.path }}
+          scanners: vuln
           severity: HIGH,CRITICAL
           exit-code: '1'
           ignore-unfixed: true
           format: sarif
+          limit-severities-for-sarif: true
           output: trivy-${{ matrix.name }}.sarif
       - name: Upload SARIF results
         if: always()
