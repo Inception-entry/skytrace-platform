@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   deploy:
@@ -17,6 +18,25 @@ jobs:
     timeout-minutes: 15
     environment: test
     steps:
+      - name: Validate deployment configuration
+        env:
+          TEST_SSH_HOST: ${{ secrets.TEST_SSH_HOST }}
+          TEST_SSH_USER: ${{ secrets.TEST_SSH_USER }}
+          TEST_SSH_KEY: ${{ secrets.TEST_SSH_KEY }}
+          STAGING_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
+        run: |
+          missing=()
+          for name in TEST_SSH_HOST TEST_SSH_USER TEST_SSH_KEY STAGING_DOMAIN; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing GitHub environment secrets: ${missing[*]}"
+            echo "Configure them in Settings > Environments > test."
+            exit 1
+          fi
+
       - name: Compute image tag
         id: tag
         run: |
@@ -29,10 +49,10 @@ jobs:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: ${{ secrets.TEST_SSH_USER }}
           key: ${{ secrets.TEST_SSH_KEY }}
-          envs: IMAGE_TAG,REGISTRY,UAV_DOMAIN,GHCR_PAT,GHCR_USER
+          envs: IMAGE_TAG,REGISTRY,UAV_DOMAIN,GHCR_TOKEN,GHCR_USER
           script: |
             set -euo pipefail
-            echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
             cd /opt/uav
             git fetch origin main --quiet
             git reset --hard origin/main
@@ -41,5 +61,5 @@ jobs:
           IMAGE_TAG: ${{ steps.tag.outputs.value }}
           REGISTRY: ghcr.io/${{ github.repository }}
           UAV_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHCR_TOKEN: ${{ github.token }}
           GHCR_USER: ${{ github.repository_owner }}
