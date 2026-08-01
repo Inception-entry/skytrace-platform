@@ -178,6 +178,8 @@ docker compose --env-file deploy/.env \
   `Gateway → Node BFF → Java → Temporal → MySQL` 状态闭环；
 - 失败时上传 Compose 状态、全量容器日志和镜像清单，并保留 7 天。
 
+`main` 分支在 Publish 成功后还会触发 `Deploy (test)`。**没有测试服务器时无需配置任何 Secret**，该工作流会自动跳过远程部署并保持成功；本地开发使用 `./scripts/uav.sh rebuild` 即可。将来若有 VPS，在服务器执行 `scripts/staging-init.sh`，并在 GitHub `Environments → test` 中配置 `TEST_SSH_*` 与 `STAGING_DOMAIN` 后，同一工作流才会真正 SSH 部署。
+
 ## 本地开发
 
 ### Java 核心服务

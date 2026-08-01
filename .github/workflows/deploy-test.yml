@@ -18,7 +18,8 @@ jobs:
     timeout-minutes: 15
     environment: test
     steps:
-      - name: Validate deployment configuration
+      - name: Check whether test deployment is configured
+        id: config
         env:
           TEST_SSH_HOST: ${{ secrets.TEST_SSH_HOST }}
           TEST_SSH_USER: ${{ secrets.TEST_SSH_USER }}
@@ -32,18 +33,24 @@ jobs:
             fi
           done
           if (( ${#missing[@]} > 0 )); then
-            echo "::error::Missing GitHub environment secrets: ${missing[*]}"
-            echo "Configure them in Settings > Environments > test."
-            exit 1
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Test deploy skipped::No test server configured (missing: ${missing[*]})."
+            echo "Local development: ./scripts/uav.sh rebuild"
+            echo "To enable remote deploy later: Settings → Environments → test → add the secrets above,"
+            echo "then run scripts/staging-init.sh on the test server."
+            exit 0
           fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
 
       - name: Compute image tag
+        if: steps.config.outputs.enabled == 'true'
         id: tag
         run: |
           sha="${{ github.event.workflow_run.head_sha }}"
           echo "value=main-${sha:0:7}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy via SSH
+        if: steps.config.outputs.enabled == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
