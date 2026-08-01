@@ -1,4 +1,9 @@
-# 权限、审计与后台管理
+# 业务端权限、审计与管理概览
+
+本文描述业务端（Vue、Gateway、Node BFF 与 Spring Boot）的权限和审计链路。
+项目另有独立管理后台（`admin-frontend` 与 `admin-service`），默认地址为
+`http://localhost:8889`。它使用独立的 NestJS JWT、PostgreSQL RBAC 和操作日志，
+不与 Keycloak 业务用户共享会话或账号体系。
 
 ## 请求校验链
 
@@ -46,7 +51,7 @@ Java API 会把关键写操作写入 MySQL 的 `audit_log` 表，包括：
 日志，因此在 JWT 校验阶段被拒绝、尚未进入 Java 控制器的 401/403 请求也能
 通过请求 ID 在 Gateway 日志中定位。
 
-## 管理入口
+## 业务端管理入口
 
 使用 `ADMIN` 账号登录后，可以从右上角进入 `/admin`。管理中心提供：
 

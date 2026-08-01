@@ -1,25 +1,19 @@
-# Temporal / Nexus 融合路线
+# Temporal / Nexus 实现与演进
 
-本项目推荐先用 Temporal Workflow 承载“巡检任务生命周期”，再在服务边界稳定后引入 Nexus。
+Temporal 已在 Spring Boot 中接入，用于巡检工作流和可靠的同步 AI 分析；
+Nexus 仍是未来的跨服务演进选项。
 
-## 现阶段接入点
-
-当前架构是：
-
-```text
-Frontend -> Node.js BFF -> Spring Boot -> MySQL / Redis / RabbitMQ / MinIO
-```
-
-接入 Temporal 后建议变成：
+## 当前接入点
 
 ```text
-Frontend -> Node.js BFF -> Spring Boot -> Temporal Workflow
-                                      ├── MySQL: 业务查询和审计
-                                      ├── RabbitMQ: AI 识别结果事件
-                                      └── MinIO: 证据截图和视频
+Vue -> Nginx -> Gateway -> Node BFF -> Spring Boot -> Temporal Workflow
+                                                  ├── MySQL：任务、分析历史和审计
+                                                  └── FastAPI AI：流式或同步模型调用
 ```
 
-Spring Boot 仍然是业务入口。Temporal 不直接暴露给前端，也不替代数据库；它负责可靠编排、重试、超时、等待外部事件和恢复执行。
+Spring Boot 是业务入口，Temporal 不直接暴露给前端，也不替代数据库。它负责
+可靠编排、重试、超时和工作流状态追踪。RabbitMQ 的识别结果 Signal、面向巡检的
+MinIO 证据对象关联则尚未实施。
 
 ## Compose 服务
 
@@ -54,29 +48,28 @@ TEMPORAL_TASK_QUEUE=uav-inspection-task-queue
 localhost:7233
 ```
 
-## 推荐 Workflow
+## 已实现 Workflow
 
-第一条工作流建议命名为 `InspectionWorkflow`，围绕巡检任务状态推进：
+Java Worker 使用 `uav-inspection-task-queue`，已注册：
+
+- `InspectionWorkflow`：启动、查询状态、完成和取消巡检任务；
+- `InspectionAnalysisWorkflow`：可靠的完整 AI 分析；
+- `InspectionChatWorkflow`：同步聊天分析。
+
+可用业务接口：
 
 ```text
-startInspection(taskCode)
-  -> validateTask
-  -> assignDrone
-  -> dispatchRoute
-  -> waitForSignals
-       - alarmDetected
-       - evidenceUploaded
-       - taskCompleted
-       - taskCancelled
-  -> closeTask
+POST /api/inspection-workflows/{taskCode}
+GET  /api/inspection-workflows/{taskCode}/status
+POST /api/inspection-workflows/{taskCode}/complete
+POST /api/inspection-workflows/{taskCode}/cancel
+POST /api/inspection-workflows/{taskCode}/analysis
+POST /api/inspection-workflows/{taskCode}/analysis/stream
 ```
 
-Activity 建议保持短小、幂等：
-
-- `TaskActivities`: 校验任务、更新任务状态、写审计日志。
-- `DroneActivities`: 分配无人机、下发航线。
-- `EvidenceActivities`: 保存证据元数据、关联 MinIO 对象 key。
-- `NotificationActivities`: 触发 Node.js 或消息队列推送。
+其中 `/analysis` 的完整结果由 Workflow 编排；`/analysis/stream` 直接透传 SSE，
+避免将每个模型 Token 记录到 Temporal 历史。两条通道均在成功完成后保存分析
+记录。
 
 ## RabbitMQ 与 Temporal 的关系
 
@@ -101,21 +94,10 @@ Temporal Nexus 适合跨 Temporal 应用的可靠服务调用。官方文档说�
 
 到那时，每个团队或服务可以拥有自己的 Namespace、Task Queue 和 Worker，Spring Boot 的巡检 Workflow 通过 Nexus 调用它们。
 
-## Java 代码落地顺序
+## 下一步
 
-1. 添加 Temporal Java SDK 依赖。
-2. 添加 `TemporalProperties` 读取 `app.temporal.*` 配置。
-3. 注册 `WorkflowClient`、`WorkerFactory` 和 `Worker`。
-4. 新建 `InspectionWorkflow` 接口和实现。
-5. 新建 Activity 接口和实现，把现有任务、告警、证据逻辑逐步迁入。
-6. 在 `InspectionTaskController` 增加启动工作流、查询工作流状态、取消工作流接口。
-7. RabbitMQ 消费 AI 告警后给 Workflow 发 Signal。
+1. 接入 RabbitMQ 消费者，将 AI 识别结果转为 `InspectionWorkflow` Signal。
+2. 接入证据对象存储，在 Workflow 中仅保留 MinIO object key 与元数据。
+3. 为飞控、视觉推理或证据服务拆出独立 Worker 后，再评估 Nexus Service。
 
-第一版只需要一个 Namespace 和一个 Task Queue：
-
-```text
-namespace: default
-taskQueue: uav-inspection-task-queue
-```
-
-生产环境再拆分 Namespace、mTLS/API Key、权限、归档和可观测性。
+生产环境应另行规划 Namespace、mTLS/API Key、权限、归档和可观测性。

@@ -1,92 +1,58 @@
-# UAV Java + Node.js 架构脚手架
+# UAV 巡检平台
 
-面向“无人机巡检、人员持械识别、实时告警与证据链”场景的前后端架构脚手架。项目采用 Vue 3 + Cesium 构建三维可视化界面，Nginx 提供统一入口，Spring Cloud Gateway 承担鉴权、路由、限流和日志，NestJS 承担 BFF 与实时推送，Spring Boot 负责核心业务和数据持久化。
+面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
 ## 技术架构
 
 ```text
-浏览器
-  -> Nginx（域名、HTTPS、静态资源、网络代理）
-  -> Spring Cloud Gateway（鉴权、路由、限流、日志）
-  -> NestJS BFF（聚合、转换、前端业务编排）
-  -> Spring Boot（核心业务、Temporal、MySQL）
-  -> Python AI（LangChain、Ollama、RAG）
+业务用户 ──> Vue 3 + Cesium ──> Nginx ──> Spring Cloud Gateway ──> NestJS BFF ──> Spring Boot
+                                                                        │                 ├─ MySQL / Temporal
+                                                                        │                 ├─ Keycloak（JWT）
+                                                                        │                 └─ FastAPI AI ──> Ollama / Qdrant / Redis
+后台用户 ──> React 管理端 ─────────────────────────────────────────────> NestJS Admin ──> PostgreSQL / MinIO
+
+告警与证据能力预留：RabbitMQ、MinIO
+可观测性覆盖层：Prometheus、Grafana、Loki、Promtail、Alertmanager
 ```
 
-- **Nginx**：域名与 HTTPS 入口、静态资源托管、API/WebSocket 反向代理。
-- **Gateway**：JWT/Keycloak 鉴权、服务路由、Redis 限流、可信身份传递、请求 ID、访问日志与指标。
-- **权限与审计**：Gateway、Node BFF、Java API 三层 JWT 校验，关键写操作持久化审计，并提供 `/admin` 管理中心。
-- **Frontend**：三维地图、无人机展示、主题与语言切换。
-- **Node.js**：面向前端的接口聚合、Java 服务代理、Socket.IO 告警推送。
-- **Java**：告警、设备、巡检任务等核心业务、数据持久化及 Temporal 工作流编排入口。
-- **Python AI**：LangChain 调用本地 Ollama，结合 MySQL 任务上下文和 Qdrant 知识库生成分析结果。
-- **基础设施**：MySQL、Redis、RabbitMQ、MinIO、Temporal、Qdrant。
+- **业务端**：Vue 3、TypeScript、Cesium，提供三维巡检、告警、知识库、AI 对话和审计概览。
+- **网关与身份**：Nginx 统一入口；Spring Cloud Gateway 执行 Keycloak JWT 校验、角色策略、Redis 限流、请求追踪与指标采集。
+- **业务服务**：NestJS BFF 聚合 API、透传 SSE、推送 Socket.IO 事件；Spring Boot 负责任务、告警、知识库边界、审计与 Temporal 工作流。
+- **AI 服务**：FastAPI、LangChain、Ollama 和 Qdrant 提供 RAG 知识库、流式问答与巡检分析；Redis 保存会话上下文。
+- **独立后台**：React + Ant Design 管理端与 NestJS 管理服务，使用 PostgreSQL、Prisma 和 MinIO 管理用户、角色、菜单、操作日志及头像上传。
+- **部署与运维**：Docker Compose 提供本地、预发、生产与监控覆盖层；CI 包含各服务测试、依赖/镜像安全扫描和全栈验收。
 
-更详细的职责边界见 [`docs/architecture.md`](docs/architecture.md)。
+服务职责、调用链和现阶段边界见 [`docs/architecture.md`](docs/architecture.md)；鉴权配置见 [`docs/gateway.md`](docs/gateway.md)。
 
 ## 目录结构
 
 ```text
 uav-java-node-architecture/
-├── backend-java/                       # Spring Boot 核心业务服务
-│   ├── src/main/java/com/uav/backend/
-│   │   ├── alarm/                      # 告警领域：接口、服务、实体、仓储和 DTO
-│   │   ├── common/                     # 统一响应结构和全局异常处理
-│   │   ├── device/                     # 设备查询示例接口
-│   │   ├── health/                     # Java 服务健康检查
-│   │   ├── task/                       # 巡检任务查询示例接口
-│   │   └── BackendJavaApplication.java # Java 应用入口
-│   ├── src/main/resources/
-│   │   ├── application.yml             # 公共配置及默认 local profile
-│   │   ├── application-local.yml       # 本地 H2 配置，默认端口 8081
-│   │   └── application-docker.yml      # Docker MySQL 配置
-│   ├── src/test/                        # Java 测试
-│   ├── Dockerfile                       # Java 多阶段构建镜像
-│   └── pom.xml                          # Maven 依赖与构建配置
-├── backend-node/                        # NestJS BFF 与实时通信服务
-│   ├── src/
-│   │   ├── alarm/                       # 告警查询、创建及请求 DTO
-│   │   ├── health/                      # Node 服务健康检查
-│   │   ├── realtime/                    # Socket.IO 告警网关
-│   │   ├── shared/                      # Java HTTP 客户端
-│   │   ├── app.module.ts                # NestJS 根模块
-│   │   └── main.ts                      # Node 应用入口
-│   ├── Dockerfile                       # Node 多阶段构建镜像
-│   ├── package.json                     # npm 脚本与依赖
-│   └── tsconfig.json                    # TypeScript 配置
-├── backend-ai/                          # FastAPI + LangChain + Ollama RAG 服务
-├── gateway-java/                        # Spring Cloud Gateway 独立服务
-│   ├── src/main/                        # 路由、安全、限流和日志配置
-│   ├── Dockerfile                       # Gateway 多阶段构建镜像
-│   └── pom.xml                          # Spring Cloud 依赖管理
-├── frontend/                            # Vue 3 + Cesium 三维可视化前端
-│   ├── src/
-│   │   ├── assets/                      # 无人机模型等静态资源
-│   │   ├── components/                  # Cesium、工具栏、菜单和覆盖层组件
-│   │   ├── libs/cesium/                 # Cesium 初始化与 Vue 插件
-│   │   ├── locales/                     # 中英文语言资源
-│   │   ├── router/                      # 页面路由
-│   │   ├── store/                       # Pinia 状态管理
-│   │   ├── style/                       # 全局样式与变量
-│   │   ├── theme/                       # 主题配置
-│   │   ├── utils/                       # 语言、布局和主题工具
-│   │   ├── views/                       # 首页与无人机页面
-│   │   ├── App.vue                      # Vue 根组件
-│   │   └── main.ts                      # 前端入口
-│   ├── package.json                     # 前端脚本与依赖
-│   ├── Dockerfile                       # Vite 构建与 Nginx 运行镜像
-│   ├── nginx.conf                       # SPA、API 和 Socket.IO 反向代理
-│   └── vite.config.ts                   # Vite 与 Cesium 配置
+├── frontend/                            # Vue 3 + Cesium 业务端
+├── backend-node/                        # NestJS BFF、SSE 透传与 Socket.IO
+├── gateway-java/                        # Spring Cloud Gateway：鉴权、路由、限流
+├── backend-java/                        # Spring Boot：任务、告警、审计、Temporal
+├── backend-ai/                          # FastAPI：LangChain、Ollama、Qdrant RAG
+├── admin-frontend/                      # React + Ant Design 独立管理端
+├── admin-service/                       # NestJS + Prisma 管理 API
 ├── deploy/
-│   ├── mysql/init/001_init.sql          # 数据库与业务表初始化脚本
-│   ├── .env.example                     # Compose 环境变量模板
-│   └── docker-compose.yml               # 后端及基础设施编排
+│   ├── docker-compose.yml               # 本地完整运行环境
+│   ├── docker-compose.staging.yml       # 镜像化预发覆盖层与 Caddy HTTPS
+│   ├── docker-compose.production.yml    # 生产资源限制与 Keycloak 配置
+│   ├── docker-compose.monitoring.yml    # Prometheus、Grafana、Loki 等监控栈
+│   ├── keycloak/                        # Realm 与本地测试用户配置
+│   ├── mysql/                           # MySQL 初始化与迁移前置脚本
+│   └── .env.example                     # 环境变量模板
 ├── docs/
-│   ├── architecture.md                  # 服务职责与通信方式
-│   ├── knowledge-base.md                # 知识库使用与 RAG 调用链
-│   └── temporal-integration.md          # Temporal / Nexus 融合路线
+│   ├── architecture.md                  # 当前服务职责、链路和边界
+│   ├── gateway.md                       # Keycloak、JWT 和网关策略
+│   ├── knowledge-base.md                # 知识库与 RAG 调用链
+│   ├── security-audit-admin.md          # 业务端权限与审计
+│   └── temporal-integration.md          # Temporal 当前实现与演进方向
 ├── scripts/
-│   └── uav.sh                           # 统一管理 Compose 服务
+│   ├── uav.sh                           # 本地 Compose 管理和权限验收
+│   ├── mysql-backup.sh                  # MySQL 备份
+│   └── restore-backup.sh                # MySQL 恢复
 └── README.md                            # 项目总览与运行说明
 ```
 
@@ -114,8 +80,9 @@ uav-java-node-architecture/
 cp deploy/.env.example deploy/.env
 ```
 
-2. 检查 `deploy/.env` 中的 `MYSQL_DATABASE` 与
-   `deploy/mysql/init/001_init.sql` 中创建并使用的数据库名称一致。
+2. 在 `deploy/.env` 中替换所有示例密码。至少应设置
+   `KEYCLOAK_ADMIN_PASSWORD`、`KEYCLOAK_UAV_SERVICE_CLIENT_SECRET`、
+   `KEYCLOAK_DEV_USER_PASSWORD`、数据库密码和 `ADMIN_JWT_SECRET`。
 
 3. 首次运行或代码发生变化时，构建并启动全部服务：
 
@@ -154,7 +121,7 @@ cp deploy/.env.example deploy/.env
 ./scripts/uav.sh stop
 ```
 
-Compose 会同时启动前端、Gateway、Node BFF、Java 服务和基础设施。前端由 Nginx 托管，并将 `/api/` 与 `/socket.io/` 统一代理到 Gateway，再由 Gateway 路由到 Node BFF。
+Compose 会启动业务端、独立后台、Gateway、Node BFF、Java、AI、Keycloak 及其依赖服务。业务端由 Nginx 托管，并将 `/api/` 与 `/socket.io/` 统一代理到 Gateway，再由 Gateway 路由到 Node BFF。独立后台通过 `http://localhost:8889` 访问，API 前缀为 `/admin-api`。
 
 首次使用知识库前需要准备本地嵌入模型：
 
@@ -172,18 +139,38 @@ ollama pull nomic-embed-text
 > 和 Compose 文件；CI 可以通过 `UAV_ENV_FILE` 指定一次性的隔离配置。
 > 运行 `./scripts/uav.sh help` 可以查看全部子命令。
 
+### 可选覆盖层
+
+监控栈在本地默认不启动，可按需叠加：
+
+```bash
+docker compose --env-file deploy/.env \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.monitoring.yml up -d
+```
+
+预发和生产环境使用预构建镜像与 Caddy HTTPS 入口。生产部署还应叠加资源限制和生产模式 Keycloak：
+
+```bash
+docker compose --env-file deploy/.env \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.staging.yml \
+  -f deploy/docker-compose.production.yml up -d --no-build
+```
+
 ## 持续集成
 
 `.github/workflows/ci.yml` 会在每次 push 和 Pull Request 时并行执行：
 
-- Java 17：Spring Boot 全量测试、Temporal 内嵌测试服务和 Maven 打包；
-- Java 17：Spring Cloud Gateway 鉴权测试和 Maven 打包；
-- Node.js 20：NestJS 只读 lint、编译和 JWT/角色守卫测试；
-- Node.js 22：Vue 只读 lint、TypeScript 类型检查和 Vite 生产构建。
+- Java 17：Spring Boot 与 Spring Cloud Gateway 的测试和 Maven 打包；
+- Python 3.12：AI 服务测试；
+- Node.js 20：BFF 与管理 API 的 lint、测试及依赖审计；
+- Node.js 22：Vue 业务端和 React 管理端的类型检查、构建及依赖审计。
 
 上述任务全部通过后，`Docker full-stack integration` 会继续执行：
 
-- 根据锁文件构建 AI、Java、Gateway、Node BFF 和 Vue 镜像；
+- 根据锁文件构建 AI、Java、Gateway、Node BFF、业务端和管理端镜像；
+- 对应用镜像执行 HIGH/CRITICAL 漏洞扫描；
 - 使用运行时随机生成的密码启动隔离 Compose 环境，不读取仓库 Secret；
 - 使用 Ollama Mock 完成 AI 服务依赖健康检查，不下载本地大模型；
 - 执行 `ADMIN`、`OPERATOR`、`VIEWER` 三角色鉴权验收；
@@ -251,12 +238,16 @@ npm run dev
 | --- | --- | --- |
 | Frontend / Nginx | `http://localhost:8888` | 统一业务访问入口 |
 | HTTPS（预留） | `https://localhost:8443` | 使用 HTTPS 模板和证书后启用 |
+| Admin Frontend | `http://localhost:8889` | 独立用户、角色、菜单和日志管理端 |
 | Spring Cloud Gateway | `http://localhost:8082` | 鉴权、路由、限流和访问日志 |
 | Java API | `http://localhost:8081/api` | Docker 环境核心业务服务 |
 | Java API（本地） | `http://localhost:8081/api` | local profile + H2 |
 | Node API | `http://localhost:3000/api` | BFF 接口 |
 | Socket.IO | `http://localhost:3001` | 实时告警推送 |
+| Admin API | `http://localhost:3100/admin-api` | 独立后台 API |
+| Keycloak | `http://localhost:8180` | 业务端 OIDC 身份中心 |
 | MySQL | `localhost:3307` | 宿主机映射端口 |
+| PostgreSQL | `localhost:5433` | 管理后台数据存储 |
 | Redis | `localhost:6380` | 缓存、聊天记忆和 Gateway 限流 |
 | Qdrant | `localhost:6333` | RAG 文档向量和元数据 |
 | RabbitMQ | `http://localhost:15672` | 管理控制台 |
@@ -264,6 +255,8 @@ npm run dev
 | MinIO Console | `http://localhost:9012` | 对象存储控制台 |
 | Temporal gRPC | `localhost:7233` | Temporal Server |
 | Temporal UI | `http://localhost:8088` | 工作流可视化控制台 |
+| Grafana（可选） | `http://localhost:3030` | 监控仪表盘 |
+| Prometheus（可选） | `http://localhost:9090` | 指标查询 |
 
 账号、密码和端口均以 `deploy/.env` 为准，请勿在生产环境继续使用示例密码。
 
@@ -282,6 +275,10 @@ npm run dev
 | `POST` | `/api/knowledge/documents` | 上传知识文档（ADMIN） |
 | `POST` | `/api/knowledge/search` | 语义检索知识片段 |
 | `DELETE` | `/api/knowledge/documents/{id}` | 删除知识文档（ADMIN） |
+| `POST` | `/api/inspection-workflows/{taskCode}` | 启动巡检工作流 |
+| `GET` | `/api/inspection-workflows/{taskCode}/status` | 查询巡检工作流状态 |
+| `POST` | `/api/inspection-workflows/{taskCode}/complete` | 完成巡检工作流 |
+| `POST` | `/api/inspection-workflows/{taskCode}/cancel` | 取消巡检工作流 |
 | `POST` | `/api/inspection-workflows/{taskCode}/analysis` | Temporal 可靠分析，返回完整结果 |
 | `POST` | `/api/inspection-workflows/{taskCode}/analysis/stream` | SSE 实时分析，逐段返回 Token |
 | `GET` | `/api/inspection-tasks/{taskCode}/analyses` | 查询任务的 AI 分析历史 |
@@ -331,16 +328,18 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - Flyway 管理 AI 分析结果表，持久化同步与 SSE 分析并支持历史查询。
 - 设备、巡检任务示例查询接口。
 - Node 告警代理、Socket.IO JWT 握手鉴权与实时广播。
-- Vue 3 + Cesium 基础页面、主题、布局和国际化能力。
-- Docker Compose 前端、后端及基础设施编排。
+- Vue 3 + Cesium 业务端，包含任务、告警、知识库、聊天、主题、布局和国际化能力。
+- Temporal 巡检生命周期、同步 AI 分析和流式 AI 分析工作流。
 - LangChain + Ollama + Qdrant 知识库，支持 PDF、Markdown、TXT 入库和可追溯 RAG 检索。
 - `/chat` 使用 SSE 逐段显示 LangChain/Ollama 生成内容，并保留知识来源。
+- React + NestJS 独立管理后台，包含本地登录、用户、角色、菜单、操作日志和 MinIO 头像上传。
+- Docker Compose 的本地、预发、生产和可观测性覆盖层；CI 的全栈与权限验收。
 
 预留或待完善：
 
-- Redis 缓存与在线状态的实际业务接入。
-- RabbitMQ 告警消息生产与消费。
-- MinIO 截图、视频等证据文件上传。
+- Redis 业务缓存与在线状态的进一步接入。
+- RabbitMQ 告警消息生产、消费和工作流 Signal 闭环。
+- 面向巡检业务的 MinIO 截图、视频证据链；当前 MinIO 已用于管理端头像上传。
 - Temporal Nexus 跨服务能力。
-- Python 视觉推理服务及识别结果接入。
-- 用户权限、审计日志和完整设备/任务持久化。
+- Python 视觉推理、视频抽帧及识别结果接入。
+- 设备、航线、飞控和完整任务领域的持久化与数据权限深化。
