@@ -232,6 +232,58 @@ npm run dev
 
 本地开发时使用 Vite 的 `8888` 端口；Docker 部署时由 Nginx 提供前端页面，宿主机端口由 `FRONTEND_PORT` 配置。
 
+### 独立管理后台
+
+管理后台与业务端分开部署，面向管理员和运维人员使用：
+
+- `admin-frontend/`：React、TypeScript、Ant Design Pro 管理页面；
+- `admin-service/`：NestJS 管理 API，使用 Prisma 访问 PostgreSQL；
+- MinIO：保存管理端用户头像等后台文件；
+- JWT + RBAC：控制用户、角色、菜单和接口权限；
+- 操作日志：记录后台用户的重要管理操作。
+
+本地分别启动管理 API 和管理页面：
+
+```bash
+cd admin-service
+npm install
+npx prisma generate
+npm run start:dev
+```
+
+```bash
+cd admin-frontend
+npm install
+npm run dev
+```
+
+默认访问地址：
+
+```text
+管理页面：http://localhost:8889
+管理 API：http://localhost:3100/admin-api
+```
+
+Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起启动。首次使用前请确认
+`deploy/.env` 中的 `ADMIN_JWT_SECRET`、PostgreSQL 和 MinIO 配置已经替换为本地或生产环境值。
+
+管理后台支持以下核心功能：
+
+- 用户登录、刷新令牌和修改个人资料；
+- 用户、角色、菜单及角色权限分配；
+- 仪表盘、操作日志和文件/头像上传；
+- `ADMIN`、`OPERATOR`、`VIEWER` 三类角色的权限控制。
+
+本地验收账号可以通过以下命令同步：
+
+```bash
+./scripts/uav.sh auth-users
+./scripts/uav.sh auth-verify
+```
+
+生产环境必须修改默认账号、JWT Secret、数据库密码和 MinIO 凭据，不要直接使用
+`deploy/.env.example` 中的示例值。
+
 ## 服务与端口
 
 | 服务 | 默认地址 | 说明 |
