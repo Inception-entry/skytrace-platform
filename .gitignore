@@ -35,7 +35,7 @@ Thumbs.db
 
 # Logs
 *.log
-logs/
+/logs/
 
 # Docker / runtime
 *.pid
