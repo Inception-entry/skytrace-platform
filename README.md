@@ -298,6 +298,7 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | Socket.IO | `http://localhost:3001` | 实时告警推送 |
 | Admin API | `http://localhost:3100/admin-api` | 独立后台 API |
 | Keycloak | `http://localhost:8180` | 业务端 OIDC 身份中心 |
+| AI API | `http://localhost:8000` | FastAPI 健康检查与 AI 调试入口 |
 | MySQL | `localhost:3307` | 宿主机映射端口 |
 | PostgreSQL | `localhost:5433` | 管理后台数据存储 |
 | Redis | `localhost:6380` | 缓存、聊天记忆和 Gateway 限流 |

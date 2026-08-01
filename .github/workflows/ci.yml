@@ -230,6 +230,7 @@ jobs:
       - name: Start Ollama health-check mock
         shell: bash
         run: |
+          OLLAMA_MOCK_HOST=0.0.0.0 \
           nohup python3 scripts/ci/ollama-mock.py \
             > "${RUNNER_TEMP}/ollama-mock.log" 2>&1 &
           echo "$!" > "${RUNNER_TEMP}/ollama-mock.pid"
@@ -282,7 +283,7 @@ jobs:
           scripts/ci/wait-for-http.sh \
             http://127.0.0.1:8000/health 180 "AI service"
           scripts/ci/wait-for-http.sh \
-            http://127.0.0.1:8081/health 240 "Java backend"
+            http://127.0.0.1:8081/api/health 240 "Java backend"
           scripts/ci/wait-for-http.sh \
             http://127.0.0.1:3000/api/health 120 "Node BFF"
           scripts/ci/wait-for-http.sh \
