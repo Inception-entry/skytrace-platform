@@ -7,7 +7,7 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -ntp clean package -DskipTests
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 RUN rm -f /usr/bin/pebble
 COPY --from=build /app/target/*.jar app.jar
