@@ -40,7 +40,6 @@
     "vite": "^6.3.5",
     "vite-plugin-cesium": "^1.2.23", 
     "vite-plugin-compression": "^0.5.1",
-    "vite-plugin-svg-icons": "^2.0.1",
     "vue-eslint-parser": "^9.4.3",
     "vue-tsc": "^2.2.8"
   }

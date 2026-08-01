@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import cesium from 'vite-plugin-cesium'
 import path from 'path'
 
@@ -9,10 +8,6 @@ export default defineConfig({
   plugins: [
     vue(),
     cesium(),
-    createSvgIconsPlugin({
-      iconDirs: [path.resolve(process.cwd(), 'src/assets/icons')],
-      symbolId: 'icon-[dir]-[name]',
-    }),
   ],
   css: {
     preprocessorOptions: {
