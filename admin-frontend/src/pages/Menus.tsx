@@ -81,7 +81,7 @@ export function MenusPage() {
         onFinish={async values => {
           try {
             if (editRow) await menusApi.update(editRow.id, values)
-            else await menusApi.create(values)
+            else await menusApi.create(values as Parameters<typeof menusApi.create>[0])
             message.success('操作成功')
             actionRef.current?.reload()
             return true

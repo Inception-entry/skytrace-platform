@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { ProTable, PageContainer, ModalForm, ProFormText, ProFormSelect } from '@ant-design/pro-components'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import { Button, Drawer, Tree, Spin, Popconfirm, message } from 'antd'
+import type { DataNode } from 'antd/es/tree'
 import { PlusOutlined } from '@ant-design/icons'
 import * as rolesApi from '../api/roles'
 import * as menusApi from '../api/menus'
@@ -15,7 +16,7 @@ export function RolesPage() {
   const [editRow, setEditRow] = useState<Role | null>(null)
   const [open, setOpen] = useState(false)
   const [assignRole, setAssignRole] = useState<Role | null>(null)
-  const [menuTree, setMenuTree] = useState<{ key: number; title: string; children: unknown[] }[]>([])
+  const [menuTree, setMenuTree] = useState<DataNode[]>([])
   const [checkedKeys, setCheckedKeys] = useState<number[]>([])
   const [drawerLoading, setDrawerLoading] = useState(false)
 
@@ -74,7 +75,7 @@ export function RolesPage() {
         onFinish={async values => {
           try {
             if (editRow) await rolesApi.update(editRow.id, values)
-            else await rolesApi.create(values)
+            else await rolesApi.create(values as Parameters<typeof rolesApi.create>[0])
             message.success('操作成功')
             actionRef.current?.reload()
             return true

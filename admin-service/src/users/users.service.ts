@@ -13,7 +13,8 @@ import type { User } from '@prisma/client'
 type SafeUser = Omit<User, 'password'>
 
 function omitPassword(user: User): SafeUser {
-  const { password: _p, ...rest } = user
+  const { password: _password, ...rest } = user
+  void _password
   return rest
 }
 

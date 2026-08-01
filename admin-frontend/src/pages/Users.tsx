@@ -59,7 +59,7 @@ export function UsersPage() {
         onFinish={async values => {
           try {
             if (editRow) await usersApi.update(editRow.id, values)
-            else await usersApi.create(values)
+            else await usersApi.create(values as Parameters<typeof usersApi.create>[0])
             message.success('操作成功')
             actionRef.current?.reload()
             return true

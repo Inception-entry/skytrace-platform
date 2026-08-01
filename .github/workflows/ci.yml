@@ -135,8 +135,12 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "20"
+          cache: npm
+          cache-dependency-path: admin-service/package-lock.json
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
       - name: Lint
         run: npm run lint
       - name: Test
@@ -158,8 +162,10 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: admin-frontend/package-lock.json
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci
       - name: Audit dependencies
         run: npm audit --audit-level=high --omit=dev
       - name: Type-check and build
