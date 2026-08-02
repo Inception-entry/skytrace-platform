@@ -4,6 +4,8 @@ export interface InspectionTask {
   taskCode: string
   taskName: string
   deviceCode: string | null
+  deviceName: string | null
+  deviceStatus: string | null
   status: string
   planStartTime: string | null
   planEndTime: string | null

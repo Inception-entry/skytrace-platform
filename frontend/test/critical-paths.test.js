@@ -36,3 +36,8 @@ test('frontend device client targets device API paths', () => {
     /\/api\/devices\/\$\{encodeURIComponent\(deviceCode\)\}\/heartbeat/,
   )
 })
+
+test('frontend evidence client supports list query', () => {
+  assert.match(alarmSource, /\/api\/evidence\?\$\{query\.toString\(\)\}/)
+  assert.match(alarmSource, /export function getEvidence/)
+})

@@ -6,6 +6,8 @@ public record InspectionTaskResponse(
         String taskCode,
         String taskName,
         String deviceCode,
+        String deviceName,
+        String deviceStatus,
         String status,
         LocalDateTime planStartTime,
         LocalDateTime planEndTime,

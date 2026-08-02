@@ -109,4 +109,12 @@ public class EvidenceAsset {
     public void setAlarmEventCode(String alarmEventCode) {
         this.alarmEventCode = alarmEventCode;
     }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
 }

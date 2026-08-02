@@ -352,10 +352,12 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | `POST` | `/api/devices` | 创建设备（ADMIN/OPERATOR） |
 | `PUT` | `/api/devices/{deviceCode}` | 更新设备名称/类型（ADMIN/OPERATOR） |
 | `POST` | `/api/devices/{deviceCode}/heartbeat` | 设备心跳，写入 Redis 在线状态 |
-| `GET` | `/api/inspection-tasks` | 巡检任务列表 |
+| `GET` | `/api/inspection-tasks` | 巡检任务列表（含设备名与在线状态） |
+| `POST` | `/api/inspection-tasks` | 创建巡检任务（设备须已存在） |
 | `GET` | `/api/alarms/latest` | 最近 20 条告警 |
 | `POST` | `/api/alarms` | 创建告警并写入数据库 |
 | `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ（异步落库） |
+| `GET` | `/api/evidence?taskCode=` | 按任务/告警查询证据列表 |
 | `POST` | `/api/evidence` | 上传截图/视频证据到 MinIO，返回 object key |
 | `GET` | `/api/knowledge/documents` | 查询知识文档 |
 | `POST` | `/api/knowledge/documents` | 上传知识文档（ADMIN） |
@@ -378,6 +380,7 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | `POST` | `/api/alarms` | 创建告警，并广播 `alarm.created` 事件 |
 | `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ |
 | `POST` | `/api/evidence` | 上传证据文件并转发 Java/MinIO |
+| `GET` | `/api/evidence` | 按 taskCode/alarmEventCode 查询证据 |
 | `POST` | `/api/inspection-tasks/{taskCode}/analysis/stream` | 透传 AI SSE 实时分析 |
 | `GET` | `/api/inspection-tasks/{taskCode}/analyses` | 查询 MySQL 中的 AI 分析历史 |
 | `GET` | `/api/inspection-tasks/{taskCode}/workflow-status` | 查询 Temporal 状态与最近告警 Signal |
@@ -418,7 +421,8 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - MinIO 巡检证据上传：截图/视频只持久化 object key，经 `/files/` 反代访问。
 - Flyway 管理 AI 分析结果表与证据资产表，持久化同步与 SSE 分析并支持历史查询。
 - 设备主数据持久化（`device`）与 CRUD；列表在线状态由 Redis heartbeat 覆盖。
-- 巡检任务示例查询接口。
+- 巡检任务绑定真实设备（创建/更新校验设备存在），响应带设备名与在线状态。
+- 证据按任务/告警查询；任务页可选设备、查看与上传关联证据。
 - Node 告警代理、证据上传代理、Socket.IO JWT 握手鉴权与实时广播。
 - Vue 3 + Cesium 业务端，包含任务、告警、知识库、聊天、主题、布局和国际化能力。
 - Temporal 巡检生命周期、同步 AI 分析和流式 AI 分析工作流。

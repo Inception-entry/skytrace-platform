@@ -27,9 +27,16 @@ export interface EvidenceUpload {
   bucket: string
   contentType: string
   sizeBytes: number
+  originalFilename?: string | null
   taskCode: string | null
   alarmEventCode: string | null
   publicPath: string
+  createdAt?: string
+}
+
+export interface EvidenceAsset extends EvidenceUpload {
+  originalFilename: string | null
+  createdAt: string
 }
 
 export interface WorkflowStatus {
@@ -100,6 +107,19 @@ export async function uploadEvidence(
     method: 'POST',
     body: form,
   })
+}
+
+
+export function getEvidence(params: {
+  taskCode?: string
+  alarmEventCode?: string
+}) {
+  const query = new URLSearchParams()
+  if (params.taskCode) query.set('taskCode', params.taskCode)
+  if (params.alarmEventCode) {
+    query.set('alarmEventCode', params.alarmEventCode)
+  }
+  return request<EvidenceAsset[]>(`/api/evidence?${query.toString()}`)
 }
 
 export interface VisionDetectResult {

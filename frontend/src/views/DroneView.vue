@@ -75,15 +75,26 @@
           </label>
 
           <label>
-            <span>设备编号</span>
-            <input
-              v-model.trim="form.deviceCode"
-              maxlength="64"
-              placeholder="例如 UAV-001"
-              :disabled="loading"
+            <span>关联设备</span>
+            <select
+              v-model="form.deviceCode"
+              :disabled="loading || devices.length === 0"
               required
-            />
+            >
+              <option disabled value="">
+                {{ devices.length ? '请选择设备' : '暂无可用设备' }}
+              </option>
+              <option
+                v-for="device in devices"
+                :key="device.deviceCode"
+                :value="device.deviceCode"
+              >
+                {{ device.deviceName }}（{{ device.deviceCode }} ·
+                {{ device.status }}）
+              </option>
+            </select>
           </label>
+
 
           <label>
             <span>计划开始时间</span>
@@ -166,7 +177,15 @@
                 <strong>{{ task.taskName }}</strong>
                 <small>{{ task.taskCode }}</small>
               </td>
-              <td>{{ task.deviceCode || '未设置' }}</td>
+              <td>
+                <strong>{{ task.deviceName || task.deviceCode || '未设置' }}</strong>
+                <small v-if="task.deviceCode">
+                  {{ task.deviceCode }}
+                  <template v-if="task.deviceStatus">
+                    · {{ task.deviceStatus }}
+                  </template>
+                </small>
+              </td>
               <td>
                 <span>{{ formatDateTime(task.planStartTime) }}</span>
                 <small>至 {{ formatDateTime(task.planEndTime) }}</small>
@@ -177,37 +196,46 @@
                 </span>
               </td>
               <td>
-                <div v-if="canOperate" class="row-actions">
+                <div class="row-actions">
                   <button
                     type="button"
-                    :disabled="loading || task.status !== 'CREATED'"
-                    @click="handleStart(task.taskCode)"
+                    :disabled="loading"
+                    @click="selectTask(task.taskCode)"
                   >
-                    启动
+                    证据
                   </button>
-                  <button
-                    type="button"
-                    :disabled="loading || isTerminal(task.status)"
-                    @click="openEditForm(task)"
-                  >
-                    编辑
-                  </button>
-                  <button
-                    type="button"
-                    :disabled="loading || task.status !== 'RUNNING'"
-                    @click="handleComplete(task.taskCode)"
-                  >
-                    完成
-                  </button>
-                  <button
-                    type="button"
-                    :disabled="loading || task.status !== 'RUNNING'"
-                    @click="handleCancel(task.taskCode)"
-                  >
-                    取消
-                  </button>
+                  <template v-if="canOperate">
+                    <button
+                      type="button"
+                      :disabled="loading || task.status !== 'CREATED'"
+                      @click="handleStart(task.taskCode)"
+                    >
+                      启动
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="loading || isTerminal(task.status)"
+                      @click="openEditForm(task)"
+                    >
+                      编辑
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="loading || task.status !== 'RUNNING'"
+                      @click="handleComplete(task.taskCode)"
+                    >
+                      完成
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="loading || task.status !== 'RUNNING'"
+                      @click="handleCancel(task.taskCode)"
+                    >
+                      取消
+                    </button>
+                  </template>
+                  <span v-else class="read-only-hint">只读权限</span>
                 </div>
-                <span v-else class="read-only-hint">只读权限</span>
               </td>
             </tr>
 
@@ -217,6 +245,58 @@
           </tbody>
         </table>
       </div>
+
+      <section v-if="selectedTaskCode" class="evidence-panel">
+        <div class="evidence-header">
+          <div>
+            <h2>任务证据 · {{ selectedTaskCode }}</h2>
+            <p>按任务编号查询已上传的截图/视频元数据</p>
+          </div>
+          <div class="evidence-actions">
+            <label class="upload-button">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                :disabled="loading || !canOperate"
+                @change="handleEvidenceUpload"
+              />
+              {{ canOperate ? '上传证据' : '只读' }}
+            </label>
+            <button
+              class="secondary-button"
+              type="button"
+              :disabled="loading"
+              @click="loadEvidence(selectedTaskCode)"
+            >
+              刷新证据
+            </button>
+          </div>
+        </div>
+
+        <p v-if="evidenceLoading" class="loading-text">证据加载中……</p>
+        <ul v-else-if="evidenceList.length" class="evidence-list">
+          <li v-for="item in evidenceList" :key="item.objectKey">
+            <div>
+              <strong>{{ item.originalFilename || item.objectKey }}</strong>
+              <small>
+                {{ item.contentType }} · {{ formatBytes(item.sizeBytes) }}
+                <template v-if="item.createdAt">
+                  · {{ formatDateTime(item.createdAt) }}
+                </template>
+              </small>
+            </div>
+            <a
+              class="evidence-link"
+              :href="item.publicPath"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              打开
+            </a>
+          </li>
+        </ul>
+        <p v-else class="empty-evidence">该任务暂无证据</p>
+      </section>
     </section>
   </main>
 </template>
@@ -224,6 +304,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { authenticationState } from '@/auth/keycloak'
+import {
+  getEvidence,
+  uploadEvidence,
+  type EvidenceAsset,
+} from '@/api/alarm-evidence'
+import { getDevices, type Device } from '@/api/device'
 import {
   cancelInspectionTask,
   completeInspectionTask,
@@ -243,7 +329,11 @@ interface TaskForm {
 }
 
 const tasks = ref<InspectionTask[]>([])
+const devices = ref<Device[]>([])
+const evidenceList = ref<EvidenceAsset[]>([])
+const selectedTaskCode = ref('')
 const loading = ref(false)
+const evidenceLoading = ref(false)
 const formVisible = ref(false)
 const editingTaskCode = ref('')
 const errorMessage = ref('')
@@ -278,15 +368,20 @@ const resetForm = () => {
   editingTaskCode.value = ''
 }
 
-const openCreateForm = () => {
+const openCreateForm = async () => {
   resetMessages()
   resetForm()
+  await loadDevices()
+  if (devices.value.length === 1) {
+    form.deviceCode = devices.value[0].deviceCode
+  }
   formVisible.value = true
 }
 
-const openEditForm = (task: InspectionTask) => {
+const openEditForm = async (task: InspectionTask) => {
   resetMessages()
   editingTaskCode.value = task.taskCode
+  await loadDevices()
   Object.assign(form, {
     taskCode: task.taskCode,
     taskName: task.taskName,
@@ -303,6 +398,15 @@ const closeForm = () => {
   resetForm()
 }
 
+const loadDevices = async () => {
+  try {
+    devices.value = await getDevices()
+  } catch (error) {
+    errorMessage.value = errorText(error, '加载设备失败')
+  }
+}
+
+
 const loadTasks = async () => {
   loading.value = true
   errorMessage.value = ''
@@ -316,8 +420,49 @@ const loadTasks = async () => {
   }
 }
 
+const selectTask = async (taskCode: string) => {
+  selectedTaskCode.value = taskCode
+  await loadEvidence(taskCode)
+}
+
+const loadEvidence = async (taskCode: string) => {
+  evidenceLoading.value = true
+  try {
+    evidenceList.value = await getEvidence({ taskCode })
+  } catch (error) {
+    evidenceList.value = []
+    errorMessage.value = errorText(error, '加载证据失败')
+  } finally {
+    evidenceLoading.value = false
+  }
+}
+
+const handleEvidenceUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !selectedTaskCode.value) {
+    return
+  }
+  loading.value = true
+  resetMessages()
+  try {
+    await uploadEvidence(file, selectedTaskCode.value)
+    successMessage.value = `证据已上传到 ${selectedTaskCode.value}`
+    await loadEvidence(selectedTaskCode.value)
+  } catch (error) {
+    errorMessage.value = errorText(error, '证据上传失败')
+  } finally {
+    loading.value = false
+    input.value = ''
+  }
+}
+
 const saveTask = async () => {
   resetMessages()
+  if (!form.deviceCode) {
+    errorMessage.value = '请选择关联设备'
+    return
+  }
   if (form.planEndTime <= form.planStartTime) {
     errorMessage.value = '计划结束时间必须晚于计划开始时间'
     return
@@ -416,10 +561,18 @@ const toDateTimeInput = (value: string | null) =>
 const formatDateTime = (value: string | null) =>
   value ? value.replace('T', ' ').slice(0, 16) : '未设置'
 
+const formatBytes = (size: number) => {
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
+
 const errorText = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
 
-onMounted(loadTasks)
+onMounted(async () => {
+  await Promise.all([loadTasks(), loadDevices()])
+})
 </script>
 
 <style scoped>
@@ -566,7 +719,19 @@ input {
   outline: none;
 }
 
-input:focus {
+select {
+  width: 100%;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  color: #172033;
+  background: white;
+  border: 1px solid #ccd6e4;
+  border-radius: 8px;
+  outline: none;
+}
+
+input:focus,
+select:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
@@ -668,6 +833,72 @@ td small {
 .row-actions button {
   padding: 6px 9px;
   font-size: 12px;
+}
+
+.evidence-panel {
+  margin-top: 24px;
+  padding: 18px;
+  background: #f8faff;
+  border: 1px solid #dce7f8;
+  border-radius: 13px;
+}
+
+.evidence-header,
+.evidence-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.evidence-header h2 {
+  margin: 0 0 4px;
+}
+
+.evidence-header p,
+.empty-evidence {
+  margin: 0;
+  color: #718096;
+}
+
+.evidence-actions {
+  justify-content: flex-end;
+}
+
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 13px;
+  color: white;
+  background: #2563eb;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.upload-button input {
+  display: none;
+}
+
+.evidence-list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evidence-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5eaf1;
+}
+
+.evidence-link {
+  color: #1d4ed8;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 @media (max-width: 760px) {

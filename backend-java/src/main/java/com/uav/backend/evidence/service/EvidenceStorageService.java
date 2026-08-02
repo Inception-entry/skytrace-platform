@@ -3,6 +3,7 @@ package com.uav.backend.evidence.service;
 import com.uav.backend.common.ConflictException;
 import com.uav.backend.evidence.MinioProperties;
 import com.uav.backend.evidence.domain.EvidenceAsset;
+import com.uav.backend.evidence.dto.EvidenceAssetResponse;
 import com.uav.backend.evidence.dto.EvidenceUploadResponse;
 import com.uav.backend.evidence.repository.EvidenceAssetRepository;
 import io.minio.BucketExistsArgs;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,6 +44,32 @@ public class EvidenceStorageService {
         this.minioClient = minioClient;
         this.properties = properties;
         this.repository = repository;
+    }
+
+    public List<EvidenceAssetResponse> findEvidence(
+            String taskCode,
+            String alarmEventCode) {
+        String task = blankToNull(taskCode);
+        String alarm = blankToNull(alarmEventCode);
+        if (task == null && alarm == null) {
+            throw new IllegalArgumentException(
+                    "请至少提供 taskCode 或 alarmEventCode"
+            );
+        }
+
+        List<EvidenceAsset> assets;
+        if (task != null && alarm != null) {
+            assets = repository
+                    .findByTaskCodeAndAlarmEventCodeOrderByCreatedAtDesc(
+                            task,
+                            alarm
+                    );
+        } else if (task != null) {
+            assets = repository.findByTaskCodeOrderByCreatedAtDesc(task);
+        } else {
+            assets = repository.findByAlarmEventCodeOrderByCreatedAtDesc(alarm);
+        }
+        return assets.stream().map(this::toResponse).toList();
     }
 
     @Transactional
@@ -104,6 +132,20 @@ public class EvidenceStorageService {
         } catch (Exception exception) {
             throw new ConflictException("证据上传失败: " + exception.getMessage());
         }
+    }
+
+    private EvidenceAssetResponse toResponse(EvidenceAsset asset) {
+        return new EvidenceAssetResponse(
+                asset.getObjectKey(),
+                asset.getBucket(),
+                asset.getContentType(),
+                asset.getSizeBytes(),
+                asset.getOriginalFilename(),
+                asset.getTaskCode(),
+                asset.getAlarmEventCode(),
+                "/files/" + asset.getBucket() + "/" + asset.getObjectKey(),
+                asset.getCreatedAt()
+        );
     }
 
     private void ensureBucket() throws Exception {

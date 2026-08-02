@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -19,6 +21,26 @@ interface UploadedEvidenceFile {
 @Controller('evidence')
 export class EvidenceController {
   constructor(private readonly javaClient: JavaClientService) {}
+
+  @Get()
+  list(
+    @Query('taskCode') taskCode?: string,
+    @Query('alarmEventCode') alarmEventCode?: string,
+  ) {
+    if (!taskCode?.trim() && !alarmEventCode?.trim()) {
+      throw new BadRequestException(
+        '请至少提供 taskCode 或 alarmEventCode',
+      );
+    }
+    const parameters = new URLSearchParams();
+    if (taskCode?.trim()) {
+      parameters.set('taskCode', taskCode.trim());
+    }
+    if (alarmEventCode?.trim()) {
+      parameters.set('alarmEventCode', alarmEventCode.trim());
+    }
+    return this.javaClient.get(`/evidence?${parameters.toString()}`);
+  }
 
   @Post()
   @Roles('ADMIN', 'OPERATOR')
