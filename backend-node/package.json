@@ -1,6 +1,6 @@
 {
   "name": "uav-backend-node",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "NestJS BFF and WebSocket service for UAV inspection platform",
   "scripts": {
     "build": "nest build",

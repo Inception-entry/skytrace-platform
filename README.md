@@ -2,6 +2,8 @@
 
 面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
+当前平台版本：**0.2.0**（发版说明见 [`docs/releases/v0.2.0.md`](docs/releases/v0.2.0.md)）。
+
 ## 技术架构
 
 ```text
@@ -11,10 +13,9 @@
                                                                         │                 └─ FastAPI AI ──> Ollama / Qdrant / Redis
 后台用户 ──> React 管理端 ─────────────────────────────────────────────> NestJS Admin ──> PostgreSQL / MinIO
 
-告警与证据能力预留：RabbitMQ、MinIO
+告警与证据：RabbitMQ 闭环 + MinIO 证据链
 可观测性覆盖层：Prometheus、Grafana、Loki、Promtail、Alertmanager
 ```
-
 - **业务端**：Vue 3、TypeScript、Cesium，提供三维巡检、告警、知识库、AI 对话和审计概览。
 - **网关与身份**：Nginx 统一入口；Spring Cloud Gateway 执行 Keycloak JWT 校验、角色策略、Redis 限流、请求追踪与指标采集。
 - **业务服务**：NestJS BFF 聚合 API、透传 SSE、推送 Socket.IO 事件；Spring Boot 负责任务、告警、知识库边界、审计与 Temporal 工作流。
@@ -48,7 +49,9 @@ uav-java-node-architecture/
 │   ├── gateway.md                       # Keycloak、JWT 和网关策略
 │   ├── knowledge-base.md                # 知识库与 RAG 调用链
 │   ├── security-audit-admin.md          # 业务端权限与审计
-│   └── temporal-integration.md          # Temporal 当前实现与演进方向
+│   ├── temporal-integration.md          # Temporal 当前实现与演进方向
+│   └── releases/
+│       └── v0.2.0.md                    # 0.2.0 发版说明
 ├── scripts/
 │   ├── uav.sh                           # 本地 Compose 管理和权限验收
 │   ├── mysql-backup.sh                  # MySQL 备份
