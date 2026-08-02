@@ -37,14 +37,17 @@ Python AI 服务负责：
 - Redis 聊天会话上下文
 - YOLO26 视觉推理（默认 mock；可选 ultralytics `yolo26n.pt`）与检测告警投递
 
-独立管理后台负责：
+独立系统管理后台负责：
 
-- React 管理端：用户、角色、菜单和操作日志界面
+- React 管理端（`:8889`）：用户、角色、菜单和操作日志界面
 - NestJS 管理服务：本地 JWT 登录、RBAC、Prisma 数据访问和操作日志
 - PostgreSQL：管理后台独立数据存储
 - MinIO：管理员头像上传，以及巡检截图/视频证据 object key
 - RabbitMQ：识别告警投递、落库、Temporal Signal 与实时广播
 - Redis：最近告警缓存与设备在线心跳
+
+业务端另有 **审计中心**（`/audit`）：Keycloak `ADMIN` 查看运行概况与操作审计，
+不负责用户/角色/菜单配置。
 
 ## 当前通信方式
 
@@ -74,8 +77,8 @@ SSE 链路流式返回。每个模型 Token 不写入 Temporal 历史；Java 会
 `analysis_id`，SSE 通道使用独立 UUID；因此 Activity 重试不会产生
 重复记录，连接中断或模型失败也不会保存为成功结果。
 
-业务端与后台认证是两套边界：业务端使用 Keycloak OIDC；独立管理后台使用自身
-的 NestJS JWT 和 PostgreSQL RBAC，不经业务 Gateway。
+业务端与后台认证是两套边界：业务端使用 Keycloak OIDC（含 `/audit` 审计中心）；
+系统管理后台（`:8889`）使用自身的 NestJS JWT 和 PostgreSQL RBAC，不经业务 Gateway。
 
 YOLO26 视觉推理已接入 AI 服务：`POST /api/detections/analyze` 对上传帧做检测，
 可将映射后的告警经 RabbitMQ 进入既有闭环。默认 `AI_VISION_BACKEND=mock`，

@@ -77,7 +77,7 @@
 │   ├── assets/           # 静态资源目录
 │   │   └── icons/        # 图标资源
 │   ├── components/       # 公共组件目录
-│   │   └── HelloWorld.vue
+│   │   └── st-cesium-vue/
 │   ├── config/           # 配置文件目录
 │   ├── main.ts           # 入口文件
 │   ├── router/           # 路由配置

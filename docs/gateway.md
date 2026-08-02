@@ -58,7 +58,7 @@ Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `skytrace.sh s
 
    | 用户名 | 角色 | 用途 |
    | --- | --- | --- |
-   | `uav-admin` | `ADMIN` | 管理中心、知识库管理和全部业务操作 |
+   | `uav-admin` | `ADMIN` | 审计中心、知识库管理和全部业务操作 |
    | `uav-operator` | `OPERATOR` | 任务操作和 AI 分析 |
    | `uav-viewer` | `VIEWER` | 任务与知识库只读访问 |
 

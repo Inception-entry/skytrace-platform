@@ -12,6 +12,7 @@
         <nav class="page-nav">
           <RouterLink to="/chat">AI 分析</RouterLink>
           <RouterLink to="/drone">任务列表</RouterLink>
+          <RouterLink to="/devices">设备管理</RouterLink>
         </nav>
       </header>
 

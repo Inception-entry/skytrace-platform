@@ -1,76 +1,59 @@
 package com.uav.backend.device;
 
-import com.uav.backend.cache.DevicePresenceService;
 import com.uav.backend.common.ApiResponse;
-import org.springframework.beans.factory.ObjectProvider;
+import com.uav.backend.device.dto.CreateDeviceRequest;
+import com.uav.backend.device.dto.DeviceResponse;
+import com.uav.backend.device.dto.UpdateDeviceRequest;
+import com.uav.backend.device.service.DeviceService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/devices")
 public class DeviceController {
-    private static final List<Map<String, String>> CATALOG = List.of(
-            Map.of(
-                    "deviceCode", "UAV-001",
-                    "deviceName", "一号无人机"
-            ),
-            Map.of(
-                    "deviceCode", "CAMERA-001",
-                    "deviceName", "一号固定摄像头"
-            )
-    );
 
-    private final ObjectProvider<DevicePresenceService> presenceService;
+    private final DeviceService deviceService;
 
-    public DeviceController(
-            ObjectProvider<DevicePresenceService> presenceService) {
-        this.presenceService = presenceService;
+    public DeviceController(DeviceService deviceService) {
+        this.deviceService = deviceService;
     }
 
     @GetMapping
-    public ApiResponse<List<Map<String, Object>>> list() {
-        DevicePresenceService presence = presenceService.getIfAvailable();
-        Set<String> online = presence == null
-                ? Set.of()
-                : presence.onlineDeviceCodes();
-        List<Map<String, Object>> devices = CATALOG.stream()
-                .map(item -> {
-                    String code = item.get("deviceCode");
-                    boolean isOnline = online.contains(code);
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("deviceCode", code);
-                    row.put("deviceName", item.get("deviceName"));
-                    row.put("status", isOnline ? "ONLINE" : "OFFLINE");
-                    return row;
-                })
-                .toList();
-        return ApiResponse.ok(devices);
+    public ApiResponse<List<DeviceResponse>> list() {
+        return ApiResponse.ok(deviceService.findAll());
+    }
+
+    @GetMapping("/{deviceCode}")
+    public ApiResponse<DeviceResponse> detail(
+            @PathVariable String deviceCode) {
+        return ApiResponse.ok(deviceService.findByDeviceCode(deviceCode));
+    }
+
+    @PostMapping
+    public ApiResponse<DeviceResponse> create(
+            @Valid @RequestBody CreateDeviceRequest request) {
+        return ApiResponse.ok(deviceService.create(request));
+    }
+
+    @PutMapping("/{deviceCode}")
+    public ApiResponse<DeviceResponse> update(
+            @PathVariable String deviceCode,
+            @Valid @RequestBody UpdateDeviceRequest request) {
+        return ApiResponse.ok(deviceService.update(deviceCode, request));
     }
 
     @PostMapping("/{deviceCode}/heartbeat")
     public ApiResponse<Map<String, Object>> heartbeat(
             @PathVariable String deviceCode) {
-        DevicePresenceService presence = presenceService.getIfAvailable();
-        if (presence == null) {
-            return ApiResponse.ok(Map.of(
-                    "deviceCode", deviceCode,
-                    "status", "UNKNOWN",
-                    "presence", "disabled"
-            ));
-        }
-        presence.heartbeat(deviceCode);
-        return ApiResponse.ok(Map.of(
-                "deviceCode", deviceCode,
-                "status", "ONLINE",
-                "presence", "ok"
-        ));
+        return ApiResponse.ok(deviceService.heartbeat(deviceCode));
     }
 }

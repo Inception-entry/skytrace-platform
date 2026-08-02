@@ -4,11 +4,12 @@
       <header class="page-header">
         <div>
           <p class="eyebrow">SECURITY &amp; GOVERNANCE</p>
-          <h1>平台管理中心</h1>
+          <h1>审计中心</h1>
           <p>查看运行概况、权限边界与关键操作审计记录</p>
         </div>
         <nav>
           <RouterLink to="/drone">巡检任务</RouterLink>
+          <RouterLink to="/devices">设备管理</RouterLink>
           <RouterLink to="/knowledge">知识库</RouterLink>
           <button type="button" :disabled="loading" @click="refreshAll">
             刷新

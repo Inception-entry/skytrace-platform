@@ -5,18 +5,34 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const source = readFileSync(
+const alarmSource = readFileSync(
   join(root, 'src/api/alarm-evidence.ts'),
+  'utf8',
+)
+const deviceSource = readFileSync(
+  join(root, 'src/api/device.ts'),
   'utf8',
 )
 
 test('frontend alarm/evidence clients target critical API paths', () => {
-  assert.match(source, /\/api\/alarms\/latest/)
-  assert.match(source, /\/api\/alarms\/detections/)
-  assert.match(source, /\/api\/alarms\/analyze/)
-  assert.match(source, /\/api\/evidence/)
+  assert.match(alarmSource, /\/api\/alarms\/latest/)
+  assert.match(alarmSource, /\/api\/alarms\/detections/)
+  assert.match(alarmSource, /\/api\/alarms\/analyze/)
+  assert.match(alarmSource, /\/api\/evidence/)
   assert.match(
-    source,
+    alarmSource,
     /\/api\/inspection-tasks\/\$\{encodeURIComponent\(taskCode\)\}\/workflow-status/,
+  )
+})
+
+test('frontend device client targets device API paths', () => {
+  assert.match(deviceSource, /\/api\/devices/)
+  assert.match(
+    deviceSource,
+    /\/api\/devices\/\$\{encodeURIComponent\(deviceCode\)\}/,
+  )
+  assert.match(
+    deviceSource,
+    /\/api\/devices\/\$\{encodeURIComponent\(deviceCode\)\}\/heartbeat/,
   )
 })

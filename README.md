@@ -126,7 +126,7 @@ cp deploy/.env.example deploy/.env
 ./scripts/skytrace.sh stop
 ```
 
-Compose 会启动业务端、独立后台、Gateway、Node BFF、Java、AI、Keycloak 及其依赖服务。业务端由 Nginx 托管，并将 `/api/` 与 `/socket.io/` 统一代理到 Gateway，再由 Gateway 路由到 Node BFF。独立后台通过 `http://localhost:8889` 访问，API 前缀为 `/admin-api`。
+Compose 会启动业务端、系统管理后台、Gateway、Node BFF、Java、AI、Keycloak 及其依赖服务。业务端由 Nginx 托管，并将 `/api/` 与 `/socket.io/` 统一代理到 Gateway，再由 Gateway 路由到 Node BFF。业务端审计中心为 `http://localhost:8888/audit`；系统管理后台通过 `http://localhost:8889` 访问，API 前缀为 `/admin-api`。
 
 首次使用知识库前需要准备本地嵌入模型：
 
@@ -285,7 +285,8 @@ npm run dev
 默认访问地址：
 
 ```text
-管理页面：http://localhost:8889
+管理页面（系统管理后台）：http://localhost:8889
+审计中心（业务端）：http://localhost:8888/audit
 管理 API：http://localhost:3100/admin-api
 ```
 
@@ -315,7 +316,8 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | --- | --- | --- |
 | Frontend / Nginx | `http://localhost:8888` | 统一业务访问入口 |
 | HTTPS（预留） | `https://localhost:8443` | 使用 HTTPS 模板和证书后启用 |
-| Admin Frontend | `http://localhost:8889` | 独立用户、角色、菜单和日志管理端 |
+| 审计中心 | `http://localhost:8888/audit` | 业务端 Keycloak 审计概览（ADMIN） |
+| 系统管理后台 | `http://localhost:8889` | 独立用户、角色、菜单和日志管理端 |
 | Spring Cloud Gateway | `http://localhost:8082` | 鉴权、路由、限流和访问日志 |
 | Java API | `http://localhost:8081/api` | Docker 环境核心业务服务 |
 | Java API（本地） | `http://localhost:8081/api` | local profile + H2 |
@@ -345,8 +347,12 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | `GET` | `/api/health` | 健康检查 |
-| `GET` | `/api/devices` | 设备列表示例 |
-| `GET` | `/api/inspection-tasks` | 巡检任务列表示例 |
+| `GET` | `/api/devices` | 设备列表（DB + Redis 在线状态） |
+| `GET` | `/api/devices/{deviceCode}` | 设备详情 |
+| `POST` | `/api/devices` | 创建设备（ADMIN/OPERATOR） |
+| `PUT` | `/api/devices/{deviceCode}` | 更新设备名称/类型（ADMIN/OPERATOR） |
+| `POST` | `/api/devices/{deviceCode}/heartbeat` | 设备心跳，写入 Redis 在线状态 |
+| `GET` | `/api/inspection-tasks` | 巡检任务列表 |
 | `GET` | `/api/alarms/latest` | 最近 20 条告警 |
 | `POST` | `/api/alarms` | 创建告警并写入数据库 |
 | `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ（异步落库） |
@@ -411,7 +417,8 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - RabbitMQ 识别告警队列：AI/API 投递 → Java 落库 → Temporal `alarmDetected` Signal → Node Socket.IO 广播。
 - MinIO 巡检证据上传：截图/视频只持久化 object key，经 `/files/` 反代访问。
 - Flyway 管理 AI 分析结果表与证据资产表，持久化同步与 SSE 分析并支持历史查询。
-- 设备、巡检任务示例查询接口。
+- 设备主数据持久化（`device`）与 CRUD；列表在线状态由 Redis heartbeat 覆盖。
+- 巡检任务示例查询接口。
 - Node 告警代理、证据上传代理、Socket.IO JWT 握手鉴权与实时广播。
 - Vue 3 + Cesium 业务端，包含任务、告警、知识库、聊天、主题、布局和国际化能力。
 - Temporal 巡检生命周期、同步 AI 分析和流式 AI 分析工作流。
@@ -426,4 +433,4 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 
 - Temporal Nexus 跨服务能力。
 - 视频抽帧流水线与定制武器/缺陷数据集微调。
-- 设备、航线、飞控和完整任务领域的持久化与数据权限深化。
+- 设备、航线、飞控和完整任务领域的深化与数据权限。

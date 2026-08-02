@@ -11,6 +11,9 @@
         </div>
 
         <nav class="header-links">
+          <RouterLink class="back-link" to="/devices">
+            设备管理
+          </RouterLink>
           <RouterLink class="back-link" to="/knowledge">
             知识库
           </RouterLink>

@@ -12,9 +12,9 @@
       <RouterLink
         v-if="isAdministrator"
         class="admin-link"
-        to="/admin"
+        to="/audit"
       >
-        管理中心
+        审计中心
       </RouterLink>
       <a-button size="small" @click="handleLogout">退出</a-button>
     </div>

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import DroneView from '../views/DroneView.vue'
+import DeviceView from '../views/DeviceView.vue'
 import ChatView from '../views/ChatView.vue'
 import KnowledgeView from '../views/KnowledgeView.vue'
 import AdminView from '../views/AdminView.vue'
@@ -10,12 +11,21 @@ import { authenticationState } from '@/auth/keycloak'
 const routes = [
   {
     path: '/',
-    component: Home
+    redirect: '/drone',
+  },
+  {
+    path: '/map',
+    component: Home,
   },
   {
     path: '/drone',
     name: 'drone',
-    component: DroneView
+    component: DroneView,
+  },
+  {
+    path: '/devices',
+    name: 'devices',
+    component: DeviceView,
   },
   {
     path: '/chat',
@@ -28,15 +38,19 @@ const routes = [
   {
     path: '/knowledge',
     name: 'knowledge',
-    component: KnowledgeView
+    component: KnowledgeView,
   },
   {
-    path: '/admin',
-    name: 'admin',
+    path: '/audit',
+    name: 'audit',
     component: AdminView,
     meta: {
       roles: ['ADMIN'],
     },
+  },
+  {
+    path: '/admin',
+    redirect: '/audit',
   },
   {
     path: '/401',

@@ -18,6 +18,9 @@
           >
             新建任务
           </button>
+          <RouterLink class="knowledge-link" to="/devices">
+            设备管理
+          </RouterLink>
           <RouterLink v-if="canOperate" class="chat-link" to="/chat">
             AI 智能分析
           </RouterLink>
