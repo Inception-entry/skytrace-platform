@@ -70,6 +70,8 @@ class KnowledgeDeleteResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     status: str
     service: str
     ollama: str
@@ -77,6 +79,7 @@ class HealthResponse(BaseModel):
     qdrant: str
     model: str
     embedding_model: str = Field(alias="embeddingModel")
+    vision: str = "disabled"
 
 
 class ServiceInfoResponse(BaseModel):
@@ -86,3 +89,40 @@ class ServiceInfoResponse(BaseModel):
     health: str
     chat: str
     knowledge: str
+    detections: str = "POST /api/detections/analyze"
+
+
+class VisionBoxResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    class_name: str = Field(alias="className")
+    confidence: float
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+
+
+class VisionAlarmCandidate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    event_type: str = Field(alias="eventType")
+    weapon_type: str | None = Field(default=None, alias="weaponType")
+    class_name: str = Field(alias="className")
+    confidence: float
+
+
+class VisionDetectResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    backend: str
+    model: str
+    detections: list[VisionBoxResponse] = Field(default_factory=list)
+    alarm_candidates: list[VisionAlarmCandidate] = Field(
+        default_factory=list,
+        alias="alarmCandidates",
+    )
+    published_alarms: list[VisionAlarmCandidate] = Field(
+        default_factory=list,
+        alias="publishedAlarms",
+    )

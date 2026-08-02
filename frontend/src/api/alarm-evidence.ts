@@ -102,6 +102,65 @@ export async function uploadEvidence(
   })
 }
 
+export interface VisionDetectResult {
+  backend: string
+  model: string
+  detections: Array<{
+    className: string
+    confidence: number
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+  }>
+  alarmCandidates: Array<{
+    eventType: string
+    weaponType: string | null
+    className: string
+    confidence: number
+  }>
+  publishedAlarms: Array<{
+    eventType: string
+    weaponType: string | null
+    className: string
+    confidence: number
+  }>
+}
+
+export async function analyzeVisionFrame(
+  file: File,
+  options?: {
+    deviceCode?: string
+    taskCode?: string
+    latitude?: number
+    longitude?: number
+    publishAlarms?: boolean
+    maxAlarms?: number
+  },
+) {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('deviceCode', options?.deviceCode ?? 'UAV-001')
+  if (options?.taskCode) form.append('taskCode', options.taskCode)
+  if (options?.latitude != null) {
+    form.append('latitude', String(options.latitude))
+  }
+  if (options?.longitude != null) {
+    form.append('longitude', String(options.longitude))
+  }
+  form.append(
+    'publishAlarms',
+    String(options?.publishAlarms ?? true),
+  )
+  if (options?.maxAlarms != null) {
+    form.append('maxAlarms', String(options.maxAlarms))
+  }
+  return request<VisionDetectResult>('/api/alarms/analyze', {
+    method: 'POST',
+    body: form,
+  })
+}
+
 export function getWorkflowStatus(taskCode: string) {
   return request<WorkflowStatus>(
     `/api/inspection-tasks/${encodeURIComponent(taskCode)}/workflow-status`,

@@ -35,6 +35,7 @@ Python AI 服务负责：
 - 使用 LangChain `astream` 输出 SSE Token
 - Qdrant 文档向量化、语义检索和来源追踪
 - Redis 聊天会话上下文
+- YOLO26 视觉推理（默认 mock；可选 ultralytics `yolo26n.pt`）与检测告警投递
 
 独立管理后台负责：
 
@@ -43,6 +44,7 @@ Python AI 服务负责：
 - PostgreSQL：管理后台独立数据存储
 - MinIO：管理员头像上传，以及巡检截图/视频证据 object key
 - RabbitMQ：识别告警投递、落库、Temporal Signal 与实时广播
+- Redis：最近告警缓存与设备在线心跳
 
 ## 当前通信方式
 
@@ -75,7 +77,9 @@ SSE 链路流式返回。每个模型 Token 不写入 Temporal 历史；Java 会
 业务端与后台认证是两套边界：业务端使用 Keycloak OIDC；独立管理后台使用自身
 的 NestJS JWT 和 PostgreSQL RBAC，不经业务 Gateway。
 
-YOLO 视觉推理仍未实现；当前通过 AI/API 的检测投递接口模拟识别结果入队。
+YOLO26 视觉推理已接入 AI 服务：`POST /api/detections/analyze` 对上传帧做检测，
+可将映射后的告警经 RabbitMQ 进入既有闭环。默认 `AI_VISION_BACKEND=mock`，
+真实权重需 `pip/uv` 安装 vision 组并以 `yolo26n.pt`（或更大规格）运行。
 
 ## 网关预置配置
 

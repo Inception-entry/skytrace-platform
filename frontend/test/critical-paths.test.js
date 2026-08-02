@@ -13,6 +13,7 @@ const source = readFileSync(
 test('frontend alarm/evidence clients target critical API paths', () => {
   assert.match(source, /\/api\/alarms\/latest/)
   assert.match(source, /\/api\/alarms\/detections/)
+  assert.match(source, /\/api\/alarms\/analyze/)
   assert.match(source, /\/api\/evidence/)
   assert.match(
     source,

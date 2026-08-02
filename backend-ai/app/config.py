@@ -32,6 +32,21 @@ class Settings(BaseSettings):
     knowledge_max_file_size_bytes: int = 10 * 1024 * 1024
     rabbitmq_url: str = "amqp://admin:admin123@127.0.0.1:5672/"
     messaging_enabled: bool = True
+    vision_enabled: bool = True
+    # mock | yolo26 | ultralytics
+    vision_backend: str = "mock"
+    vision_model: str = "yolo26n.pt"
+    vision_device: str = "cpu"
+    vision_confidence_threshold: float = Field(
+        default=0.35,
+        ge=0.05,
+        le=0.99,
+    )
+    vision_max_upload_bytes: int = Field(
+        default=10 * 1024 * 1024,
+        ge=1024,
+    )
+    vision_default_max_alarms: int = Field(default=3, ge=1, le=20)
 
     model_config = SettingsConfigDict(
         env_prefix="AI_",

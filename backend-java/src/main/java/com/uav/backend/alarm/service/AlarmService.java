@@ -4,6 +4,7 @@ import com.uav.backend.alarm.domain.AlarmEvent;
 import com.uav.backend.alarm.dto.AlarmResponse;
 import com.uav.backend.alarm.dto.CreateAlarmRequest;
 import com.uav.backend.alarm.repository.AlarmEventRepository;
+import com.uav.backend.cache.AlarmRecentCache;
 import com.uav.backend.messaging.AlarmRealtimePublisher;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -18,14 +19,17 @@ public class AlarmService {
     private final AlarmEventRepository alarmEventRepository;
     private final ObjectProvider<AlarmRealtimePublisher> realtimePublisher;
     private final ObjectProvider<InspectionAlarmSignaler> alarmSignaler;
+    private final ObjectProvider<AlarmRecentCache> alarmRecentCache;
 
     public AlarmService(
             AlarmEventRepository alarmEventRepository,
             ObjectProvider<AlarmRealtimePublisher> realtimePublisher,
-            ObjectProvider<InspectionAlarmSignaler> alarmSignaler) {
+            ObjectProvider<InspectionAlarmSignaler> alarmSignaler,
+            ObjectProvider<AlarmRecentCache> alarmRecentCache) {
         this.alarmEventRepository = alarmEventRepository;
         this.realtimePublisher = realtimePublisher;
         this.alarmSignaler = alarmSignaler;
+        this.alarmRecentCache = alarmRecentCache;
     }
 
     @Transactional
@@ -58,6 +62,7 @@ public class AlarmService {
         event.setVideoUrl(request.videoUrl());
         event.setEventTime(request.eventTime());
         AlarmResponse response = toResponse(alarmEventRepository.save(event));
+        alarmRecentCache.ifAvailable(AlarmRecentCache::evict);
         if (signalWorkflow) {
             alarmSignaler.ifAvailable(signaler ->
                     signaler.signalAlarmDetected(
@@ -76,9 +81,22 @@ public class AlarmService {
 
     @Transactional(readOnly = true)
     public List<AlarmResponse> latest() {
-        return alarmEventRepository.findTop20ByOrderByEventTimeDesc().stream()
+        AlarmRecentCache cache = alarmRecentCache.getIfAvailable();
+        if (cache != null) {
+            var cached = cache.get();
+            if (cached.isPresent()) {
+                return cached.get();
+            }
+        }
+        List<AlarmResponse> latest = alarmEventRepository
+                .findTop20ByOrderByEventTimeDesc()
+                .stream()
                 .map(this::toResponse)
                 .toList();
+        if (cache != null) {
+            cache.put(latest);
+        }
+        return latest;
     }
 
     private AlarmResponse toResponse(AlarmEvent event) {

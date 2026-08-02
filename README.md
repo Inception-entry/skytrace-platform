@@ -18,7 +18,7 @@
 - **业务端**：Vue 3、TypeScript、Cesium，提供三维巡检、告警、知识库、AI 对话和审计概览。
 - **网关与身份**：Nginx 统一入口；Spring Cloud Gateway 执行 Keycloak JWT 校验、角色策略、Redis 限流、请求追踪与指标采集。
 - **业务服务**：NestJS BFF 聚合 API、透传 SSE、推送 Socket.IO 事件；Spring Boot 负责任务、告警、知识库边界、审计与 Temporal 工作流。
-- **AI 服务**：FastAPI、LangChain、Ollama 和 Qdrant 提供 RAG 知识库、流式问答与巡检分析；Redis 保存会话上下文。
+- **AI 服务**：FastAPI、LangChain、Ollama 和 Qdrant 提供 RAG 知识库、流式问答与巡检分析；Redis 保存会话上下文；YOLO26 视觉推理（默认 mock，可选真实权重）。
 - **独立后台**：React + Ant Design 管理端与 NestJS 管理服务，使用 PostgreSQL、Prisma 和 MinIO 管理用户、角色、菜单、操作日志及头像上传。
 - **部署与运维**：Docker Compose 提供本地、预发、生产与监控覆盖层；CI 包含各服务测试、依赖/镜像安全扫描和全栈验收。
 
@@ -130,6 +130,24 @@ ollama pull nomic-embed-text
 ```
 
 启动后访问 `http://localhost:8888/knowledge` 上传和检索文档。详细说明见 [`docs/knowledge-base.md`](docs/knowledge-base.md)。
+
+### YOLO26 视觉推理
+
+默认使用 `AI_VISION_BACKEND=mock`，不下载权重，便于 CI/本地。真实 YOLO26：
+
+```bash
+# 本地
+cd backend-ai
+uv sync --group vision
+export AI_VISION_BACKEND=yolo26 AI_VISION_MODEL=yolo26n.pt AI_VISION_DEVICE=cpu
+
+# Docker 镜像（体积较大，含 torch）
+docker compose build --build-arg INSTALL_VISION=1 backend-ai
+# deploy/.env 中设置 AI_VISION_BACKEND=yolo26
+```
+
+识别入口：`POST /api/detections/analyze`（也可经 BFF `POST /api/alarms/analyze`）。
+命中映射类别后可自动投递 RabbitMQ 告警闭环。
 
 > Gateway、Node、Java 与基础设施的宿主机端口只绑定到
 > `127.0.0.1`。局域网/公网业务入口只有 Nginx。Vue 使用 Keycloak PKCE
@@ -396,10 +414,11 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - `/chat` 使用 SSE 逐段显示 LangChain/Ollama 生成内容，并保留知识来源。
 - React + NestJS 独立管理后台，包含本地登录、用户、角色、菜单、操作日志和 MinIO 头像上传。
 - Docker Compose 的本地、预发、生产和可观测性覆盖层；CI 的全栈、权限、告警/证据链路验收；Publish 含 admin 镜像。
+- YOLO26 视觉推理入口（默认 mock；可选 ultralytics 真实权重）与告警投递联动。
+- Redis 最近告警缓存与设备 heartbeat 在线状态。
 
 预留或待完善：
 
-- Redis 业务缓存与在线状态的进一步接入。
 - Temporal Nexus 跨服务能力。
-- Python 视觉推理（YOLO）、视频抽帧及真实识别结果接入（当前提供检测投递 API/队列）。
+- 视频抽帧流水线与定制武器/缺陷数据集微调。
 - 设备、航线、飞控和完整任务领域的持久化与数据权限深化。

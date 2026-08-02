@@ -62,6 +62,10 @@ app:
     evidence-bucket: ${MINIO_EVIDENCE_BUCKET:uav-evidence}
   messaging:
     enabled: ${MESSAGING_ENABLED:true}
+  cache:
+    enabled: ${CACHE_ENABLED:true}
+    alarm-ttl-seconds: ${CACHE_ALARM_TTL_SECONDS:30}
+    device-presence-ttl-seconds: ${CACHE_DEVICE_PRESENCE_TTL_SECONDS:90}
 
 management:
   endpoints:

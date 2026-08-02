@@ -1,0 +1,48 @@
+package com.uav.backend.alarm.controller;
+
+import com.uav.backend.ai.client.AiVisionClient;
+import com.uav.backend.common.ApiResponse;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/detections")
+public class VisionDetectionController {
+
+    private final AiVisionClient aiVisionClient;
+
+    public VisionDetectionController(AiVisionClient aiVisionClient) {
+        this.aiVisionClient = aiVisionClient;
+    }
+
+    @PostMapping("/analyze")
+    public ApiResponse<Map<String, Object>> analyze(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "deviceCode", defaultValue = "UAV-001")
+            String deviceCode,
+            @RequestParam(value = "taskCode", required = false)
+            String taskCode,
+            @RequestParam(value = "latitude", required = false)
+            Double latitude,
+            @RequestParam(value = "longitude", required = false)
+            Double longitude,
+            @RequestParam(value = "publishAlarms", defaultValue = "true")
+            boolean publishAlarms,
+            @RequestParam(value = "maxAlarms", required = false)
+            Integer maxAlarms) {
+        return ApiResponse.ok(aiVisionClient.analyze(
+                file,
+                deviceCode,
+                taskCode,
+                latitude,
+                longitude,
+                publishAlarms,
+                maxAlarms
+        ));
+    }
+}

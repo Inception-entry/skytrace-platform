@@ -45,7 +45,10 @@ from app.schemas import (
     KnowledgeSearchResult,
     KnowledgeSource,
     ServiceInfoResponse,
+    VisionDetectResponse,
 )
+from app.vision import build_vision_detector
+from app.vision.analyze import analyze_image
 
 settings = get_settings()
 logger = configure_logging()
@@ -70,11 +73,34 @@ async def lifespan(app: FastAPI):
         ttl_seconds=settings.chat_session_ttl_seconds,
     )
     app.state.knowledge_base = KnowledgeBase(settings)
+    try:
+        app.state.vision_detector = build_vision_detector(settings)
+    except Exception as exception:
+        log_event(
+            logger,
+            logging.ERROR,
+            "vision_detector_init_failed",
+            operation="startup",
+            error_code="VISION_INIT_FAILED",
+            retryable=False,
+            exception_type=type(exception).__name__,
+        )
+        raise
     log_event(
         logger,
         logging.INFO,
         "ai_service_started",
         operation="startup",
+        vision_backend=(
+            None
+            if app.state.vision_detector is None
+            else app.state.vision_detector.backend
+        ),
+        vision_model=(
+            None
+            if app.state.vision_detector is None
+            else app.state.vision_detector.model_name
+        ),
     )
     yield
     await app.state.redis.aclose()
@@ -147,6 +173,7 @@ async def service_info() -> ServiceInfoResponse:
         health="/health",
         chat="POST /api/chat",
         knowledge="/api/knowledge/documents",
+        detections="POST /api/detections/analyze",
     )
 
 
@@ -191,6 +218,11 @@ async def health() -> HealthResponse:
         if _has_model(model_names, settings.ollama_embedding_model)
         else "missing"
     )
+    vision_status = "disabled"
+    detector = getattr(app.state, "vision_detector", None)
+    if detector is not None:
+        vision_status = detector.backend
+
     return HealthResponse(
         status=(
             "ok"
@@ -203,6 +235,7 @@ async def health() -> HealthResponse:
         qdrant="connected",
         model=model_status,
         embeddingModel=embedding_status,
+        vision=vision_status,
     )
 
 
@@ -246,6 +279,115 @@ async def publish_detection(
             },
         ) from exc
     return {"status": "queued", "exchange": "uav.detection"}
+
+
+@app.post(
+    "/api/detections/analyze",
+    response_model=VisionDetectResponse,
+)
+async def analyze_detection(
+    request: Request,
+    file: UploadFile = File(...),
+    deviceCode: str = "UAV-001",
+    taskCode: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    publishAlarms: bool = True,
+    maxAlarms: int | None = None,
+) -> VisionDetectResponse:
+    detector = getattr(request.app.state, "vision_detector", None)
+    if detector is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "VISION_DISABLED",
+                "message": "视觉推理未启用",
+                "retryable": False,
+            },
+        )
+
+    content_type = (file.content_type or "").lower()
+    if content_type and not content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VISION_INVALID_IMAGE",
+                "message": "仅支持图片文件上传",
+                "retryable": False,
+            },
+        )
+
+    image_bytes = await file.read()
+    if not image_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VISION_EMPTY_IMAGE",
+                "message": "上传图片为空",
+                "retryable": False,
+            },
+        )
+    if len(image_bytes) > settings.vision_max_upload_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail={
+                "code": "VISION_IMAGE_TOO_LARGE",
+                "message": "图片超过大小限制",
+                "retryable": False,
+            },
+        )
+
+    started_at = perf_counter()
+    try:
+        response = await analyze_image(
+            detector=detector,
+            settings=settings,
+            image_bytes=image_bytes,
+            device_code=deviceCode.strip() or "UAV-001",
+            task_code=taskCode,
+            latitude=latitude,
+            longitude=longitude,
+            publish_alarms=publishAlarms,
+            max_alarms=(
+                maxAlarms
+                if maxAlarms is not None
+                else settings.vision_default_max_alarms
+            ),
+            request_id=request.state.request_id,
+        )
+    except Exception as exc:
+        log_event(
+            logger,
+            logging.ERROR,
+            "vision_analyze_failed",
+            request_id=request.state.request_id,
+            operation="vision_analyze",
+            error_code="VISION_ANALYZE_FAILED",
+            retryable=True,
+            exception_type=type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "code": "VISION_ANALYZE_FAILED",
+                "message": "视觉推理失败，请稍后重试",
+                "retryable": True,
+            },
+        ) from exc
+
+    log_event(
+        logger,
+        logging.INFO,
+        "vision_analyze_completed",
+        request_id=request.state.request_id,
+        operation="vision_analyze",
+        backend=response.backend,
+        model=response.model,
+        detection_count=len(response.detections),
+        published_count=len(response.published_alarms),
+        duration_ms=_elapsed_ms(started_at),
+    )
+    return response
 
 
 @app.post("/api/chat", response_model=ChatResponse)

@@ -38,7 +38,8 @@ class AlarmServiceTest {
         AlarmService service = new AlarmService(
                 repository,
                 publisherProvider,
-                signalerProvider
+                signalerProvider,
+                emptyProvider()
         );
         AlarmResponse response = service.create(sampleRequest());
 
@@ -62,7 +63,8 @@ class AlarmServiceTest {
         AlarmService service = new AlarmService(
                 repository,
                 publisherProvider,
-                signalerProvider
+                signalerProvider,
+                emptyProvider()
         );
         service.create(sampleRequest(), false, false);
 
@@ -93,6 +95,15 @@ class AlarmServiceTest {
             consumer.accept(bean);
             return null;
         }).when(provider).ifAvailable(ArgumentMatchers.any());
+        return provider;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> ObjectProvider<T> emptyProvider() {
+        ObjectProvider<T> provider = mock(ObjectProvider.class);
+        doAnswer(invocation -> null)
+                .when(provider).ifAvailable(ArgumentMatchers.any());
+        when(provider.getIfAvailable()).thenReturn(null);
         return provider;
     }
 }

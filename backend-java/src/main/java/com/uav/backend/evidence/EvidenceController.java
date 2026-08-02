@@ -3,7 +3,7 @@ package com.uav.backend.evidence;
 import com.uav.backend.common.ApiResponse;
 import com.uav.backend.evidence.dto.EvidenceUploadResponse;
 import com.uav.backend.evidence.service.EvidenceStorageService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/evidence")
-@ConditionalOnBean(EvidenceStorageService.class)
+@ConditionalOnProperty(name = "app.minio.enabled", havingValue = "true")
 public class EvidenceController {
 
     private final EvidenceStorageService storageService;

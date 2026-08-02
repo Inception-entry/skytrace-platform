@@ -6,16 +6,26 @@ COPY --from=uv /uv /uvx /bin/
 
 WORKDIR /app
 
+ARG INSTALL_VISION=0
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev --no-install-project
+RUN if [ "$INSTALL_VISION" = "1" ]; then \
+      uv sync --locked --group vision --no-dev --no-install-project; \
+    else \
+      uv sync --locked --no-dev --no-install-project; \
+    fi
 
 COPY app ./app
-RUN uv sync --locked --no-dev
+RUN if [ "$INSTALL_VISION" = "1" ]; then \
+      uv sync --locked --group vision --no-dev; \
+    else \
+      uv sync --locked --no-dev; \
+    fi
 
 ENV PATH="/app/.venv/bin:$PATH"
 

@@ -15,6 +15,7 @@ import { HttpRolesGuard } from './auth/http-roles.guard';
 import { AdminController } from './admin/admin.controller';
 import { AlarmRealtimeConsumer } from './messaging/alarm-realtime.consumer';
 import { EvidenceController } from './evidence/evidence.controller';
+import { DeviceController } from './device/device.controller';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { EvidenceController } from './evidence/evidence.controller';
     KnowledgeController,
     AdminController,
     EvidenceController,
+    DeviceController,
   ],
   providers: [
     JavaClientService,
