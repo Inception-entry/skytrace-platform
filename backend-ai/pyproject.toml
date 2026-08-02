@@ -1,6 +1,6 @@
 [project]
 name = "uav-backend-ai"
-version = "0.2.0"
+version = "0.2.1"
 description = "UAV local AI service powered by LangChain and Ollama"
 requires-python = ">=3.12,<3.13"
 dependencies = [

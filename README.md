@@ -2,7 +2,7 @@
 
 面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
-当前平台版本：**0.2.0**（发版说明见 [`docs/releases/v0.2.0.md`](docs/releases/v0.2.0.md)）。
+当前平台版本：**0.2.1**（发版说明见 [`docs/releases/v0.2.1.md`](docs/releases/v0.2.1.md)）。
 
 ## 技术架构
 
@@ -51,7 +51,8 @@ uav-java-node-architecture/
 │   ├── security-audit-admin.md          # 业务端权限与审计
 │   ├── temporal-integration.md          # Temporal 当前实现与演进方向
 │   └── releases/
-│       └── v0.2.0.md                    # 0.2.0 发版说明
+│       ├── v0.2.0.md                    # 0.2.0 发版说明
+│       └── v0.2.1.md                    # 0.2.1 补丁说明
 ├── scripts/
 │   ├── uav.sh                           # 本地 Compose 管理和权限验收
 │   ├── mysql-backup.sh                  # MySQL 备份
