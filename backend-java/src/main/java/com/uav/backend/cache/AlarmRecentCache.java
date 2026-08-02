@@ -51,6 +51,11 @@ public class AlarmRecentCache {
     }
 
     public void put(List<AlarmResponse> alarms) {
+        if (alarms == null || alarms.isEmpty()) {
+            // Never cache an empty snapshot: a concurrent create+evict can
+            // otherwise be overwritten by a stale empty PUT for the full TTL.
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(
                     KEY,

@@ -9,6 +9,8 @@ import com.uav.backend.messaging.AlarmRealtimePublisher;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -62,7 +64,7 @@ public class AlarmService {
         event.setVideoUrl(request.videoUrl());
         event.setEventTime(request.eventTime());
         AlarmResponse response = toResponse(alarmEventRepository.save(event));
-        alarmRecentCache.ifAvailable(AlarmRecentCache::evict);
+        evictAlarmCacheAfterCommit();
         if (signalWorkflow) {
             alarmSignaler.ifAvailable(signaler ->
                     signaler.signalAlarmDetected(
@@ -93,10 +95,29 @@ public class AlarmService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
-        if (cache != null) {
+        if (cache != null && !latest.isEmpty()) {
             cache.put(latest);
         }
         return latest;
+    }
+
+    private void evictAlarmCacheAfterCommit() {
+        AlarmRecentCache cache = alarmRecentCache.getIfAvailable();
+        if (cache == null) {
+            return;
+        }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            cache.evict();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        cache.evict();
+                    }
+                }
+        );
     }
 
     private AlarmResponse toResponse(AlarmEvent event) {

@@ -102,7 +102,7 @@ api_request POST "/api/alarms/detections" "$detection_payload" >/dev/null
 printf '识别告警已投递到 RabbitMQ\n'
 
 found=""
-for ((attempt = 1; attempt <= 30; attempt++)); do
+for ((attempt = 1; attempt <= 45; attempt++)); do
   latest="$(api_request GET "/api/alarms/latest")"
   found="$(
     python3 -c '
@@ -112,7 +112,8 @@ import sys
 payload = json.load(sys.stdin)
 task = sys.argv[1]
 object_key = sys.argv[2]
-for item in payload.get("data", []):
+items = payload.get("data", [])
+for item in items:
     if item.get("taskCode") == task and item.get("imageUrl") == object_key:
         print(item.get("eventCode", ""))
         break
@@ -126,6 +127,8 @@ for item in payload.get("data", []):
 done
 if [[ -z "$found" ]]; then
   echo "告警落库验收失败：未找到对应 task/imageObjectKey"
+  echo "最近告警快照："
+  api_request GET "/api/alarms/latest" || true
   exit 1
 fi
 
