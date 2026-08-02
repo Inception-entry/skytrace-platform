@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateAlarmDto {
   @IsString()
@@ -17,10 +23,38 @@ export class CreateAlarmDto {
   @IsOptional()
   weaponType?: string;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   confidence?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   latitude?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   longitude?: number;
+
+  @IsOptional()
+  @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   videoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  imageObjectKey?: string;
+
+  @IsOptional()
+  @IsString()
+  videoObjectKey?: string;
+
+  @IsOptional()
+  @IsString()
   eventTime?: string;
 }

@@ -54,8 +54,8 @@ export class AlarmController {
       confidence: dto.confidence,
       latitude: dto.latitude,
       longitude: dto.longitude,
-      imageObjectKey: dto.imageUrl,
-      videoObjectKey: dto.videoUrl,
+      imageObjectKey: dto.imageObjectKey ?? dto.imageUrl,
+      videoObjectKey: dto.videoObjectKey ?? dto.videoUrl,
       eventTime: dto.eventTime ?? new Date().toISOString(),
     };
     return this.javaClient.post('/detections/alarms', payload);
