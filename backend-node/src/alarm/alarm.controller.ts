@@ -27,4 +27,22 @@ export class AlarmController {
     this.alarmGateway.broadcastAlarm(result);
     return result;
   }
+
+  @Post('detections')
+  @Roles('ADMIN', 'OPERATOR')
+  publishDetection(@Body() dto: CreateAlarmDto) {
+    const payload = {
+      deviceCode: dto.deviceCode,
+      taskCode: dto.taskCode,
+      eventType: dto.eventType,
+      weaponType: dto.weaponType,
+      confidence: dto.confidence,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      imageObjectKey: dto.imageUrl,
+      videoObjectKey: dto.videoUrl,
+      eventTime: dto.eventTime ?? new Date().toISOString(),
+    };
+    return this.javaClient.post('/detections/alarms', payload);
+  }
 }

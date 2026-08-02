@@ -31,6 +31,10 @@ from app.observability import (
     reset_request_id,
     set_request_id,
 )
+from app.detection_publisher import (
+    DetectionAlarmPayload,
+    publish_detection_alarm,
+)
 from app.schemas import (
     ChatRequest,
     ChatResponse,
@@ -200,6 +204,48 @@ async def health() -> HealthResponse:
         model=model_status,
         embeddingModel=embedding_status,
     )
+
+
+@app.post("/api/detections/alarms")
+async def publish_detection(
+    payload: DetectionAlarmPayload,
+    request: Request,
+) -> dict[str, str]:
+    if not settings.messaging_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "MESSAGING_DISABLED",
+                "message": "告警消息通道未启用",
+                "retryable": False,
+            },
+        )
+    try:
+        await publish_detection_alarm(
+            settings,
+            payload,
+            request_id=request.state.request_id,
+        )
+    except Exception as exc:
+        log_event(
+            logger,
+            logging.ERROR,
+            "detection_alarm_publish_failed",
+            request_id=request.state.request_id,
+            operation="publish_detection",
+            error_code="DETECTION_PUBLISH_FAILED",
+            retryable=True,
+            exception_type=type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "code": "DETECTION_PUBLISH_FAILED",
+                "message": "识别结果投递失败，请稍后重试",
+                "retryable": True,
+            },
+        ) from exc
+    return {"status": "queued", "exchange": "uav.detection"}
 
 
 @app.post("/api/chat", response_model=ChatResponse)

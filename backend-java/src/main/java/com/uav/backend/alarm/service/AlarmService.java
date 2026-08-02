@@ -4,6 +4,8 @@ import com.uav.backend.alarm.domain.AlarmEvent;
 import com.uav.backend.alarm.dto.AlarmResponse;
 import com.uav.backend.alarm.dto.CreateAlarmRequest;
 import com.uav.backend.alarm.repository.AlarmEventRepository;
+import com.uav.backend.messaging.AlarmRealtimePublisher;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,15 +16,37 @@ import java.util.UUID;
 @Service
 public class AlarmService {
     private final AlarmEventRepository alarmEventRepository;
+    private final ObjectProvider<AlarmRealtimePublisher> realtimePublisher;
+    private final ObjectProvider<InspectionAlarmSignaler> alarmSignaler;
 
-    public AlarmService(AlarmEventRepository alarmEventRepository) {
+    public AlarmService(
+            AlarmEventRepository alarmEventRepository,
+            ObjectProvider<AlarmRealtimePublisher> realtimePublisher,
+            ObjectProvider<InspectionAlarmSignaler> alarmSignaler) {
         this.alarmEventRepository = alarmEventRepository;
+        this.realtimePublisher = realtimePublisher;
+        this.alarmSignaler = alarmSignaler;
     }
 
     @Transactional
     public AlarmResponse create(CreateAlarmRequest request) {
+        // HTTP path: Node BFF broadcasts Socket.IO; Temporal Signal still runs.
+        return create(request, true, false);
+    }
+
+    @Transactional
+    public AlarmResponse create(
+            CreateAlarmRequest request,
+            boolean signalWorkflow,
+            boolean publishRealtime) {
         AlarmEvent event = new AlarmEvent();
-        event.setEventCode("ALARM-" + DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(request.eventTime()) + "-" + UUID.randomUUID().toString().substring(0, 8));
+        event.setEventCode(
+                "ALARM-"
+                        + DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+                        .format(request.eventTime())
+                        + "-"
+                        + UUID.randomUUID().toString().substring(0, 8)
+        );
         event.setDeviceCode(request.deviceCode());
         event.setTaskCode(request.taskCode());
         event.setEventType(request.eventType());
@@ -33,7 +57,21 @@ public class AlarmService {
         event.setImageUrl(request.imageUrl());
         event.setVideoUrl(request.videoUrl());
         event.setEventTime(request.eventTime());
-        return toResponse(alarmEventRepository.save(event));
+        AlarmResponse response = toResponse(alarmEventRepository.save(event));
+        if (signalWorkflow) {
+            alarmSignaler.ifAvailable(signaler ->
+                    signaler.signalAlarmDetected(
+                            response.taskCode(),
+                            response.eventCode()
+                    )
+            );
+        }
+        if (publishRealtime) {
+            realtimePublisher.ifAvailable(publisher ->
+                    publisher.publishCreated(response)
+            );
+        }
+        return response;
     }
 
     @Transactional(readOnly = true)

@@ -17,6 +17,12 @@ public interface InspectionWorkflow {
     @SignalMethod
     void cancel();
 
+    @SignalMethod
+    void alarmDetected(String eventCode);
+
     @QueryMethod
     String getStatus();
+
+    @QueryMethod
+    String getLastAlarmEventCode();
 }

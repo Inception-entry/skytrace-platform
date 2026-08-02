@@ -119,6 +119,7 @@ export class JavaClientService {
       originalname: string;
       mimetype: string;
     },
+    fields: Record<string, string | undefined> = {},
     timeout = 180_000,
   ): Promise<T> {
     const formData = new FormData();
@@ -129,6 +130,11 @@ export class JavaClientService {
       }),
       file.originalname,
     );
+    for (const [key, value] of Object.entries(fields)) {
+      if (value) {
+        formData.append(key, value);
+      }
+    }
 
     try {
       const response = await firstValueFrom(

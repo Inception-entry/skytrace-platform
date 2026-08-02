@@ -137,11 +137,6 @@ services:
     restart: always
     extra_hosts:
       - "host-gateway:host-gateway"
-    depends_on:
-      redis:
-        condition: service_started
-      qdrant:
-        condition: service_started
     environment:
       AI_OLLAMA_BASE_URL: http://host-gateway:${AI_OLLAMA_PORT:-11434}
       AI_OLLAMA_MODEL: ${AI_OLLAMA_MODEL:-my-drone-expert}
@@ -161,8 +156,17 @@ services:
       AI_KNOWLEDGE_TOP_K: ${AI_KNOWLEDGE_TOP_K:-4}
       AI_KNOWLEDGE_SCORE_THRESHOLD: ${AI_KNOWLEDGE_SCORE_THRESHOLD:-0.25}
       AI_KNOWLEDGE_MAX_FILE_SIZE_BYTES: ${AI_KNOWLEDGE_MAX_FILE_SIZE_BYTES:-10485760}
+      AI_RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+      AI_MESSAGING_ENABLED: "true"
     ports:
       - "127.0.0.1:${AI_SERVICE_PORT:-8000}:8000"
+    depends_on:
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
     healthcheck:
       test:
         - CMD
@@ -201,6 +205,9 @@ services:
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_EVIDENCE_BUCKET: ${MINIO_EVIDENCE_BUCKET:-uav-evidence}
+      MINIO_ENABLED: "true"
+      MESSAGING_ENABLED: "true"
       TEMPORAL_TARGET_ENDPOINT: temporal:7233
       TEMPORAL_NAMESPACE: default
       TEMPORAL_TASK_QUEUE: uav-inspection-task-queue
@@ -255,6 +262,11 @@ services:
       AUTH_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/uav}
       AUTH_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-uav-web}
       WS_ALLOWED_ORIGIN: ${GATEWAY_ALLOWED_ORIGIN:-http://localhost:8888}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      MESSAGING_ENABLED: "true"
     ports:
       - "127.0.0.1:${NODE_PORT}:3000"
       - "127.0.0.1:${WS_PORT}:3001"
@@ -273,6 +285,8 @@ services:
       keycloak:
         condition: service_started
       redis:
+        condition: service_started
+      rabbitmq:
         condition: service_started
     networks:
       - backend
@@ -359,8 +373,8 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-admin_user}:${POSTGRES_PASSWORD:-admin123456}@postgres:5432/${POSTGRES_DB:-uav_admin}
-      JWT_SECRET: ${ADMIN_JWT_SECRET:-dev-jwt-secret-change-in-production}
-      JWT_REFRESH_SECRET: ${ADMIN_JWT_REFRESH_SECRET:-dev-jwt-refresh-secret-change-in-production}
+      JWT_SECRET: ${ADMIN_JWT_SECRET:?Set ADMIN_JWT_SECRET in deploy/.env}
+      JWT_REFRESH_SECRET: ${ADMIN_JWT_REFRESH_SECRET:?Set ADMIN_JWT_REFRESH_SECRET in deploy/.env}
       MINIO_ENDPOINT: minio
       MINIO_PORT: "9000"
       MINIO_USE_SSL: "false"
@@ -391,7 +405,7 @@ services:
     environment:
       NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-localhost}
     ports:
-      - "${ADMIN_FRONTEND_PORT:-8889}:80"
+      - "127.0.0.1:${ADMIN_FRONTEND_PORT:-8889}:80"
     depends_on:
       admin-service:
         condition: service_healthy
@@ -410,8 +424,8 @@ services:
       KEYCLOAK_REALM: uav
       KEYCLOAK_CLIENT_ID: uav-web
     ports:
-      - "${FRONTEND_PORT:-8888}:80"
-      - "${HTTPS_PORT:-8443}:443"
+      - "127.0.0.1:${FRONTEND_PORT:-8888}:80"
+      - "127.0.0.1:${HTTPS_PORT:-8443}:443"
     volumes:
       - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:

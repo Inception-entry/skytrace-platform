@@ -28,7 +28,16 @@ export class AuthService {
   ) {}
 
   private get refreshSecret() {
-    return this.config.get<string>('JWT_REFRESH_SECRET', 'dev-jwt-refresh-secret-change-in-production')
+    const secret = this.config.get<string>('JWT_REFRESH_SECRET')
+    if (
+      !secret
+      || secret === 'dev-jwt-refresh-secret-change-in-production'
+    ) {
+      throw new Error(
+        'JWT_REFRESH_SECRET must be set to a non-default value',
+      )
+    }
+    return secret
   }
 
   async validateUser(username: string, password: string) {

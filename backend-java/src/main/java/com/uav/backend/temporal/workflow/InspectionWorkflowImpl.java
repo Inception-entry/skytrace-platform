@@ -26,6 +26,7 @@ public class InspectionWorkflowImpl implements InspectionWorkflow {
 
     private String status = "CREATED";
     private boolean finished;
+    private String lastAlarmEventCode = "";
 
     @Override
     public void start(String taskCode) {
@@ -54,7 +55,19 @@ public class InspectionWorkflowImpl implements InspectionWorkflow {
     }
 
     @Override
+    public void alarmDetected(String eventCode) {
+        if (eventCode != null && !eventCode.isBlank()) {
+            lastAlarmEventCode = eventCode;
+        }
+    }
+
+    @Override
     public String getStatus() {
         return status;
+    }
+
+    @Override
+    public String getLastAlarmEventCode() {
+        return lastAlarmEventCode;
     }
 }

@@ -11,10 +11,16 @@ interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
+    const secret = config.get<string>('JWT_SECRET')
+    if (!secret || secret === 'dev-jwt-secret-change-in-production') {
+      throw new Error(
+        'JWT_SECRET must be set to a non-default value before starting admin-service',
+      )
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('JWT_SECRET', 'dev-jwt-secret-change-in-production'),
+      secretOrKey: secret,
     })
   }
 

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "postinstall": "patch-package",
     "lint": "eslint . --ext .vue,.js,.ts",
-    "lint:fix": "npm run lint -- --fix"
+    "lint:fix": "npm run lint -- --fix",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "ant-design-vue": "^4.2.6",

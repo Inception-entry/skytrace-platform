@@ -7,13 +7,15 @@ Nexus 仍是未来的跨服务演进选项。
 
 ```text
 Vue -> Nginx -> Gateway -> Node BFF -> Spring Boot -> Temporal Workflow
-                                                  ├── MySQL：任务、分析历史和审计
-                                                  └── FastAPI AI：流式或同步模型调用
+                                                  ├── MySQL：任务、分析历史、证据元数据和审计
+                                                  ├── RabbitMQ：识别告警 Signal
+                                                  ├── MinIO：证据 object key
+                                                  └── FastAPI AI：流式/同步模型调用与检测投递
 ```
 
 Spring Boot 是业务入口，Temporal 不直接暴露给前端，也不替代数据库。它负责
-可靠编排、重试、超时和工作流状态追踪。RabbitMQ 的识别结果 Signal、面向巡检的
-MinIO 证据对象关联则尚未实施。
+可靠编排、重试、超时和工作流状态追踪。识别告警已通过 RabbitMQ 转为
+`alarmDetected` Signal；证据文件保存在 MinIO，数据库只存 object key。
 
 ## Compose 服务
 
@@ -52,7 +54,7 @@ localhost:7233
 
 Java Worker 使用 `uav-inspection-task-queue`，已注册：
 
-- `InspectionWorkflow`：启动、查询状态、完成和取消巡检任务；
+- `InspectionWorkflow`：启动、查询状态、完成、取消，以及 `alarmDetected` Signal；
 - `InspectionAnalysisWorkflow`：可靠的完整 AI 分析；
 - `InspectionChatWorkflow`：同步聊天分析。
 
@@ -65,18 +67,23 @@ POST /api/inspection-workflows/{taskCode}/complete
 POST /api/inspection-workflows/{taskCode}/cancel
 POST /api/inspection-workflows/{taskCode}/analysis
 POST /api/inspection-workflows/{taskCode}/analysis/stream
+POST /api/alarms/detections
+POST /api/evidence
 ```
 
 其中 `/analysis` 的完整结果由 Workflow 编排；`/analysis/stream` 直接透传 SSE，
 避免将每个模型 Token 记录到 Temporal 历史。两条通道均在成功完成后保存分析
-记录。
+记录。`/status` 会返回 `lastAlarmEventCode`。
 
 ## RabbitMQ 与 Temporal 的关系
 
-AI 服务仍可以把识别结果发送到 RabbitMQ。Java 消费消息后不要在消费者里完成整段业务流程，而是把事件转成 Workflow Signal：
+识别结果已接入：
 
 ```text
-RabbitMQ alarm message -> Java consumer -> InspectionWorkflow.signalAlarmDetected(...)
+AI/API -> RabbitMQ uav.detection -> Java DetectionAlarmListener
+       -> AlarmService.create
+       -> InspectionWorkflow.alarmDetected(eventCode)
+       -> RabbitMQ uav.alarm.realtime -> Node Socket.IO alarm.created
 ```
 
 这样即使 Java 服务重启，Workflow 的等待状态和历史仍由 Temporal 维护。
@@ -96,8 +103,6 @@ Temporal Nexus 适合跨 Temporal 应用的可靠服务调用。官方文档说�
 
 ## 下一步
 
-1. 接入 RabbitMQ 消费者，将 AI 识别结果转为 `InspectionWorkflow` Signal。
-2. 接入证据对象存储，在 Workflow 中仅保留 MinIO object key 与元数据。
-3. 为飞控、视觉推理或证据服务拆出独立 Worker 后，再评估 Nexus Service。
-
-生产环境应另行规划 Namespace、mTLS/API Key、权限、归档和可观测性。
+1. 将真实 YOLO/视觉推理结果接入现有检测投递通道。
+2. 在 Workflow Activity 中补充证据归档与通知编排。
+3. 生产环境规划 Namespace、mTLS/API Key、权限、归档和可观测性。

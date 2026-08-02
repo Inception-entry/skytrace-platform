@@ -41,7 +41,8 @@ Python AI 服务负责：
 - React 管理端：用户、角色、菜单和操作日志界面
 - NestJS 管理服务：本地 JWT 登录、RBAC、Prisma 数据访问和操作日志
 - PostgreSQL：管理后台独立数据存储
-- MinIO：当前用于管理员头像上传
+- MinIO：管理员头像上传，以及巡检截图/视频证据 object key
+- RabbitMQ：识别告警投递、落库、Temporal Signal 与实时广播
 
 ## 当前通信方式
 
@@ -49,8 +50,13 @@ Python AI 服务负责：
 Vue/Cesium -> Nginx -> Gateway -> Node BFF -> Spring Boot
                                       │              ├-> MySQL
                                       │              ├-> Temporal
+                                      │              ├-> MinIO（证据 object key）
+                                      │              ├-> RabbitMQ（检测告警）
                                       │              └-> FastAPI AI -> Ollama / Qdrant / Redis
-                                      └-> Socket.IO
+                                      └-> Socket.IO <- RabbitMQ fanout
+
+AI / API -> RabbitMQ detection -> Java consumer -> Alarm + Temporal Signal
+                                              -> RabbitMQ realtime -> Node Socket.IO
 
 React Admin -> Admin Nginx -> Admin NestJS -> PostgreSQL
                                              └-> MinIO（头像）
@@ -69,8 +75,7 @@ SSE 链路流式返回。每个模型 Token 不写入 Temporal 历史；Java 会
 业务端与后台认证是两套边界：业务端使用 Keycloak OIDC；独立管理后台使用自身
 的 NestJS JWT 和 PostgreSQL RBAC，不经业务 Gateway。
 
-RabbitMQ 与面向巡检的 MinIO 证据链已在 Compose 和配置中预置，但尚未接入
-业务告警链路。
+YOLO 视觉推理仍未实现；当前通过 AI/API 的检测投递接口模拟识别结果入队。
 
 ## 网关预置配置
 

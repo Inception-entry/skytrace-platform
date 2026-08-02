@@ -30,6 +30,10 @@ jobs:
             context: gateway-java
           - service: frontend
             context: frontend
+          - service: admin-service
+            context: admin-service
+          - service: admin-frontend
+            context: admin-frontend
     steps:
       - uses: actions/checkout@v6
         with:

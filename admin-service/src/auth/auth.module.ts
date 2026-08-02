@@ -16,7 +16,15 @@ import { JwtStrategy } from './strategies/jwt.strategy'
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET', 'dev-jwt-secret-change-in-production'),
+        secret: (() => {
+          const secret = config.get<string>('JWT_SECRET')
+          if (!secret || secret === 'dev-jwt-secret-change-in-production') {
+            throw new Error(
+              'JWT_SECRET must be set to a non-default value before starting admin-service',
+            )
+          }
+          return secret
+        })(),
         signOptions: { expiresIn: '15m' },
       }),
     }),

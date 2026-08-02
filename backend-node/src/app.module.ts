@@ -13,11 +13,13 @@ import { KnowledgeController } from './knowledge/knowledge.controller';
 import { HttpJwtAuthGuard } from './auth/http-jwt-auth.guard';
 import { HttpRolesGuard } from './auth/http-roles.guard';
 import { AdminController } from './admin/admin.controller';
+import { AlarmRealtimeConsumer } from './messaging/alarm-realtime.consumer';
+import { EvidenceController } from './evidence/evidence.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    HttpModule.register({ timeout: 5000, maxRedirects: 3 }),
+    HttpModule.register({ timeout: 5_000, maxRedirects: 3 }),
   ],
   controllers: [
     HealthController,
@@ -26,11 +28,13 @@ import { AdminController } from './admin/admin.controller';
     InspectionTaskController,
     KnowledgeController,
     AdminController,
+    EvidenceController,
   ],
   providers: [
     JavaClientService,
     KeycloakJwtService,
     AlarmRealtimeGateway,
+    AlarmRealtimeConsumer,
     {
       provide: APP_GUARD,
       useClass: HttpJwtAuthGuard,

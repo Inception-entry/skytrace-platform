@@ -326,6 +326,8 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | `GET` | `/api/inspection-tasks` | 巡检任务列表示例 |
 | `GET` | `/api/alarms/latest` | 最近 20 条告警 |
 | `POST` | `/api/alarms` | 创建告警并写入数据库 |
+| `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ（异步落库） |
+| `POST` | `/api/evidence` | 上传截图/视频证据到 MinIO，返回 object key |
 | `GET` | `/api/knowledge/documents` | 查询知识文档 |
 | `POST` | `/api/knowledge/documents` | 上传知识文档（ADMIN） |
 | `POST` | `/api/knowledge/search` | 语义检索知识片段 |
@@ -345,8 +347,11 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | `GET` | `/api/health` | 健康检查 |
 | `GET` | `/api/alarms/latest` | 转发 Java 最近告警接口 |
 | `POST` | `/api/alarms` | 创建告警，并广播 `alarm.created` 事件 |
+| `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ |
+| `POST` | `/api/evidence` | 上传证据文件并转发 Java/MinIO |
 | `POST` | `/api/inspection-tasks/{taskCode}/analysis/stream` | 透传 AI SSE 实时分析 |
 | `GET` | `/api/inspection-tasks/{taskCode}/analyses` | 查询 MySQL 中的 AI 分析历史 |
+| `GET` | `/api/inspection-tasks/{taskCode}/workflow-status` | 查询 Temporal 状态与最近告警 Signal |
 
 创建告警示例：
 
@@ -373,28 +378,28 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 | `connected` | 服务端 -> 客户端 | 鉴权成功后返回客户端 ID、用户名、角色和 Token 到期时间 |
 | `ping` | 客户端 -> 服务端 | 连通性测试 |
 | `pong` | 服务端 -> 客户端 | 返回 `ping` 携带的数据 |
-| `alarm.created` | 服务端 -> 客户端 | 通过 Node 创建告警后广播 |
+| `alarm.created` | 服务端 -> 客户端 | HTTP 创建或 RabbitMQ 实时事件触发后广播 |
 
 ## 当前实现边界
 
 已实现：
 
 - Java 告警持久化、最近告警查询、参数校验和统一响应。
-- Flyway 管理 AI 分析结果表，持久化同步与 SSE 分析并支持历史查询。
+- RabbitMQ 识别告警队列：AI/API 投递 → Java 落库 → Temporal `alarmDetected` Signal → Node Socket.IO 广播。
+- MinIO 巡检证据上传：截图/视频只持久化 object key，经 `/files/` 反代访问。
+- Flyway 管理 AI 分析结果表与证据资产表，持久化同步与 SSE 分析并支持历史查询。
 - 设备、巡检任务示例查询接口。
-- Node 告警代理、Socket.IO JWT 握手鉴权与实时广播。
+- Node 告警代理、证据上传代理、Socket.IO JWT 握手鉴权与实时广播。
 - Vue 3 + Cesium 业务端，包含任务、告警、知识库、聊天、主题、布局和国际化能力。
 - Temporal 巡检生命周期、同步 AI 分析和流式 AI 分析工作流。
 - LangChain + Ollama + Qdrant 知识库，支持 PDF、Markdown、TXT 入库和可追溯 RAG 检索。
 - `/chat` 使用 SSE 逐段显示 LangChain/Ollama 生成内容，并保留知识来源。
 - React + NestJS 独立管理后台，包含本地登录、用户、角色、菜单、操作日志和 MinIO 头像上传。
-- Docker Compose 的本地、预发、生产和可观测性覆盖层；CI 的全栈与权限验收。
+- Docker Compose 的本地、预发、生产和可观测性覆盖层；CI 的全栈、权限、告警/证据链路验收；Publish 含 admin 镜像。
 
 预留或待完善：
 
 - Redis 业务缓存与在线状态的进一步接入。
-- RabbitMQ 告警消息生产、消费和工作流 Signal 闭环。
-- 面向巡检业务的 MinIO 截图、视频证据链；当前 MinIO 已用于管理端头像上传。
 - Temporal Nexus 跨服务能力。
-- Python 视觉推理、视频抽帧及识别结果接入。
+- Python 视觉推理（YOLO）、视频抽帧及真实识别结果接入（当前提供检测投递 API/队列）。
 - 设备、航线、飞控和完整任务领域的持久化与数据权限深化。

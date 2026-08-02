@@ -55,9 +55,13 @@ app:
     initial-backoff: ${AI_INITIAL_BACKOFF:500ms}
     max-backoff: ${AI_MAX_BACKOFF:2s}
   minio:
+    enabled: ${MINIO_ENABLED:true}
     endpoint: ${MINIO_ENDPOINT:http://localhost:9011}
     access-key: ${MINIO_ACCESS_KEY:minioadmin}
     secret-key: ${MINIO_SECRET_KEY:minioadmin123}
+    evidence-bucket: ${MINIO_EVIDENCE_BUCKET:uav-evidence}
+  messaging:
+    enabled: ${MESSAGING_ENABLED:true}
 
 management:
   endpoints:

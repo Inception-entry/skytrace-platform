@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     knowledge_top_k: int = 4
     knowledge_score_threshold: float = 0.25
     knowledge_max_file_size_bytes: int = 10 * 1024 * 1024
+    rabbitmq_url: str = "amqp://admin:admin123@127.0.0.1:5672/"
+    messaging_enabled: bool = True
 
     model_config = SettingsConfigDict(
         env_prefix="AI_",

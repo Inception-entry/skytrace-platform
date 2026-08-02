@@ -59,11 +59,12 @@ public class InspectionWorkflowController {
     @GetMapping("/{taskCode}/status")
     public ApiResponse<Map<String, String>> status(
             @PathVariable String taskCode) {
-        String status = getWorkflow(taskCode).getStatus();
+        InspectionWorkflow workflow = getWorkflow(taskCode);
 
         return ApiResponse.ok(Map.of(
                 "taskCode", taskCode,
-                "status", status
+                "status", workflow.getStatus(),
+                "lastAlarmEventCode", workflow.getLastAlarmEventCode()
         ));
     }
 

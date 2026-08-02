@@ -93,6 +93,15 @@ export class InspectionTaskController {
     );
   }
 
+  @Get(':taskCode/workflow-status')
+  workflowStatus(
+    @Param('taskCode') taskCode: string,
+  ): Promise<unknown> {
+    return this.javaClient.get(
+      `/inspection-workflows/${taskCode}/status`,
+    );
+  }
+
   @Post(':taskCode/analysis')
   @Roles('ADMIN', 'OPERATOR')
   analyze(

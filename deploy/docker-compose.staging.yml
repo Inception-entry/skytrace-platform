@@ -29,6 +29,16 @@ services:
     environment:
       NGINX_SERVER_NAME: ${UAV_DOMAIN:-localhost}
 
+  admin-service:
+    image: ${REGISTRY}/admin-service:${IMAGE_TAG:-latest}
+
+  admin-frontend:
+    image: ${REGISTRY}/admin-frontend:${IMAGE_TAG:-latest}
+    ports:
+      - "127.0.0.1:${ADMIN_FRONTEND_PORT:-8889}:80"
+    environment:
+      NGINX_SERVER_NAME: ${UAV_DOMAIN:-localhost}
+
   keycloak:
     environment:
       KC_HOSTNAME: https://${UAV_DOMAIN}

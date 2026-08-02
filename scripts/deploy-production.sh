@@ -27,6 +27,8 @@ declare -A HEALTH_URL=(
   [backend-node]="http://127.0.0.1:${NODE_PORT:-3000}/api/health"
   [gateway]="http://127.0.0.1:${GATEWAY_PORT:-8082}/actuator/health"
   [frontend]="http://127.0.0.1:${FRONTEND_PORT:-8888}/gateway-health"
+  [admin-service]="http://127.0.0.1:${ADMIN_SERVICE_PORT:-3100}/admin-api/health"
+  [admin-frontend]="http://127.0.0.1:${ADMIN_FRONTEND_PORT:-8889}/"
 )
 
 wait_healthy() {
@@ -58,7 +60,7 @@ echo "=== Production deploy: ${IMAGE_TAG} ==="
 compose pull
 
 # Rolling restart in dependency order
-SERVICES=(backend-ai backend-java backend-node gateway frontend)
+SERVICES=(backend-ai backend-java backend-node gateway frontend admin-service admin-frontend)
 
 for svc in "${SERVICES[@]}"; do
   echo "--- Restarting $svc ---"
