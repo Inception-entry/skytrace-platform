@@ -4,7 +4,7 @@
 #
 # Required env vars (set by the CI workflow):
 #   IMAGE_TAG  e.g. main-abc1234
-#   REGISTRY   e.g. ghcr.io/owner/uav-java-node-architecture
+#   REGISTRY   e.g. ghcr.io/owner/skytrace-platform
 #   UAV_DOMAIN e.g. test.example.com
 set -euo pipefail
 

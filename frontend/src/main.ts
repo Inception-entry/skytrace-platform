@@ -3,7 +3,7 @@ import App from './App.vue'
 import { Button, ConfigProvider, Dropdown, Menu, Drawer, message, Tabs } from 'ant-design-vue';
 import { store } from './store';
 import router from './router'
-import register from './components/pe-global-register'
+import register from './components/st-global-register'
 import i18next from "i18next"
 import I18NextVue from "i18next-vue"
 import { initializeAuthentication } from '@/auth/keycloak'

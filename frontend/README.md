@@ -1,6 +1,6 @@
-# peregrine(游隼)
+# SkyTrace（天巡智控）
 
-基于 Vue3 + Cesium + typescript 的三维地球项目。
+基于 Vue 3 + Cesium + TypeScript 的无人机智能巡检业务端。
 
 ## 功能特性
 - 根据系统是深色模式或浅色模式，来切换主题色（也可关闭此功能）

@@ -1,4 +1,4 @@
-const layoutKey = 'peregrine-layout';
+const layoutKey = 'skytrace-layout';
 
 export function getLayout() {
   return localStorage.getItem(layoutKey) || '';

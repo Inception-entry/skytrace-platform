@@ -1,1 +1,1 @@
-"""UAV AI service."""
+"""SkyTrace AI service."""

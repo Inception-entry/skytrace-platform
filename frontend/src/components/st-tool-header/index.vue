@@ -34,11 +34,11 @@ import { computed, ref } from 'vue'
 import { useLayoutStore } from '@/store/modules/layout'
 
 import type { DrawerProps } from 'ant-design-vue';
-import SwitchLayout from '@/components/pe-tool-header/components/SwitchLayout.vue'
-import SwitchTheme from '@/components/pe-tool-header/components/SwitchTheme.vue'
-import SwitchLang from '@/components/pe-tool-header/components/SwitchLang.vue'
+import SwitchLayout from '@/components/st-tool-header/components/SwitchLayout.vue'
+import SwitchTheme from '@/components/st-tool-header/components/SwitchTheme.vue'
+import SwitchLang from '@/components/st-tool-header/components/SwitchLang.vue'
 
-defineOptions({ name: 'pe-tool-header' })
+defineOptions({ name: 'st-tool-header' })
 
 const layoutStore = useLayoutStore();
 const currentLayoutKey = computed(() => layoutStore.getLayout)

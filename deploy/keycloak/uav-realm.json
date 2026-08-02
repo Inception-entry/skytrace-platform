@@ -1,6 +1,6 @@
 {
   "realm": "uav",
-  "displayName": "UAV Platform",
+  "displayName": "SkyTrace 天巡智控",
   "enabled": true,
   "registrationAllowed": false,
   "resetPasswordAllowed": true,
@@ -25,7 +25,7 @@
   "clients": [
     {
       "clientId": "uav-web",
-      "name": "UAV Web",
+      "name": "SkyTrace Web",
       "enabled": true,
       "publicClient": true,
       "protocol": "openid-connect",
@@ -57,8 +57,8 @@
     },
     {
       "clientId": "uav-service",
-      "name": "UAV Service Account",
-      "description": "用于脚本和后端服务通过 client_credentials 调用 UAV API",
+      "name": "SkyTrace Service Account",
+      "description": "用于脚本和后端服务通过 client_credentials 调用 SkyTrace API",
       "enabled": true,
       "publicClient": false,
       "clientAuthenticatorType": "client-secret",
@@ -91,7 +91,7 @@
       "enabled": true,
       "email": "uav-admin@local.test",
       "emailVerified": true,
-      "firstName": "UAV",
+      "firstName": "SkyTrace",
       "lastName": "Administrator",
       "credentials": [
         {
@@ -109,7 +109,7 @@
       "enabled": true,
       "email": "uav-operator@local.test",
       "emailVerified": true,
-      "firstName": "UAV",
+      "firstName": "SkyTrace",
       "lastName": "Operator",
       "credentials": [
         {
@@ -127,7 +127,7 @@
       "enabled": true,
       "email": "uav-viewer@local.test",
       "emailVerified": true,
-      "firstName": "UAV",
+      "firstName": "SkyTrace",
       "lastName": "Viewer",
       "credentials": [
         {

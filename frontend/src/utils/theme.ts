@@ -1,4 +1,4 @@
-const themeKey = 'peregrine-theme';
+const themeKey = 'skytrace-theme';
 
 export function getTheme() {
   return localStorage.getItem(themeKey) || '';

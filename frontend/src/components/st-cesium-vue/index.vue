@@ -1,5 +1,5 @@
 <template>
-  <div ref="peCesiumVue" style="width: 100vw; height: 100vh;">
+  <div ref="stCesiumVue" style="width: 100vw; height: 100vh;">
     <slot />
   </div>
 </template>
@@ -14,7 +14,7 @@ import * as Cesium from 'cesium'
 import CesiumLibs from '@/libs/cesium/cesium-libs'
 
 export default defineComponent({
-  name: 'pe-cesium-vue',
+  name: 'st-cesium-vue',
   props: {
     animation: {
       type: Boolean,
@@ -115,7 +115,7 @@ export default defineComponent({
     }
   },
   setup(props, context) {
-    const peCesiumVue = shallowRef<HTMLElement | null>(null)
+    const stCesiumVue = shallowRef<HTMLElement | null>(null)
 
     const initializeCesiumDefault = (): void => {
       const west = 94
@@ -175,7 +175,7 @@ export default defineComponent({
         msaaSamples: props.msaa,
       }
 
-      const el = peCesiumVue.value as HTMLElement
+      const el = stCesiumVue.value as HTMLElement
       const viewer = new Cesium.Viewer(el, {
         ...DEFAULT_OPT,
         ...options,
@@ -237,7 +237,7 @@ export default defineComponent({
     })
 
     return {
-      peCesiumVue,
+      stCesiumVue,
       initializeCesiumDefault,
       initializeCesium,
       init,

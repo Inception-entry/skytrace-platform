@@ -12,7 +12,7 @@
 import { defineComponent } from 'vue'
 
 export default defineComponent({
-  name: 'jt-overlay',
+  name: 'st-overlay',
   props: {
     zIndex: {
       type: Number,

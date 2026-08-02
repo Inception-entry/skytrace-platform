@@ -35,7 +35,7 @@ jobs:
           if (( ${#missing[@]} > 0 )); then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "::notice title=Test deploy skipped::No test server configured (missing: ${missing[*]})."
-            echo "Local development: ./scripts/uav.sh rebuild"
+            echo "Local development: ./scripts/skytrace.sh rebuild"
             echo "To enable remote deploy later: Settings → Environments → test → add the secrets above,"
             echo "then run scripts/staging-init.sh on the test server."
             exit 0

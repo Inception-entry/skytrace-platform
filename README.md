@@ -1,8 +1,8 @@
-# UAV 巡检平台
+# SkyTrace（天巡智控）
 
-面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
+SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台，中文产品名为“天巡智控”。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
-当前平台版本：**0.2.1**（发版说明见 [`docs/releases/v0.2.1.md`](docs/releases/v0.2.1.md)）。
+当前平台版本：**0.2.2**（发版说明见 [`docs/releases/v0.2.2.md`](docs/releases/v0.2.2.md)）。
 
 ## 技术架构
 
@@ -28,8 +28,8 @@
 ## 目录结构
 
 ```text
-uav-java-node-architecture/
-├── frontend/                            # Vue 3 + Cesium 业务端
+skytrace-platform/
+├── frontend/                            # Vue 3 + Cesium 业务端（SkyTrace）
 ├── backend-node/                        # NestJS BFF、SSE 透传与 Socket.IO
 ├── gateway-java/                        # Spring Cloud Gateway：鉴权、路由、限流
 ├── backend-java/                        # Spring Boot：任务、告警、审计、Temporal
@@ -52,9 +52,10 @@ uav-java-node-architecture/
 │   ├── temporal-integration.md          # Temporal 当前实现与演进方向
 │   └── releases/
 │       ├── v0.2.0.md                    # 0.2.0 发版说明
-│       └── v0.2.1.md                    # 0.2.1 补丁说明
+│       ├── v0.2.1.md                    # 0.2.1 补丁说明
+│       └── v0.2.2.md                    # 0.2.2 品牌统一说明
 ├── scripts/
-│   ├── uav.sh                           # 本地 Compose 管理和权限验收
+│   ├── skytrace.sh                      # 本地 Compose 管理和权限验收
 │   ├── mysql-backup.sh                  # MySQL 备份
 │   └── restore-backup.sh                # MySQL 恢复
 └── README.md                            # 项目总览与运行说明
@@ -91,38 +92,38 @@ cp deploy/.env.example deploy/.env
 3. 首次运行或代码发生变化时，构建并启动全部服务：
 
 ```bash
-./scripts/uav.sh rebuild
+./scripts/skytrace.sh rebuild
 ```
 
 日常启动、查看状态和日志：
 
 ```bash
-./scripts/uav.sh start
-./scripts/uav.sh status
-./scripts/uav.sh logs
+./scripts/skytrace.sh start
+./scripts/skytrace.sh status
+./scripts/skytrace.sh logs
 ```
 
 同步本地 `OPERATOR`、`VIEWER` 权限验收账号：
 
 ```bash
-./scripts/uav.sh auth-users
-./scripts/uav.sh auth-verify
+./scripts/skytrace.sh auth-users
+./scripts/skytrace.sh auth-verify
 ```
 
 只操作单个服务：
 
 ```bash
-./scripts/uav.sh rebuild backend-java
-./scripts/uav.sh rebuild gateway
-./scripts/uav.sh restart temporal-ui
-./scripts/uav.sh logs backend-node
+./scripts/skytrace.sh rebuild backend-java
+./scripts/skytrace.sh rebuild gateway
+./scripts/skytrace.sh restart temporal-ui
+./scripts/skytrace.sh logs backend-node
 ```
 
 重启或停止全部服务：
 
 ```bash
-./scripts/uav.sh restart
-./scripts/uav.sh stop
+./scripts/skytrace.sh restart
+./scripts/skytrace.sh stop
 ```
 
 Compose 会启动业务端、独立后台、Gateway、Node BFF、Java、AI、Keycloak 及其依赖服务。业务端由 Nginx 托管，并将 `/api/` 与 `/socket.io/` 统一代理到 Gateway，再由 Gateway 路由到 Node BFF。独立后台通过 `http://localhost:8889` 访问，API 前缀为 `/admin-api`。
@@ -157,9 +158,9 @@ docker compose build --build-arg INSTALL_VISION=1 backend-ai
 > `127.0.0.1`。局域网/公网业务入口只有 Nginx。Vue 使用 Keycloak PKCE
 > 登录，具体配置见 [`docs/gateway.md`](docs/gateway.md)。
 
-> `scripts/uav.sh` 可以从任意目录调用，默认使用项目中的 `deploy/.env`
+> `scripts/skytrace.sh` 可以从任意目录调用，默认使用项目中的 `deploy/.env`
 > 和 Compose 文件；CI 可以通过 `UAV_ENV_FILE` 指定一次性的隔离配置。
-> 运行 `./scripts/uav.sh help` 可以查看全部子命令。
+> 运行 `./scripts/skytrace.sh help` 可以查看全部子命令。
 
 ### 可选覆盖层
 
@@ -200,7 +201,7 @@ docker compose --env-file deploy/.env \
   `Gateway → Node BFF → Java → Temporal → MySQL` 状态闭环；
 - 失败时上传 Compose 状态、全量容器日志和镜像清单，并保留 7 天。
 
-`main` 分支在 Publish 成功后还会触发 `Deploy (test)`。**没有测试服务器时无需配置任何 Secret**，该工作流会自动跳过远程部署并保持成功；本地开发使用 `./scripts/uav.sh rebuild` 即可。将来若有 VPS，在服务器执行 `scripts/staging-init.sh`，并在 GitHub `Environments → test` 中配置 `TEST_SSH_*` 与 `STAGING_DOMAIN` 后，同一工作流才会真正 SSH 部署。
+`main` 分支在 Publish 成功后还会触发 `Deploy (test)`。**没有测试服务器时无需配置任何 Secret**，该工作流会自动跳过远程部署并保持成功；本地开发使用 `./scripts/skytrace.sh rebuild` 即可。将来若有 VPS，在服务器执行 `scripts/staging-init.sh`，并在 GitHub `Environments → test` 中配置 `TEST_SSH_*` 与 `STAGING_DOMAIN` 后，同一工作流才会真正 SSH 部署。
 
 ## 本地开发
 
@@ -301,8 +302,8 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 本地验收账号可以通过以下命令同步：
 
 ```bash
-./scripts/uav.sh auth-users
-./scripts/uav.sh auth-verify
+./scripts/skytrace.sh auth-users
+./scripts/skytrace.sh auth-verify
 ```
 
 生产环境必须修改默认账号、JWT Secret、数据库密码和 MinIO 凭据，不要直接使用

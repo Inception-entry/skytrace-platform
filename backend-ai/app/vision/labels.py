@@ -1,4 +1,4 @@
-"""Map YOLO/COCO class names to UAV alarm event types."""
+"""Map YOLO/COCO class names to SkyTrace alarm event types."""
 
 from __future__ import annotations
 

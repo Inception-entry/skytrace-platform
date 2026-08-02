@@ -193,7 +193,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ci_env="${RUNNER_TEMP}/uav-ci.env"
+          ci_env="${RUNNER_TEMP}/skytrace-ci.env"
           cp deploy/.env.example "$ci_env"
 
           replace_env() {
@@ -236,7 +236,7 @@ jobs:
           echo "::add-mask::$postgres_password"
           echo "UAV_ENV_FILE=$ci_env" >> "$GITHUB_ENV"
           echo "KEYCLOAK_CLIENT_SECRET=$service_secret" >> "$GITHUB_ENV"
-          echo "COMPOSE_PROJECT_NAME=uav-ci" >> "$GITHUB_ENV"
+          echo "COMPOSE_PROJECT_NAME=skytrace-ci" >> "$GITHUB_ENV"
 
       - name: Start Ollama health-check mock
         shell: bash
@@ -302,8 +302,8 @@ jobs:
 
       - name: Verify three-role authorization
         run: |
-          ./scripts/uav.sh auth-users
-          ./scripts/uav.sh auth-verify
+          ./scripts/skytrace.sh auth-users
+          ./scripts/skytrace.sh auth-verify
 
       - name: Verify Temporal and MySQL full stack
         env:
@@ -320,7 +320,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          log_dir="${RUNNER_TEMP}/uav-ci-logs"
+          log_dir="${RUNNER_TEMP}/skytrace-ci-logs"
           mkdir -p "$log_dir"
           docker compose \
             --env-file "$UAV_ENV_FILE" \
@@ -339,7 +339,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: docker-e2e-logs-${{ github.run_id }}
-          path: ${{ runner.temp }}/uav-ci-logs
+          path: ${{ runner.temp }}/skytrace-ci-logs
           if-no-files-found: warn
           retention-days: 7
 

@@ -24,33 +24,33 @@ require_env() {
 show_help() {
   cat <<'EOF'
 用法：
-  uav.sh start [服务...]      启动服务，不重新构建镜像
-  uav.sh rebuild [服务...]    重新构建镜像并启动服务
-  uav.sh stop [服务...]       停止服务；未指定服务时关闭整套环境
-  uav.sh restart [服务...]    重启现有服务
-  uav.sh status               查看服务状态
-  uav.sh logs [服务...]       持续查看日志
-  uav.sh auth-start           单独启动本地 Keycloak
-  uav.sh auth-stop            停止本地 Keycloak
-  uav.sh auth-logs            查看 Keycloak 日志
-  uav.sh auth-users           同步 OPERATOR、VIEWER 测试账号
-  uav.sh auth-verify          执行 ADMIN/OPERATOR/VIEWER 权限验收
-  uav.sh auth-token           获取 uav-service 的 Bearer Token
-  uav.sh help                 显示帮助
+  skytrace.sh start [服务...]      启动服务，不重新构建镜像
+  skytrace.sh rebuild [服务...]    重新构建镜像并启动服务
+  skytrace.sh stop [服务...]       停止服务；未指定服务时关闭整套环境
+  skytrace.sh restart [服务...]    重启现有服务
+  skytrace.sh status               查看服务状态
+  skytrace.sh logs [服务...]       持续查看日志
+  skytrace.sh auth-start           单独启动本地 Keycloak
+  skytrace.sh auth-stop            停止本地 Keycloak
+  skytrace.sh auth-logs            查看 Keycloak 日志
+  skytrace.sh auth-users           同步 OPERATOR、VIEWER 测试账号
+  skytrace.sh auth-verify          执行 ADMIN/OPERATOR/VIEWER 权限验收
+  skytrace.sh auth-token           获取 uav-service 的 Bearer Token
+  skytrace.sh help                 显示帮助
 
 示例：
-  uav.sh start
-  uav.sh rebuild backend-ai
-  uav.sh rebuild backend-java
-  uav.sh rebuild gateway
-  uav.sh restart temporal-ui
-  uav.sh logs gateway
-  uav.sh auth-start
-  uav.sh auth-users
-  uav.sh auth-verify
-  uav.sh auth-token
-  uav.sh logs backend-ai
-  uav.sh logs backend-java
+  skytrace.sh start
+  skytrace.sh rebuild backend-ai
+  skytrace.sh rebuild backend-java
+  skytrace.sh rebuild gateway
+  skytrace.sh restart temporal-ui
+  skytrace.sh logs gateway
+  skytrace.sh auth-start
+  skytrace.sh auth-users
+  skytrace.sh auth-verify
+  skytrace.sh auth-token
+  skytrace.sh logs backend-ai
+  skytrace.sh logs backend-java
 EOF
 }
 
@@ -143,7 +143,7 @@ case "$ACTION" in
     ;;
   auth-users)
     require_local_keycloak_secrets
-    KEYCLOAK_CONTAINER=uav-keycloak \
+    KEYCLOAK_CONTAINER=skytrace-keycloak \
     KEYCLOAK_REALM=uav \
     KEYCLOAK_ADMIN_USERNAME="$(env_value KEYCLOAK_ADMIN_USERNAME)" \
     KEYCLOAK_ADMIN_PASSWORD="$(env_value KEYCLOAK_ADMIN_PASSWORD)" \
@@ -152,7 +152,7 @@ case "$ACTION" in
     ;;
   auth-verify)
     require_local_keycloak_secrets
-    KEYCLOAK_CONTAINER=uav-keycloak \
+    KEYCLOAK_CONTAINER=skytrace-keycloak \
     KEYCLOAK_REALM=uav \
     KEYCLOAK_CLIENT_ID=uav-web \
     KEYCLOAK_URL="$(env_value_or_default \

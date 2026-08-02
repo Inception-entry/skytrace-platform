@@ -1,4 +1,4 @@
-# UAV AI Service
+# SkyTrace AI Service
 
 本地 AI 服务，通过 LangChain 调用 Ollama 中的无人机模型。
 
@@ -27,8 +27,8 @@ curl -X POST http://localhost:8000/api/chat \
 在项目根目录执行：
 
 ```bash
-./scripts/uav.sh rebuild backend-ai
-./scripts/uav.sh logs backend-ai
+./scripts/skytrace.sh rebuild backend-ai
+./scripts/skytrace.sh logs backend-ai
 ```
 
 ## 可靠性配置

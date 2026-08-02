@@ -3,19 +3,19 @@
     <overlay v-if="cesiumLoaded">
       <router-view></router-view>
     </overlay>
-    <pe-cesium-vue @loaded="loaded" :depthTestAgainstTerrain="true" />
+    <st-cesium-vue @loaded="loaded" :depthTestAgainstTerrain="true" />
     <HelloWorld msg="Vite + Vue" />
-    <pe-tool-header />
-    <pe-menu-aside />
+    <st-tool-header />
+    <st-menu-aside />
   </div>
 </template>
 
 <script setup lang="ts">
-import overlay from '@/components/pe-overlay/index.vue'
-import peCesiumVue from '@/components/pe-cesium-vue/index.vue'
+import overlay from '@/components/st-overlay/index.vue'
+import stCesiumVue from '@/components/st-cesium-vue/index.vue'
 import HelloWorld from '@/components/HelloWorld.vue'
-import PeToolHeader from '@/components/pe-tool-header/index.vue'
-import PeMenuAside from '@/components/pe-menu-aside/index.vue'
+import StToolHeader from '@/components/st-tool-header/index.vue'
+import StMenuAside from '@/components/st-menu-aside/index.vue'
 import { ref } from 'vue'
 
 const cesiumLoaded = ref<boolean>(false)

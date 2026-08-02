@@ -114,7 +114,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="UAV AI Service",
+    title="SkyTrace AI Service",
     version="0.1.0",
     lifespan=lifespan,
 )

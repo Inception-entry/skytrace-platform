@@ -3,7 +3,7 @@
     <section class="knowledge-shell">
       <header class="page-header">
         <div>
-          <p class="eyebrow">UAV RAG KNOWLEDGE BASE</p>
+          <p class="eyebrow">SKYTRACE RAG KNOWLEDGE BASE</p>
           <h1>无人机知识库</h1>
           <p class="subtitle">
             上传手册和故障文档，让 AI 分析使用可追溯的内部资料

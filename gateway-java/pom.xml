@@ -11,10 +11,10 @@
     </parent>
 
     <groupId>com.uav</groupId>
-    <artifactId>gateway-java</artifactId>
-    <version>0.2.1</version>
-    <name>gateway-java</name>
-    <description>UAV Spring Cloud Gateway</description>
+    <artifactId>skytrace-gateway-java</artifactId>
+    <version>0.2.2</version>
+    <name>SkyTrace Gateway Java</name>
+    <description>SkyTrace Spring Cloud Gateway</description>
 
     <properties>
         <java.version>21</java.version>

@@ -16,7 +16,7 @@ MYSQL_PORT="${MYSQL_PORT:-3307}"
 BACKUP_BUCKET="${BACKUP_BUCKET:-uav-backups}"
 BACKUP_RETAIN_DAYS="${BACKUP_RETAIN_DAYS:-7}"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-BACKUP_FILE="/tmp/uav-mysql-${TIMESTAMP}.sql.gz"
+BACKUP_FILE="/tmp/skytrace-mysql-${TIMESTAMP}.sql.gz"
 OBJECT_PATH="${MYSQL_DATABASE}/${TIMESTAMP}.sql.gz"
 
 # Load .env if present and vars are not already set
@@ -45,7 +45,7 @@ mysqldump \
 echo "Dump complete: $(du -sh "${BACKUP_FILE}" | cut -f1)"
 
 # 2. Upload via MinIO Client (mc)
-MC_ALIAS="uav-minio"
+MC_ALIAS="skytrace-minio"
 mc alias set "${MC_ALIAS}" \
   "${MINIO_ENDPOINT}" \
   "${MINIO_ROOT_USER}" \

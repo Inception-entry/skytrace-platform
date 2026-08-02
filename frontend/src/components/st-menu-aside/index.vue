@@ -23,7 +23,7 @@ import { useLayoutStore } from '@/store/modules/layout'
 import type { DrawerProps } from 'ant-design-vue';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons-vue';
 
-defineOptions({ name: 'pe-menu-aside' })
+defineOptions({ name: 'st-menu-aside' })
 
 const layoutStore = useLayoutStore();
 const currentLayoutKey = computed(() => layoutStore.getLayout)

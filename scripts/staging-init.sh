@@ -3,12 +3,12 @@
 # Run as a user with sudo access after cloning or on a fresh machine.
 #
 # Usage:
-#   REPO_URL=https://github.com/OWNER/uav-java-node-architecture.git \
+#   REPO_URL=https://github.com/OWNER/skytrace-platform.git \
 #   bash scripts/staging-init.sh
 set -euo pipefail
 
 APP_DIR="/opt/uav"
-REPO_URL="${REPO_URL:-https://github.com/OWNER/uav-java-node-architecture.git}"
+REPO_URL="${REPO_URL:-https://github.com/OWNER/skytrace-platform.git}"
 
 # --- Docker ---
 if ! command -v docker &>/dev/null; then

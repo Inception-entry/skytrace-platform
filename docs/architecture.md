@@ -121,7 +121,7 @@ Nginx 默认使用 HTTP 配置。启用 HTTPS 时：
    `deploy/nginx/certs/privkey.pem`。
 3. 在 `deploy/.env` 配置真实 `NGINX_SERVER_NAME`、
    `GATEWAY_ALLOWED_ORIGIN` 和 `HTTPS_PORT=443`。
-4. 执行 `./scripts/uav.sh rebuild frontend`。
+4. 执行 `./scripts/skytrace.sh rebuild frontend`。
 
 ## Temporal 现状与后续
 

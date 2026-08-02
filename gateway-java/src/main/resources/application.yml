@@ -5,7 +5,7 @@ server:
 
 spring:
   application:
-    name: uav-api-gateway
+    name: skytrace-api-gateway
   lifecycle:
     timeout-per-shutdown-phase: 20s
   data:
@@ -21,7 +21,7 @@ spring:
         response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:180s}
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
-        - AddResponseHeader=X-UAV-Gateway, spring-cloud-gateway
+        - AddResponseHeader=X-SkyTrace-Gateway, spring-cloud-gateway
         - RemoveResponseHeader=X-Powered-By
       globalcors:
         add-to-simple-url-handler-mapping: true

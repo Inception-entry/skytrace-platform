@@ -3,7 +3,7 @@
     <section class="chat-shell">
       <header class="chat-header">
         <div>
-          <p class="eyebrow">LOCAL UAV COPILOT</p>
+          <p class="eyebrow">SKYTRACE AI COPILOT</p>
           <h1>无人机巡检 AI 分析</h1>
           <p class="subtitle">
             LangChain · Ollama · RAG 实时流式分析

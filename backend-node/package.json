@@ -1,7 +1,7 @@
 {
-  "name": "uav-backend-node",
-  "version": "0.2.1",
-  "description": "NestJS BFF and WebSocket service for UAV inspection platform",
+  "name": "skytrace-backend-node",
+  "version": "0.2.2",
+  "description": "NestJS BFF and WebSocket service for SkyTrace",
   "scripts": {
     "build": "nest build",
     "test": "npm run build && node --test test/*.test.js",

@@ -1,7 +1,7 @@
 [project]
-name = "uav-backend-ai"
-version = "0.2.1"
-description = "UAV local AI service powered by LangChain and Ollama"
+name = "skytrace-backend-ai"
+version = "0.2.2"
+description = "SkyTrace AI service powered by LangChain and Ollama"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.116,<1",

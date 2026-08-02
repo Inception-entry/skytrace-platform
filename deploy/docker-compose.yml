@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.4
-    container_name: uav-mysql
+    container_name: skytrace-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -24,7 +24,7 @@ services:
 
   redis:
     image: redis:7.4-alpine
-    container_name: uav-redis
+    container_name: skytrace-redis
     restart: always
     ports:
       - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"
@@ -35,7 +35,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:v1.18.3
-    container_name: uav-qdrant
+    container_name: skytrace-qdrant
     restart: always
     ports:
       - "127.0.0.1:${QDRANT_HOST_PORT:-6333}:6333"
@@ -46,7 +46,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: uav-postgres
+    container_name: skytrace-postgres
     restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-uav_admin}
@@ -66,7 +66,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management
-    container_name: uav-rabbitmq
+    container_name: skytrace-rabbitmq
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
@@ -81,7 +81,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: uav-minio
+    container_name: skytrace-minio
     restart: always
     command: server /data --console-address ":9002"
     environment:
@@ -97,7 +97,7 @@ services:
 
   temporal:
     image: temporalio/auto-setup:latest
-    container_name: uav-temporal
+    container_name: skytrace-temporal
     restart: always
     environment:
       DB: mysql8
@@ -118,7 +118,7 @@ services:
 
   temporal-ui:
     image: temporalio/ui:latest
-    container_name: uav-temporal-ui
+    container_name: skytrace-temporal-ui
     restart: always
     environment:
       TEMPORAL_ADDRESS: temporal:7233
@@ -133,7 +133,7 @@ services:
   backend-ai:
     build:
       context: ../backend-ai
-    container_name: uav-backend-ai
+    container_name: skytrace-backend-ai
     restart: always
     extra_hosts:
       - "host-gateway:host-gateway"
@@ -190,7 +190,7 @@ services:
   backend-java:
     build:
       context: ../backend-java
-    container_name: uav-backend-java
+    container_name: skytrace-backend-java
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -257,7 +257,7 @@ services:
   backend-node:
     build:
       context: ../backend-node
-    container_name: uav-backend-node
+    container_name: skytrace-backend-node
     restart: always
     environment:
       NODE_ENV: production
@@ -302,7 +302,7 @@ services:
   gateway:
     build:
       context: ../gateway-java
-    container_name: uav-gateway
+    container_name: skytrace-gateway
     restart: always
     environment:
       SERVER_PORT: 8080
@@ -351,7 +351,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.0
-    container_name: uav-keycloak
+    container_name: skytrace-keycloak
     restart: unless-stopped
     command: start-dev --import-realm
     environment:
@@ -375,7 +375,7 @@ services:
   admin-service:
     build:
       context: ../admin-service
-    container_name: uav-admin-service
+    container_name: skytrace-admin-service
     restart: always
     environment:
       NODE_ENV: production
@@ -408,7 +408,7 @@ services:
   admin-frontend:
     build:
       context: ../admin-frontend
-    container_name: uav-admin-frontend
+    container_name: skytrace-admin-frontend
     restart: always
     environment:
       NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-localhost}
@@ -424,7 +424,7 @@ services:
   frontend:
     build:
       context: ../frontend
-    container_name: uav-frontend
+    container_name: skytrace-frontend
     restart: always
     environment:
       NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-localhost}
@@ -455,6 +455,6 @@ volumes:
 
 networks:
   edge:
-    name: uav-edge
+    name: skytrace-edge
   backend:
-    name: uav-backend
+    name: skytrace-backend

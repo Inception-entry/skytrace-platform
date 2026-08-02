@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    service_name: str = "uav-backend-ai"
+    service_name: str = "skytrace-backend-ai"
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "my-drone-expert"
     ollama_embedding_model: str = "nomic-embed-text"

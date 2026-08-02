@@ -41,7 +41,7 @@ QDRANT_HOST_PORT=6333
 重新构建受影响服务：
 
 ```bash
-./scripts/uav.sh rebuild qdrant backend-ai backend-java backend-node gateway frontend
+./scripts/skytrace.sh rebuild qdrant backend-ai backend-java backend-node gateway frontend
 ```
 
 打开 `http://localhost:8888/knowledge`。`ADMIN` 可以上传和删除文档，`ADMIN`、`OPERATOR`、`VIEWER` 都可以列出文档和进行语义检索。
@@ -63,8 +63,8 @@ QDRANT_HOST_PORT=6333
 查看服务状态和日志：
 
 ```bash
-./scripts/uav.sh status
-./scripts/uav.sh logs qdrant backend-ai
+./scripts/skytrace.sh status
+./scripts/skytrace.sh logs qdrant backend-ai
 ```
 
 检查 AI 依赖：

@@ -7,7 +7,7 @@ export {}
 
 declare module '@vue/runtime-core' {
   export interface GlobalComponents {
-    PeCesiumVue: typeof import('./src/components/pe-cesium-vue/index.vue')['default']
+    StCesiumVue: typeof import('./src/components/st-cesium-vue/index.vue')['default']
   }
   export interface ComponentCustomProperties {
     $t: (key: string, ...args: unknown[]) => string;

@@ -1,5 +1,5 @@
 groups:
-  - name: uav.services
+  - name: skytrace.services
     rules:
       - alert: ServiceDown
         expr: up == 0
@@ -35,7 +35,7 @@ groups:
           summary: "Slow responses on {{ $labels.job }}"
           description: "95th percentile latency is {{ $value | humanizeDuration }} on {{ $labels.job }}."
 
-  - name: uav.jvm
+  - name: skytrace.jvm
     rules:
       - alert: JvmHeapHigh
         expr: |
@@ -50,7 +50,7 @@ groups:
           summary: "JVM heap usage high on {{ $labels.job }}"
           description: "{{ $labels.job }} heap is at {{ $value | humanizePercentage }}."
 
-  - name: uav.host
+  - name: skytrace.host
     rules:
       - alert: HighCpuUsage
         expr: |

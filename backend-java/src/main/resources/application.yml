@@ -5,7 +5,7 @@ server:
 
 spring:
   application:
-    name: uav-backend-java
+    name: skytrace-backend-java
   profiles:
     default: local
   flyway:

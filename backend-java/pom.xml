@@ -9,9 +9,9 @@
         <relativePath/>
     </parent>
     <groupId>com.uav</groupId>
-    <artifactId>backend-java</artifactId>
-    <version>0.2.1</version>
-    <name>backend-java</name>
+    <artifactId>skytrace-backend-java</artifactId>
+    <version>0.2.2</version>
+    <name>SkyTrace Backend Java</name>
     <properties>
         <java.version>21</java.version>
         <netty.version>4.1.136.Final</netty.version>

@@ -30,8 +30,8 @@ Java、Node 和 Gateway 的宿主机调试端口只绑定到 `127.0.0.1`。
 
 ## 本地启动 Keycloak
 
-Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `uav.sh start` 一起启动。
-也可以单独执行 `uav.sh auth-start`。
+Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `skytrace.sh start` 一起启动。
+也可以单独执行 `skytrace.sh auth-start`。
 
 1. 在 `deploy/.env` 修改管理员密码：
 
@@ -44,7 +44,7 @@ Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `uav.sh start`
 2. 启动 Keycloak：
 
    ```bash
-   ./scripts/uav.sh auth-start
+   ./scripts/skytrace.sh auth-start
    ```
 
 3. 访问 `http://localhost:8180`，进入 `uav` realm。首次启动会从
@@ -66,13 +66,13 @@ Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `uav.sh start`
    测试用户、密码和角色：
 
    ```bash
-   ./scripts/uav.sh auth-users
+   ./scripts/skytrace.sh auth-users
    ```
 
    执行三角色在 Gateway、Node BFF、Java API 三层的端到端权限验收：
 
    ```bash
-   ./scripts/uav.sh auth-verify
+   ./scripts/skytrace.sh auth-verify
    ```
 
    验收命令会临时启用本地 Password Grant 来获取测试 Token，并在退出时恢复
@@ -95,8 +95,8 @@ KEYCLOAK_UAV_SERVICE_CLIENT_SECRET=请使用随机强密钥
 启动 Keycloak 并获取 Token：
 
 ```bash
-./scripts/uav.sh auth-start
-./scripts/uav.sh auth-token
+./scripts/skytrace.sh auth-start
+./scripts/skytrace.sh auth-token
 ```
 
 第二条命令直接输出可用于访问 Gateway 的请求头内容：
@@ -108,7 +108,7 @@ Authorization: Bearer <access_token>
 可以直接保存请求头并调用 API：
 
 ```bash
-AUTHORIZATION="$(./scripts/uav.sh auth-token)"
+AUTHORIZATION="$(./scripts/skytrace.sh auth-token)"
 curl -H "Authorization: $AUTHORIZATION" \
   http://localhost:8082/api/inspection-tasks
 unset AUTHORIZATION
@@ -129,7 +129,7 @@ GATEWAY_JWT_CLIENT_ID=uav-web
 然后重新创建 Node BFF、Gateway 和前端，使新的容器环境变量生效：
 
 ```bash
-./scripts/uav.sh rebuild backend-node gateway frontend
+./scripts/skytrace.sh rebuild backend-node gateway frontend
 ```
 
 Vue 启动后会跳转到 Keycloak，使用上述任一测试账号和 `deploy/.env` 中的

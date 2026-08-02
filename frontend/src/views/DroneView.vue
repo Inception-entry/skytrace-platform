@@ -3,7 +3,7 @@
     <section class="task-panel">
       <header class="panel-header">
         <div>
-          <p class="eyebrow">UAV INSPECTION</p>
+          <p class="eyebrow">SKYTRACE INSPECTION</p>
           <h1>无人机巡检任务</h1>
           <p class="subtitle">先维护真实任务数据，再交给 Temporal 执行</p>
         </div>

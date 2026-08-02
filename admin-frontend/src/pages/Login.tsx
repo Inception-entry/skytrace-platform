@@ -31,7 +31,7 @@ export function LoginPage() {
         background: '#f0f2f5',
       }}
     >
-      <Card title="UAV 管理后台" style={{ width: 400 }}>
+      <Card title="SkyTrace 天巡智控管理后台" style={{ width: 400 }}>
         <ProForm
           onFinish={handleLogin}
           submitter={{ searchConfig: { submitText: '登 录' }, resetButtonProps: { style: { display: 'none' } } }}

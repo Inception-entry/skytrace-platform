@@ -19,7 +19,7 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 BACKUP_BUCKET="${BACKUP_BUCKET:-uav-backups}"
-MC_ALIAS="uav-minio"
+MC_ALIAS="skytrace-minio"
 TMP_FILE="/tmp/uav-restore-$$.sql.gz"
 
 mc alias set "${MC_ALIAS}" \

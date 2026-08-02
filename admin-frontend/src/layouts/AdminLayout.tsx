@@ -83,7 +83,7 @@ export function AdminLayout() {
   return (
     <>
       <ProLayout
-        title="UAV 管理后台"
+        title="SkyTrace 天巡智控"
         logo={false}
         route={routes}
         location={{ pathname: location.pathname }}

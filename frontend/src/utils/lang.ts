@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie'
 
-const langKey = 'peregrine-lang';
+const langKey = 'skytrace-lang';
 
 export function getLang() {
   const langValue = Cookies.get('i18next')
