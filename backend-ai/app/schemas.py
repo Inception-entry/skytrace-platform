@@ -126,3 +126,33 @@ class VisionDetectResponse(BaseModel):
         default_factory=list,
         alias="publishedAlarms",
     )
+
+
+class VisionFrameDetectResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    frame_index: int = Field(alias="frameIndex")
+    backend: str
+    model: str
+    detections: list[VisionBoxResponse] = Field(default_factory=list)
+    alarm_candidates: list[VisionAlarmCandidate] = Field(
+        default_factory=list,
+        alias="alarmCandidates",
+    )
+    published_alarms: list[VisionAlarmCandidate] = Field(
+        default_factory=list,
+        alias="publishedAlarms",
+    )
+
+
+class VisionVideoDetectResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    backend: str
+    model: str
+    frame_count: int = Field(alias="frameCount")
+    frames: list[VisionFrameDetectResponse] = Field(default_factory=list)
+    published_alarms: list[VisionAlarmCandidate] = Field(
+        default_factory=list,
+        alias="publishedAlarms",
+    )

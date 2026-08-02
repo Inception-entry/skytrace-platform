@@ -21,6 +21,9 @@ public class InspectionTask {
     @Column(name = "device_code", length = 64)
     private String deviceCode;
 
+    @Column(name = "route_code", length = 64)
+    private String routeCode;
+
     @Column(nullable = false, length = 32)
     private String status;
 
@@ -45,6 +48,7 @@ public class InspectionTask {
                 "巡检任务-" + taskCode,
                 null,
                 null,
+                null,
                 null
         );
     }
@@ -55,9 +59,20 @@ public class InspectionTask {
             String deviceCode,
             LocalDateTime planStartTime,
             LocalDateTime planEndTime) {
+        this(taskCode, taskName, deviceCode, null, planStartTime, planEndTime);
+    }
+
+    public InspectionTask(
+            String taskCode,
+            String taskName,
+            String deviceCode,
+            String routeCode,
+            LocalDateTime planStartTime,
+            LocalDateTime planEndTime) {
         this.taskCode = taskCode;
         this.taskName = taskName;
         this.deviceCode = deviceCode;
+        this.routeCode = routeCode;
         this.status = "CREATED";
         this.planStartTime = planStartTime;
         this.planEndTime = planEndTime;
@@ -68,10 +83,12 @@ public class InspectionTask {
     public void updateDetails(
             String taskName,
             String deviceCode,
+            String routeCode,
             LocalDateTime planStartTime,
             LocalDateTime planEndTime) {
         this.taskName = taskName;
         this.deviceCode = deviceCode;
+        this.routeCode = routeCode;
         this.planStartTime = planStartTime;
         this.planEndTime = planEndTime;
         this.updatedAt = LocalDateTime.now();
@@ -97,6 +114,10 @@ public class InspectionTask {
 
     public String getDeviceCode() {
         return deviceCode;
+    }
+
+    public String getRouteCode() {
+        return routeCode;
     }
 
     public String getStatus() {

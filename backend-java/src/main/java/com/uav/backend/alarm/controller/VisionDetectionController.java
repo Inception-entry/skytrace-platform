@@ -45,4 +45,36 @@ public class VisionDetectionController {
                 maxAlarms
         ));
     }
+
+    @PostMapping("/analyze-video")
+    public ApiResponse<Map<String, Object>> analyzeVideo(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "deviceCode", defaultValue = "UAV-001")
+            String deviceCode,
+            @RequestParam(value = "taskCode", required = false)
+            String taskCode,
+            @RequestParam(value = "latitude", required = false)
+            Double latitude,
+            @RequestParam(value = "longitude", required = false)
+            Double longitude,
+            @RequestParam(value = "publishAlarms", defaultValue = "true")
+            boolean publishAlarms,
+            @RequestParam(value = "maxAlarms", required = false)
+            Integer maxAlarms,
+            @RequestParam(value = "frameIntervalSec", required = false)
+            Double frameIntervalSec,
+            @RequestParam(value = "maxFrames", required = false)
+            Integer maxFrames) {
+        return ApiResponse.ok(aiVisionClient.analyzeVideo(
+                file,
+                deviceCode,
+                taskCode,
+                latitude,
+                longitude,
+                publishAlarms,
+                maxAlarms,
+                frameIntervalSec,
+                maxFrames
+        ));
+    }
 }

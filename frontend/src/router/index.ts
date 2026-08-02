@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import DroneView from '../views/DroneView.vue'
 import DeviceView from '../views/DeviceView.vue'
+import RouteView from '../views/RouteView.vue'
 import ChatView from '../views/ChatView.vue'
 import KnowledgeView from '../views/KnowledgeView.vue'
 import AdminView from '../views/AdminView.vue'
@@ -26,6 +27,11 @@ const routes = [
     path: '/devices',
     name: 'devices',
     component: DeviceView,
+  },
+  {
+    path: '/routes',
+    name: 'routes',
+    component: RouteView,
   },
   {
     path: '/chat',

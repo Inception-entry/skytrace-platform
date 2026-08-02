@@ -16,6 +16,7 @@ import { AdminController } from './admin/admin.controller';
 import { AlarmRealtimeConsumer } from './messaging/alarm-realtime.consumer';
 import { EvidenceController } from './evidence/evidence.controller';
 import { DeviceController } from './device/device.controller';
+import { RouteController } from './route/route.controller';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { DeviceController } from './device/device.controller';
     AdminController,
     EvidenceController,
     DeviceController,
+    RouteController,
   ],
   providers: [
     JavaClientService,

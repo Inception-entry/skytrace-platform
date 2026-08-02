@@ -33,8 +33,69 @@ public class AiVisionClient {
             Double longitude,
             boolean publishAlarms,
             Integer maxAlarms) {
+        return analyzeInternal(
+                "/api/detections/analyze",
+                "vision_analyze",
+                file,
+                "请选择需要识别的图片",
+                "无法读取上传图片",
+                "frame.jpg",
+                deviceCode,
+                taskCode,
+                latitude,
+                longitude,
+                publishAlarms,
+                maxAlarms,
+                null,
+                null
+        );
+    }
+
+    public Map<String, Object> analyzeVideo(
+            MultipartFile file,
+            String deviceCode,
+            String taskCode,
+            Double latitude,
+            Double longitude,
+            boolean publishAlarms,
+            Integer maxAlarms,
+            Double frameIntervalSec,
+            Integer maxFrames) {
+        return analyzeInternal(
+                "/api/detections/analyze-video",
+                "vision_video_analyze",
+                file,
+                "请选择需要识别的视频",
+                "无法读取上传视频",
+                "clip.mp4",
+                deviceCode,
+                taskCode,
+                latitude,
+                longitude,
+                publishAlarms,
+                maxAlarms,
+                frameIntervalSec,
+                maxFrames
+        );
+    }
+
+    private Map<String, Object> analyzeInternal(
+            String uri,
+            String operation,
+            MultipartFile file,
+            String emptyMessage,
+            String readErrorMessage,
+            String defaultFilename,
+            String deviceCode,
+            String taskCode,
+            Double latitude,
+            Double longitude,
+            boolean publishAlarms,
+            Integer maxAlarms,
+            Double frameIntervalSec,
+            Integer maxFrames) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("请选择需要识别的图片");
+            throw new IllegalArgumentException(emptyMessage);
         }
 
         MultipartBodyBuilder body = new MultipartBodyBuilder();
@@ -43,12 +104,14 @@ public class AiVisionClient {
                             "file",
                             new NamedByteArrayResource(
                                     file.getBytes(),
-                                    file.getOriginalFilename()
+                                    file.getOriginalFilename() == null
+                                            ? defaultFilename
+                                            : file.getOriginalFilename()
                             )
                     )
                     .contentType(resolveContentType(file));
         } catch (IOException ex) {
-            throw new IllegalArgumentException("无法读取上传图片", ex);
+            throw new IllegalArgumentException(readErrorMessage, ex);
         }
 
         body.part("deviceCode", deviceCode == null ? "UAV-001" : deviceCode);
@@ -65,14 +128,20 @@ public class AiVisionClient {
         if (maxAlarms != null) {
             body.part("maxAlarms", String.valueOf(maxAlarms));
         }
+        if (frameIntervalSec != null) {
+            body.part("frameIntervalSec", String.valueOf(frameIntervalSec));
+        }
+        if (maxFrames != null) {
+            body.part("maxFrames", String.valueOf(maxFrames));
+        }
 
         String requestId = UUID.randomUUID().toString();
         Map<String, Object> response = callExecutor.execute(
-                "vision_analyze",
+                operation,
                 requestId,
                 null,
                 () -> restClient.post()
-                        .uri("/api/detections/analyze")
+                        .uri(uri)
                         .header("X-Request-Id", requestId)
                         .contentType(MediaType.MULTIPART_FORM_DATA)
                         .body(body.build())

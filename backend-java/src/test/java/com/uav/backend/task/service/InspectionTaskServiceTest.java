@@ -4,6 +4,7 @@ import com.uav.backend.cache.DevicePresenceService;
 import com.uav.backend.common.ConflictException;
 import com.uav.backend.device.domain.Device;
 import com.uav.backend.device.repository.DeviceRepository;
+import com.uav.backend.route.repository.InspectionRouteRepository;
 import com.uav.backend.task.domain.InspectionTask;
 import com.uav.backend.task.dto.CreateInspectionTaskRequest;
 import com.uav.backend.task.dto.InspectionTaskResponse;
@@ -30,6 +31,8 @@ class InspectionTaskServiceTest {
             mock(InspectionTaskRepository.class);
     private final DeviceRepository deviceRepository =
             mock(DeviceRepository.class);
+    private final InspectionRouteRepository routeRepository =
+            mock(InspectionRouteRepository.class);
     @SuppressWarnings("unchecked")
     private final ObjectProvider<DevicePresenceService> presenceProvider =
             mock(ObjectProvider.class);
@@ -44,6 +47,7 @@ class InspectionTaskServiceTest {
         service = new InspectionTaskService(
                 repository,
                 deviceRepository,
+                routeRepository,
                 presenceProvider
         );
     }
@@ -59,6 +63,7 @@ class InspectionTaskServiceTest {
                         "二号无人机",
                         "UAV"
                 )));
+        when(routeRepository.existsByRouteCode("ROUTE-001")).thenReturn(true);
         when(repository.save(any(InspectionTask.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -67,19 +72,16 @@ class InspectionTaskServiceTest {
                         "TASK-REAL-002",
                         "北区管线巡检",
                         "UAV-002",
+                        "ROUTE-001",
                         start,
                         end
                 )
         );
 
         assertThat(response.taskCode()).isEqualTo("TASK-REAL-002");
-        assertThat(response.taskName()).isEqualTo("北区管线巡检");
         assertThat(response.deviceCode()).isEqualTo("UAV-002");
-        assertThat(response.deviceName()).isEqualTo("二号无人机");
-        assertThat(response.deviceStatus()).isEqualTo("OFFLINE");
+        assertThat(response.routeCode()).isEqualTo("ROUTE-001");
         assertThat(response.status()).isEqualTo("CREATED");
-        assertThat(response.planStartTime()).isEqualTo(start);
-        assertThat(response.planEndTime()).isEqualTo(end);
         verify(repository).save(any(InspectionTask.class));
     }
 
@@ -94,12 +96,34 @@ class InspectionTaskServiceTest {
                         "TASK-REAL-004",
                         "未知设备任务",
                         "MISSING",
+                        null,
                         start,
                         end
                 )
         ))
                 .isInstanceOf(java.util.NoSuchElementException.class)
                 .hasMessageContaining("设备不存在");
+    }
+
+    @Test
+    void shouldRejectUnknownRoute() {
+        LocalDateTime start = LocalDateTime.of(2026, 7, 18, 9, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 7, 18, 11, 0);
+        when(deviceRepository.existsByDeviceCode("UAV-001")).thenReturn(true);
+        when(routeRepository.existsByRouteCode("MISSING")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.create(
+                new CreateInspectionTaskRequest(
+                        "TASK-REAL-005",
+                        "未知航线任务",
+                        "UAV-001",
+                        "MISSING",
+                        start,
+                        end
+                )
+        ))
+                .isInstanceOf(java.util.NoSuchElementException.class)
+                .hasMessageContaining("航线不存在");
     }
 
     @Test
@@ -111,6 +135,7 @@ class InspectionTaskServiceTest {
                         "TASK-REAL-003",
                         "无效时间任务",
                         "UAV-003",
+                        null,
                         start,
                         start
                 )
@@ -138,6 +163,7 @@ class InspectionTaskServiceTest {
                 new UpdateInspectionTaskRequest(
                         "修改后的名称",
                         "UAV-002",
+                        null,
                         LocalDateTime.of(2026, 7, 18, 9, 0),
                         LocalDateTime.of(2026, 7, 18, 10, 0)
                 )

@@ -4,6 +4,8 @@ import com.uav.backend.cache.DevicePresenceService;
 import com.uav.backend.common.ConflictException;
 import com.uav.backend.device.domain.Device;
 import com.uav.backend.device.repository.DeviceRepository;
+import com.uav.backend.route.domain.InspectionRoute;
+import com.uav.backend.route.repository.InspectionRouteRepository;
 import com.uav.backend.task.domain.InspectionTask;
 import com.uav.backend.task.dto.CreateInspectionTaskRequest;
 import com.uav.backend.task.dto.InspectionTaskAnalysisContext;
@@ -26,14 +28,17 @@ public class InspectionTaskService {
 
     private final InspectionTaskRepository repository;
     private final DeviceRepository deviceRepository;
+    private final InspectionRouteRepository routeRepository;
     private final ObjectProvider<DevicePresenceService> presenceService;
 
     public InspectionTaskService(
             InspectionTaskRepository repository,
             DeviceRepository deviceRepository,
+            InspectionRouteRepository routeRepository,
             ObjectProvider<DevicePresenceService> presenceService) {
         this.repository = repository;
         this.deviceRepository = deviceRepository;
+        this.routeRepository = routeRepository;
         this.presenceService = presenceService;
     }
 
@@ -64,6 +69,8 @@ public class InspectionTaskService {
                 request.planEndTime()
         );
         requireExistingDevice(request.deviceCode());
+        String routeCode = normalizeOptionalCode(request.routeCode());
+        requireExistingRouteIfPresent(routeCode);
         if (repository.existsByTaskCode(request.taskCode())) {
             throw new ConflictException(
                     "任务编号已存在：" + request.taskCode()
@@ -74,6 +81,7 @@ public class InspectionTaskService {
                 request.taskCode(),
                 request.taskName().trim(),
                 request.deviceCode().trim(),
+                routeCode,
                 request.planStartTime(),
                 request.planEndTime()
         );
@@ -92,6 +100,8 @@ public class InspectionTaskService {
                 request.planEndTime()
         );
         requireExistingDevice(request.deviceCode());
+        String routeCode = normalizeOptionalCode(request.routeCode());
+        requireExistingRouteIfPresent(routeCode);
         InspectionTask task = getRequiredTask(taskCode);
         if (task.isTerminal()) {
             throw new ConflictException(
@@ -102,6 +112,7 @@ public class InspectionTaskService {
         task.updateDetails(
                 request.taskName().trim(),
                 request.deviceCode().trim(),
+                routeCode,
                 request.planStartTime(),
                 request.planEndTime()
         );
@@ -131,6 +142,15 @@ public class InspectionTaskService {
         }
     }
 
+    private void requireExistingRouteIfPresent(String routeCode) {
+        if (routeCode == null) {
+            return;
+        }
+        if (!routeRepository.existsByRouteCode(routeCode)) {
+            throw new NoSuchElementException("航线不存在：" + routeCode);
+        }
+    }
+
     private InspectionTask getRequiredTask(String taskCode) {
         return repository.findByTaskCode(taskCode)
                 .orElseThrow(() -> new NoSuchElementException(
@@ -156,6 +176,13 @@ public class InspectionTaskService {
         return presence.onlineDeviceCodes();
     }
 
+    private static String normalizeOptionalCode(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
     private InspectionTaskResponse toResponse(
             InspectionTask task,
             Set<String> online) {
@@ -168,12 +195,20 @@ public class InspectionTaskService {
                 ? null
                 : (online.contains(deviceCode) ? "ONLINE" : "OFFLINE");
 
+        String routeCode = task.getRouteCode();
+        Optional<InspectionRoute> route = routeCode == null || routeCode.isBlank()
+                ? Optional.empty()
+                : routeRepository.findByRouteCode(routeCode);
+        String routeName = route.map(InspectionRoute::getRouteName).orElse(null);
+
         return new InspectionTaskResponse(
                 task.getTaskCode(),
                 task.getTaskName(),
                 deviceCode,
                 deviceName,
                 deviceStatus,
+                routeCode,
+                routeName,
                 task.getStatus(),
                 task.getPlanStartTime(),
                 task.getPlanEndTime(),

@@ -94,4 +94,42 @@ export class AlarmController {
       180_000,
     );
   }
+
+  @Post('analyze-video')
+  @Roles('ADMIN', 'OPERATOR')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
+  analyzeVideo(
+    @UploadedFile() file?: UploadedVisionFile,
+    @Body('deviceCode') deviceCode?: string,
+    @Body('taskCode') taskCode?: string,
+    @Body('latitude') latitude?: string,
+    @Body('longitude') longitude?: string,
+    @Body('publishAlarms') publishAlarms?: string,
+    @Body('maxAlarms') maxAlarms?: string,
+    @Body('frameIntervalSec') frameIntervalSec?: string,
+    @Body('maxFrames') maxFrames?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请选择需要识别的视频');
+    }
+    return this.javaClient.postMultipart(
+      '/detections/analyze-video',
+      file,
+      {
+        deviceCode: deviceCode || 'UAV-001',
+        taskCode,
+        latitude,
+        longitude,
+        publishAlarms: publishAlarms ?? 'true',
+        maxAlarms,
+        frameIntervalSec,
+        maxFrames,
+      },
+      300_000,
+    );
+  }
 }

@@ -8,6 +8,8 @@ public record InspectionTaskResponse(
         String deviceCode,
         String deviceName,
         String deviceStatus,
+        String routeCode,
+        String routeName,
         String status,
         LocalDateTime planStartTime,
         LocalDateTime planEndTime,

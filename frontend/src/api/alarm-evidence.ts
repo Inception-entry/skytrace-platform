@@ -109,7 +109,6 @@ export async function uploadEvidence(
   })
 }
 
-
 export function getEvidence(params: {
   taskCode?: string
   alarmEventCode?: string
@@ -176,6 +175,48 @@ export async function analyzeVisionFrame(
     form.append('maxAlarms', String(options.maxAlarms))
   }
   return request<VisionDetectResult>('/api/alarms/analyze', {
+    method: 'POST',
+    body: form,
+  })
+}
+
+export async function analyzeVisionVideo(
+  file: File,
+  options?: {
+    deviceCode?: string
+    taskCode?: string
+    latitude?: number
+    longitude?: number
+    publishAlarms?: boolean
+    maxAlarms?: number
+    frameIntervalSec?: number
+    maxFrames?: number
+  },
+) {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('deviceCode', options?.deviceCode ?? 'UAV-001')
+  if (options?.taskCode) form.append('taskCode', options.taskCode)
+  if (options?.latitude != null) {
+    form.append('latitude', String(options.latitude))
+  }
+  if (options?.longitude != null) {
+    form.append('longitude', String(options.longitude))
+  }
+  form.append(
+    'publishAlarms',
+    String(options?.publishAlarms ?? true),
+  )
+  if (options?.maxAlarms != null) {
+    form.append('maxAlarms', String(options.maxAlarms))
+  }
+  if (options?.frameIntervalSec != null) {
+    form.append('frameIntervalSec', String(options.frameIntervalSec))
+  }
+  if (options?.maxFrames != null) {
+    form.append('maxFrames', String(options.maxFrames))
+  }
+  return request<Record<string, unknown>>('/api/alarms/analyze-video', {
     method: 'POST',
     body: form,
   })

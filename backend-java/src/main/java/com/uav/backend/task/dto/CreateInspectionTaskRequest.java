@@ -24,6 +24,13 @@ public record CreateInspectionTaskRequest(
         @Size(max = 64, message = "设备编号不能超过 64 个字符")
         String deviceCode,
 
+        @Size(max = 64, message = "航线编号不能超过 64 个字符")
+        @Pattern(
+                regexp = "^$|^[A-Za-z0-9_-]+$",
+                message = "航线编号只能包含字母、数字、下划线和中划线"
+        )
+        String routeCode,
+
         @NotNull(message = "计划开始时间不能为空")
         LocalDateTime planStartTime,
 

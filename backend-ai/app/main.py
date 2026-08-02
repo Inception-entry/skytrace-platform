@@ -46,9 +46,11 @@ from app.schemas import (
     KnowledgeSource,
     ServiceInfoResponse,
     VisionDetectResponse,
+    VisionVideoDetectResponse,
 )
 from app.vision import build_vision_detector
-from app.vision.analyze import analyze_image
+from app.vision.analyze import analyze_image, analyze_video
+from app.vision.video_frames import FrameExtractionError
 
 settings = get_settings()
 logger = configure_logging()
@@ -173,7 +175,7 @@ async def service_info() -> ServiceInfoResponse:
         health="/health",
         chat="POST /api/chat",
         knowledge="/api/knowledge/documents",
-        detections="POST /api/detections/analyze",
+        detections="POST /api/detections/analyze|/api/detections/analyze-video",
     )
 
 
@@ -384,6 +386,133 @@ async def analyze_detection(
         backend=response.backend,
         model=response.model,
         detection_count=len(response.detections),
+        published_count=len(response.published_alarms),
+        duration_ms=_elapsed_ms(started_at),
+    )
+    return response
+
+
+@app.post(
+    "/api/detections/analyze-video",
+    response_model=VisionVideoDetectResponse,
+)
+async def analyze_detection_video(
+    request: Request,
+    file: UploadFile = File(...),
+    deviceCode: str = "UAV-001",
+    taskCode: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    publishAlarms: bool = True,
+    maxAlarms: int | None = None,
+    frameIntervalSec: float = 2.0,
+    maxFrames: int = 10,
+) -> VisionVideoDetectResponse:
+    detector = getattr(request.app.state, "vision_detector", None)
+    if detector is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "VISION_DISABLED",
+                "message": "视觉推理未启用",
+                "retryable": False,
+            },
+        )
+
+    content_type = (file.content_type or "").lower()
+    if content_type and not (
+        content_type.startswith("video/")
+        or content_type in {"application/octet-stream", "application/mp4"}
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VISION_INVALID_VIDEO",
+                "message": "仅支持视频文件上传",
+                "retryable": False,
+            },
+        )
+
+    video_bytes = await file.read()
+    if not video_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VISION_EMPTY_VIDEO",
+                "message": "上传视频为空",
+                "retryable": False,
+            },
+        )
+    # Allow larger payloads for short clips (50 MB default ceiling)
+    max_video_bytes = max(settings.vision_max_upload_bytes, 50 * 1024 * 1024)
+    if len(video_bytes) > max_video_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail={
+                "code": "VISION_VIDEO_TOO_LARGE",
+                "message": "视频超过大小限制",
+                "retryable": False,
+            },
+        )
+
+    started_at = perf_counter()
+    try:
+        response = await analyze_video(
+            detector=detector,
+            settings=settings,
+            video_bytes=video_bytes,
+            device_code=deviceCode.strip() or "UAV-001",
+            task_code=taskCode,
+            latitude=latitude,
+            longitude=longitude,
+            publish_alarms=publishAlarms,
+            max_alarms=(
+                maxAlarms
+                if maxAlarms is not None
+                else settings.vision_default_max_alarms
+            ),
+            frame_interval_sec=frameIntervalSec,
+            max_frames=maxFrames,
+            request_id=request.state.request_id,
+        )
+    except FrameExtractionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VISION_FRAME_EXTRACT_FAILED",
+                "message": str(exc),
+                "retryable": False,
+            },
+        ) from exc
+    except Exception as exc:
+        log_event(
+            logger,
+            logging.ERROR,
+            "vision_video_analyze_failed",
+            request_id=request.state.request_id,
+            operation="vision_video_analyze",
+            error_code="VISION_VIDEO_ANALYZE_FAILED",
+            retryable=True,
+            exception_type=type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "code": "VISION_VIDEO_ANALYZE_FAILED",
+                "message": "视频视觉推理失败，请稍后重试",
+                "retryable": True,
+            },
+        ) from exc
+
+    log_event(
+        logger,
+        logging.INFO,
+        "vision_video_analyze_completed",
+        request_id=request.state.request_id,
+        operation="vision_video_analyze",
+        backend=response.backend,
+        model=response.model,
+        frame_count=response.frame_count,
         published_count=len(response.published_alarms),
         duration_ms=_elapsed_ms(started_at),
     )

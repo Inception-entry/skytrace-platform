@@ -21,6 +21,9 @@
           <RouterLink class="knowledge-link" to="/devices">
             设备管理
           </RouterLink>
+          <RouterLink class="knowledge-link" to="/routes">
+            航线管理
+          </RouterLink>
           <RouterLink v-if="canOperate" class="chat-link" to="/chat">
             AI 智能分析
           </RouterLink>
@@ -95,6 +98,22 @@
             </select>
           </label>
 
+          <label>
+            <span>关联航线（可选）</span>
+            <select
+              v-model="form.routeCode"
+              :disabled="loading"
+            >
+              <option value="">不绑定航线</option>
+              <option
+                v-for="route in routes"
+                :key="route.routeCode"
+                :value="route.routeCode"
+              >
+                {{ route.routeName }}（{{ route.routeCode }}）
+              </option>
+            </select>
+          </label>
 
           <label>
             <span>计划开始时间</span>
@@ -165,6 +184,7 @@
             <tr>
               <th>任务信息</th>
               <th>设备</th>
+              <th>航线</th>
               <th>计划时间</th>
               <th>状态</th>
               <th>操作</th>
@@ -185,6 +205,10 @@
                     · {{ task.deviceStatus }}
                   </template>
                 </small>
+              </td>
+              <td>
+                <strong>{{ task.routeName || task.routeCode || '未绑定' }}</strong>
+                <small v-if="task.routeCode">{{ task.routeCode }}</small>
               </td>
               <td>
                 <span>{{ formatDateTime(task.planStartTime) }}</span>
@@ -240,7 +264,7 @@
             </tr>
 
             <tr v-if="tasks.length === 0">
-              <td colspan="5" class="empty-cell">暂无巡检任务</td>
+              <td colspan="6" class="empty-cell">暂无巡检任务</td>
             </tr>
           </tbody>
         </table>
@@ -310,6 +334,7 @@ import {
   type EvidenceAsset,
 } from '@/api/alarm-evidence'
 import { getDevices, type Device } from '@/api/device'
+import { getRoutes, type Route } from '@/api/route'
 import {
   cancelInspectionTask,
   completeInspectionTask,
@@ -324,12 +349,14 @@ interface TaskForm {
   taskCode: string
   taskName: string
   deviceCode: string
+  routeCode: string
   planStartTime: string
   planEndTime: string
 }
 
 const tasks = ref<InspectionTask[]>([])
 const devices = ref<Device[]>([])
+const routes = ref<Route[]>([])
 const evidenceList = ref<EvidenceAsset[]>([])
 const selectedTaskCode = ref('')
 const loading = ref(false)
@@ -350,6 +377,7 @@ function createEmptyForm(): TaskForm {
     taskCode: '',
     taskName: '',
     deviceCode: '',
+    routeCode: '',
     planStartTime: '',
     planEndTime: '',
   }
@@ -371,7 +399,7 @@ const resetForm = () => {
 const openCreateForm = async () => {
   resetMessages()
   resetForm()
-  await loadDevices()
+  await Promise.all([loadDevices(), loadRoutes()])
   if (devices.value.length === 1) {
     form.deviceCode = devices.value[0].deviceCode
   }
@@ -381,11 +409,12 @@ const openCreateForm = async () => {
 const openEditForm = async (task: InspectionTask) => {
   resetMessages()
   editingTaskCode.value = task.taskCode
-  await loadDevices()
+  await Promise.all([loadDevices(), loadRoutes()])
   Object.assign(form, {
     taskCode: task.taskCode,
     taskName: task.taskName,
     deviceCode: task.deviceCode ?? '',
+    routeCode: task.routeCode ?? '',
     planStartTime: toDateTimeInput(task.planStartTime),
     planEndTime: toDateTimeInput(task.planEndTime),
   })
@@ -406,6 +435,13 @@ const loadDevices = async () => {
   }
 }
 
+const loadRoutes = async () => {
+  try {
+    routes.value = await getRoutes()
+  } catch (error) {
+    errorMessage.value = errorText(error, '加载航线失败')
+  }
+}
 
 const loadTasks = async () => {
   loading.value = true
@@ -473,6 +509,7 @@ const saveTask = async () => {
     const details = {
       taskName: form.taskName,
       deviceCode: form.deviceCode,
+      routeCode: form.routeCode || undefined,
       planStartTime: form.planStartTime,
       planEndTime: form.planEndTime,
     }
@@ -571,7 +608,7 @@ const errorText = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
 
 onMounted(async () => {
-  await Promise.all([loadTasks(), loadDevices()])
+  await Promise.all([loadTasks(), loadDevices(), loadRoutes()])
 })
 </script>
 

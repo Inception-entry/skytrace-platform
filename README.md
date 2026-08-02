@@ -2,7 +2,7 @@
 
 SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台，中文产品名为“天巡智控”。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
-当前平台版本：**0.2.2**（发版说明见 [`docs/releases/v0.2.2.md`](docs/releases/v0.2.2.md)）。
+当前平台版本：**0.2.2**（发版说明见 [`docs/releases/v0.2.2.md`](docs/releases/v0.2.2.md)；后续草稿见 [`v0.2.3.md`](docs/releases/v0.2.3.md) / [`v0.3.0.md`](docs/releases/v0.3.0.md)）。
 
 ## 技术架构
 
@@ -359,6 +359,9 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ（异步落库） |
 | `GET` | `/api/evidence?taskCode=` | 按任务/告警查询证据列表 |
 | `POST` | `/api/evidence` | 上传截图/视频证据到 MinIO，返回 object key |
+| `GET` | `/api/routes` | 航线列表 |
+| `POST` | `/api/routes` | 创建航线（ADMIN/OPERATOR） |
+| `POST` | `/api/alarms/analyze-video` | 视频抽帧后逐帧视觉分析（ADMIN/OPERATOR） |
 | `GET` | `/api/knowledge/documents` | 查询知识文档 |
 | `POST` | `/api/knowledge/documents` | 上传知识文档（ADMIN） |
 | `POST` | `/api/knowledge/search` | 语义检索知识片段 |
@@ -381,6 +384,8 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ |
 | `POST` | `/api/evidence` | 上传证据文件并转发 Java/MinIO |
 | `GET` | `/api/evidence` | 按 taskCode/alarmEventCode 查询证据 |
+| `GET` | `/api/routes` | 航线列表转发 |
+| `POST` | `/api/alarms/analyze-video` | 视频视觉分析转发 |
 | `POST` | `/api/inspection-tasks/{taskCode}/analysis/stream` | 透传 AI SSE 实时分析 |
 | `GET` | `/api/inspection-tasks/{taskCode}/analyses` | 查询 MySQL 中的 AI 分析历史 |
 | `GET` | `/api/inspection-tasks/{taskCode}/workflow-status` | 查询 Temporal 状态与最近告警 Signal |
@@ -421,8 +426,10 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - MinIO 巡检证据上传：截图/视频只持久化 object key，经 `/files/` 反代访问。
 - Flyway 管理 AI 分析结果表与证据资产表，持久化同步与 SSE 分析并支持历史查询。
 - 设备主数据持久化（`device`）与 CRUD；列表在线状态由 Redis heartbeat 覆盖。
-- 巡检任务绑定真实设备（创建/更新校验设备存在），响应带设备名与在线状态。
+- 巡检任务绑定真实设备（创建/更新校验设备存在），响应带设备名与在线状态；可选绑定航线。
+- 航线主数据 CRUD（`inspection_route`）与业务端 `/routes` 页面。
 - 证据按任务/告警查询；任务页可选设备、查看与上传关联证据。
+- 视频抽帧视觉流水线（`/api/alarms/analyze-video`）与真实 YOLO 一键开启路径（vision overlay）。
 - Node 告警代理、证据上传代理、Socket.IO JWT 握手鉴权与实时广播。
 - Vue 3 + Cesium 业务端，包含任务、告警、知识库、聊天、主题、布局和国际化能力。
 - Temporal 巡检生命周期、同步 AI 分析和流式 AI 分析工作流。
@@ -436,5 +443,6 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 预留或待完善：
 
 - Temporal Nexus 跨服务能力。
-- 视频抽帧流水线与定制武器/缺陷数据集微调。
-- 设备、航线、飞控和完整任务领域的深化与数据权限。
+- 定制武器/缺陷数据集微调与航线地图可视化。
+- 飞控独立服务与完整任务领域数据权限。
+- 完整浏览器登录/告警推送 E2E 与生产值守手册。

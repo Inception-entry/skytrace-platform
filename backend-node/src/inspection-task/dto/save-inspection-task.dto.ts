@@ -1,6 +1,7 @@
 import {
   IsDateString,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -16,6 +17,12 @@ export class UpdateInspectionTaskDto {
   @IsNotEmpty()
   @MaxLength(64)
   deviceCode!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  @Matches(/^$|^[A-Za-z0-9_-]+$/)
+  routeCode?: string;
 
   @IsDateString()
   planStartTime!: string;

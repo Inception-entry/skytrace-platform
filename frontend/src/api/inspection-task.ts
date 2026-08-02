@@ -6,6 +6,8 @@ export interface InspectionTask {
   deviceCode: string | null
   deviceName: string | null
   deviceStatus: string | null
+  routeCode: string | null
+  routeName: string | null
   status: string
   planStartTime: string | null
   planEndTime: string | null
@@ -16,6 +18,7 @@ export interface InspectionTask {
 export interface InspectionTaskDetailsInput {
   taskName: string
   deviceCode: string
+  routeCode?: string
   planStartTime: string
   planEndTime: string
 }

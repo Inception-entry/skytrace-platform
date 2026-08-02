@@ -47,6 +47,7 @@ const open = ref<boolean>(false);
 const navItems = [
   { to: '/drone', label: '巡检任务', desc: '任务列表与工作流', roles: [] as string[] },
   { to: '/devices', label: '设备管理', desc: '设备主数据与在线状态', roles: [] },
+  { to: '/routes', label: '航线管理', desc: '巡检航线与航点', roles: [] },
   { to: '/knowledge', label: '知识库', desc: '文档入库与检索', roles: [] },
   { to: '/chat', label: 'AI 分析', desc: '流式问答与巡检分析', roles: ['ADMIN', 'OPERATOR'] },
   { to: '/audit', label: '审计中心', desc: '运行概况与操作审计', roles: ['ADMIN'] },

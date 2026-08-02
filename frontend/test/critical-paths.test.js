@@ -41,3 +41,8 @@ test('frontend evidence client supports list query', () => {
   assert.match(alarmSource, /\/api\/evidence\?\$\{query\.toString\(\)\}/)
   assert.match(alarmSource, /export function getEvidence/)
 })
+
+test('frontend vision clients target analyze endpoints', () => {
+  assert.match(alarmSource, /\/api\/alarms\/analyze/)
+  assert.match(alarmSource, /\/api\/alarms\/analyze-video/)
+})

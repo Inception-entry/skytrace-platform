@@ -10,10 +10,13 @@ from app.detection_publisher import (
 )
 from app.vision.detector import VisionDetector
 from app.vision.labels import resolve_alarm
+from app.vision.video_frames import extract_video_frames
 from app.schemas import (
     VisionAlarmCandidate,
     VisionBoxResponse,
     VisionDetectResponse,
+    VisionFrameDetectResponse,
+    VisionVideoDetectResponse,
 )
 
 
@@ -94,4 +97,68 @@ async def analyze_image(
         detections=boxes,
         alarm_candidates=candidates,
         published_alarms=published,
+    )
+
+
+async def analyze_video(
+    *,
+    detector: VisionDetector,
+    settings: Settings,
+    video_bytes: bytes,
+    device_code: str,
+    task_code: str | None,
+    latitude: float | None,
+    longitude: float | None,
+    publish_alarms: bool,
+    max_alarms: int,
+    frame_interval_sec: float,
+    max_frames: int,
+    request_id: str,
+) -> VisionVideoDetectResponse:
+    frames = await asyncio.to_thread(
+        extract_video_frames,
+        video_bytes,
+        frame_interval_sec=frame_interval_sec,
+        max_frames=max_frames,
+    )
+
+    frame_results: list[VisionFrameDetectResponse] = []
+    published_all: list[VisionAlarmCandidate] = []
+    remaining_alarms = max(1, max_alarms)
+
+    for index, frame_bytes in enumerate(frames):
+        allow_publish = publish_alarms and remaining_alarms > 0
+        per_frame = await analyze_image(
+            detector=detector,
+            settings=settings,
+            image_bytes=frame_bytes,
+            device_code=device_code,
+            task_code=task_code,
+            latitude=latitude,
+            longitude=longitude,
+            publish_alarms=allow_publish,
+            max_alarms=remaining_alarms,
+            request_id=f"{request_id}:f{index}",
+        )
+        published_all.extend(per_frame.published_alarms)
+        remaining_alarms = max(0, remaining_alarms - len(per_frame.published_alarms))
+        frame_results.append(
+            VisionFrameDetectResponse(
+                frame_index=index,
+                backend=per_frame.backend,
+                model=per_frame.model,
+                detections=per_frame.detections,
+                alarm_candidates=per_frame.alarm_candidates,
+                published_alarms=per_frame.published_alarms,
+            )
+        )
+
+    backend = frame_results[0].backend if frame_results else detector.backend
+    model = frame_results[0].model if frame_results else detector.model_name
+    return VisionVideoDetectResponse(
+        backend=backend,
+        model=model,
+        frame_count=len(frame_results),
+        frames=frame_results,
+        published_alarms=published_all,
     )
