@@ -1,23 +1,3 @@
-global:
-  resolve_timeout: 5m
-
-route:
-  group_by: ['alertname', 'job']
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
-  receiver: webhook
-
-receivers:
-  - name: webhook
-    webhook_configs:
-      # Replace with your actual webhook URL (DingTalk, Slack, PagerDuty, etc.)
-      - url: ${ALERTMANAGER_WEBHOOK_URL:-http://localhost/webhook-placeholder}
-        send_resolved: true
-
-inhibit_rules:
-  - source_matchers:
-      - severity = critical
-    target_matchers:
-      - severity = warning
-    equal: ['alertname', 'job']
+# Deprecated: Alertmanager now boots from alertmanager.yml.template
+# via docker-entrypoint.sh and ALERTMANAGER_WEBHOOK_URL.
+# Kept for backward reference only.

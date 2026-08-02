@@ -105,12 +105,13 @@ services:
     restart: always
     ports:
       - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
+    environment:
+      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL:-http://127.0.0.1:9/webhook-placeholder}
     volumes:
-      - ./alertmanager:/etc/alertmanager:ro
+      - ./alertmanager/alertmanager.yml.template:/etc/alertmanager/alertmanager.yml.template:ro
+      - ./alertmanager/docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - alertmanager_data:/alertmanager
-    command:
-      - --config.file=/etc/alertmanager/alertmanager.yml
-      - --storage.path=/alertmanager
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
     networks:
       - backend
 

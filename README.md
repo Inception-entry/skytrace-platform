@@ -2,7 +2,9 @@
 
 SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台，中文产品名为“天巡智控”。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
-当前平台版本：**0.2.2**（发版说明见 [`docs/releases/v0.2.2.md`](docs/releases/v0.2.2.md)；后续草稿见 [`v0.2.3.md`](docs/releases/v0.2.3.md) / [`v0.3.0.md`](docs/releases/v0.3.0.md)）。
+当前平台版本：**0.2.2**（发版说明见 [`docs/releases/v0.2.2.md`](docs/releases/v0.2.2.md)；Sprint A/B/C/D 草稿见 [`v0.2.3.md`](docs/releases/v0.2.3.md) / [`v0.3.0.md`](docs/releases/v0.3.0.md)）。
+
+运维速查见 [`docs/ops.md`](docs/ops.md)。
 
 ## 技术架构
 
@@ -430,6 +432,7 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - 航线主数据 CRUD（`inspection_route`）与业务端 `/routes` 页面。
 - 证据按任务/告警查询；任务页可选设备、查看与上传关联证据。
 - 视频抽帧视觉流水线（`/api/alarms/analyze-video`）与真实 YOLO 一键开启路径（vision overlay）。
+- 可观测性：Grafana 预置仪表盘、Alertmanager Webhook 注入；运维速查见 `docs/ops.md`。
 - Node 告警代理、证据上传代理、Socket.IO JWT 握手鉴权与实时广播。
 - Vue 3 + Cesium 业务端，包含任务、告警、知识库、聊天、主题、布局和国际化能力。
 - Temporal 巡检生命周期、同步 AI 分析和流式 AI 分析工作流。
