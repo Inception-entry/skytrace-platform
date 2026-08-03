@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
@@ -27,8 +26,7 @@ public class InspectionRoute {
     @Column(length = 512)
     private String description;
 
-    @Lob
-    @Column(name = "waypoints_json")
+    @Column(name = "waypoints_json", columnDefinition = "TEXT")
     private String waypointsJson;
 
     @Column(name = "created_at", nullable = false)

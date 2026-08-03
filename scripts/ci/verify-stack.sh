@@ -81,7 +81,7 @@ create_payload="$(
   printf '%s' \
     "{\"taskCode\":\"$TASK_CODE\"," \
     "\"taskName\":\"CI integration inspection\"," \
-    "\"deviceCode\":\"UAV-CI-001\"," \
+    "\"deviceCode\":\"UAV-001\"," \
     "\"planStartTime\":\"2030-01-01T08:00:00\"," \
     "\"planEndTime\":\"2030-01-01T09:00:00\"}"
 )"

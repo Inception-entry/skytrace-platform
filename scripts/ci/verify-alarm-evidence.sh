@@ -60,7 +60,7 @@ create_payload="$(
   printf '%s' \
     "{\"taskCode\":\"$TASK_CODE\"," \
     "\"taskName\":\"CI alarm evidence inspection\"," \
-    "\"deviceCode\":\"UAV-CI-ALARM\"," \
+    "\"deviceCode\":\"UAV-001\"," \
     "\"planStartTime\":\"2030-01-01T08:00:00\"," \
     "\"planEndTime\":\"2030-01-01T09:00:00\"}"
 )"
@@ -88,7 +88,7 @@ printf '证据上传验收通过：%s\n' "$object_key"
 
 detection_payload="$(
   printf '%s' \
-    "{\"deviceCode\":\"UAV-CI-ALARM\"," \
+    "{\"deviceCode\":\"UAV-001\"," \
     "\"taskCode\":\"$TASK_CODE\"," \
     "\"eventType\":\"WEAPON_DETECTED\"," \
     "\"weaponType\":\"KNIFE\"," \
