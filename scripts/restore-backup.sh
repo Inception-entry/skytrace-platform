@@ -19,6 +19,7 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 BACKUP_BUCKET="${BACKUP_BUCKET:-skytrace-backups}"
+MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://127.0.0.1:${MINIO_API_PORT:-9011}}"
 MC_ALIAS="skytrace-minio"
 TMP_FILE="/tmp/skytrace-restore-$$.sql.gz"
 

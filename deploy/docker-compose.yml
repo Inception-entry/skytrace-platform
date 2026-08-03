@@ -269,7 +269,7 @@ services:
       AUTH_JWT_JWK_SET_URI: ${GATEWAY_JWT_JWK_SET_URI:-http://keycloak:8080/realms/skytrace/protocol/openid-connect/certs}
       AUTH_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/skytrace}
       AUTH_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-skytrace-web}
-      WS_ALLOWED_ORIGIN: ${GATEWAY_ALLOWED_ORIGIN:-http://localhost:8888}
+      WS_ALLOWED_ORIGIN: ${GATEWAY_ALLOWED_ORIGIN:-http://localhost:8888,http://127.0.0.1:8888}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: "5672"
       RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}

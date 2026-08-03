@@ -29,6 +29,8 @@ spring:
           '[/**]':
             allowed-origin-patterns:
               - ${GATEWAY_ALLOWED_ORIGIN:http://localhost:8888}
+              - http://127.0.0.1:8888
+              - http://localhost:8888
             allowed-methods:
               - GET
               - POST
