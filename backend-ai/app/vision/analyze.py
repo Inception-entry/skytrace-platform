@@ -33,7 +33,10 @@ async def analyze_image(
     max_alarms: int,
     request_id: str,
 ) -> VisionDetectResponse:
-    result = await asyncio.to_thread(detector.detect, image_bytes)
+    if detector.backend == "mock":
+        result = detector.detect(image_bytes)
+    else:
+        result = await asyncio.to_thread(detector.detect, image_bytes)
     boxes = [
         VisionBoxResponse(
             class_name=box.class_name,
