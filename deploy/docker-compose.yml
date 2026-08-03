@@ -442,7 +442,9 @@ services:
       keycloak:
         condition: service_started
     networks:
+      # edge: 对外端口；backend: 解析 gateway/minio（nginx 启动时会解析 proxy_pass 主机名）
       - edge
+      - backend
 
 volumes:
   mysql_data:

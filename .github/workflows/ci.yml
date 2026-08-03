@@ -223,6 +223,9 @@ jobs:
           replace_env ADMIN_JWT_SECRET "$admin_jwt_secret"
           replace_env ADMIN_JWT_REFRESH_SECRET "$admin_jwt_refresh"
           replace_env POSTGRES_PASSWORD "$postgres_password"
+          # Playwright / curl 走 127.0.0.1，与 Keycloak redirect / CORS 对齐
+          replace_env KEYCLOAK_PUBLIC_URL "http://127.0.0.1:8180"
+          replace_env GATEWAY_ALLOWED_ORIGIN "http://127.0.0.1:8888"
 
           echo "::add-mask::$mysql_root_password"
           echo "::add-mask::$mysql_password"
