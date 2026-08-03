@@ -47,7 +47,7 @@ test.describe('SkyTrace login + alarm/evidence loop', () => {
       .fill(`E2E 任务 ${taskCode}`)
 
     await page.locator('label', { hasText: '关联设备' }).locator('select')
-      .selectOption({ label: /UAV-001/ })
+      .selectOption({ value: 'UAV-001' })
 
     await page.locator('input[type="datetime-local"]').nth(0).fill('2030-01-01T08:00')
     await page.locator('input[type="datetime-local"]').nth(1).fill('2030-01-01T09:00')
