@@ -184,7 +184,7 @@ jobs:
       - admin-service
       - admin-frontend
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -236,6 +236,7 @@ jobs:
           echo "::add-mask::$postgres_password"
           echo "UAV_ENV_FILE=$ci_env" >> "$GITHUB_ENV"
           echo "KEYCLOAK_CLIENT_SECRET=$service_secret" >> "$GITHUB_ENV"
+          echo "KEYCLOAK_DEV_USER_PASSWORD=$test_user_password" >> "$GITHUB_ENV"
           echo "COMPOSE_PROJECT_NAME=skytrace-ci" >> "$GITHUB_ENV"
 
       - name: Start Ollama health-check mock
@@ -283,7 +284,7 @@ jobs:
           docker compose \
             --env-file "$UAV_ENV_FILE" \
             -f deploy/docker-compose.yml \
-            up -d --no-build gateway
+            up -d --no-build gateway frontend
 
       - name: Wait for application readiness
         shell: bash
@@ -299,6 +300,8 @@ jobs:
             http://127.0.0.1:3000/api/health 120 "Node BFF"
           scripts/ci/wait-for-http.sh \
             http://127.0.0.1:8082/actuator/health 120 Gateway
+          scripts/ci/wait-for-http.sh \
+            http://127.0.0.1:8888/ 120 Frontend
 
       - name: Verify three-role authorization
         run: |
@@ -314,6 +317,24 @@ jobs:
         env:
           CI_ALARM_TASK_CODE: ALARM-${{ github.run_id }}-${{ github.run_attempt }}
         run: scripts/ci/verify-alarm-evidence.sh
+
+      - name: Setup Node.js for Playwright
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright and run browser E2E
+        working-directory: e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8888
+          KEYCLOAK_DEV_USER_PASSWORD: ${{ env.KEYCLOAK_DEV_USER_PASSWORD }}
+          KEYCLOAK_CLIENT_SECRET: ${{ env.KEYCLOAK_CLIENT_SECRET }}
+          KEYCLOAK_URL: http://127.0.0.1:8180
+          GATEWAY_URL: http://127.0.0.1:8082
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+          npm test
 
       - name: Collect failure diagnostics
         if: failure()

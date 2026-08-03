@@ -67,5 +67,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VITE_KEYCLOAK_URL=${{ secrets.STAGING_KEYCLOAK_URL }}
+            INSTALL_VISION=${{ matrix.service == 'backend-ai' && '1' || '0' }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}

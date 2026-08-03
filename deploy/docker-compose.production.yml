@@ -1,13 +1,17 @@
 # Production overlay: Keycloak switched to MySQL + production mode,
 # resource limits on all services, no dev ports exposed publicly.
 #
-# Usage (on production server):
+# Usage (on production server; prefer scripts/deploy-production.sh):
 #   export IMAGE_TAG=main-abc1234 REGISTRY=ghcr.io/owner/repo UAV_DOMAIN=prod.example.com
 #   docker compose --env-file deploy/.env \
 #     -f deploy/docker-compose.yml \
+#     -f deploy/docker-compose.vision.yml \
 #     -f deploy/docker-compose.staging.yml \
 #     -f deploy/docker-compose.production.yml \
 #     pull && ... up -d --no-build
+#
+# Vision is mandatory in production: published backend-ai images include
+# ultralytics; vision overlay sets AI_VISION_BACKEND=yolo26.
 
 services:
   mysql:

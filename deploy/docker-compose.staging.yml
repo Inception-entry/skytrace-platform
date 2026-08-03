@@ -1,12 +1,15 @@
 # Staging overlay: replace build contexts with pre-built registry images,
 # expose HTTPS via Caddy, and adjust Keycloak to its public URL.
 #
-# Usage (on the test server):
+# Usage (on the test server; prefer scripts/deploy-staging.sh):
 #   export IMAGE_TAG=main-abc1234 REGISTRY=ghcr.io/owner/repo UAV_DOMAIN=test.example.com
 #   docker compose --env-file deploy/.env \
-#     -f deploy/docker-compose.yml -f deploy/docker-compose.staging.yml \
-#     pull
-#   docker compose ... up -d --no-build
+#     -f deploy/docker-compose.yml \
+#     -f deploy/docker-compose.vision.yml \
+#     -f deploy/docker-compose.staging.yml \
+#     pull && up -d --no-build
+#
+# Include vision.yml so staging runs real YOLO like production.
 
 services:
   backend-ai:

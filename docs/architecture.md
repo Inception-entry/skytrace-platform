@@ -81,8 +81,8 @@ SSE 链路流式返回。每个模型 Token 不写入 Temporal 历史；Java 会
 系统管理后台（`:8889`）使用自身的 NestJS JWT 和 PostgreSQL RBAC，不经业务 Gateway。
 
 YOLO26 视觉推理已接入 AI 服务：`POST /api/detections/analyze` 对上传帧做检测，
-可将映射后的告警经 RabbitMQ 进入既有闭环。默认 `AI_VISION_BACKEND=mock`，
-真实权重需 `pip/uv` 安装 vision 组并以 `yolo26n.pt`（或更大规格）运行。
+可将映射后的告警经 RabbitMQ 进入既有闭环。本地/CI 默认 `AI_VISION_BACKEND=mock`；
+预发/生产由 vision overlay + Publish 镜像强制真实 YOLO（`yolo26n.pt`）。
 
 ## 网关预置配置
 

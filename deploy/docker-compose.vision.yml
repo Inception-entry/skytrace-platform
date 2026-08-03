@@ -1,11 +1,12 @@
-# Optional vision overlay: build AI image with ultralytics + use real YOLO.
+# Vision overlay: real YOLO for local builds; required for staging/prod runtime.
 #
-# Usage:
+# Local (build with ultralytics):
 #   docker compose -f deploy/docker-compose.yml \
 #                  -f deploy/docker-compose.vision.yml \
 #                  up -d --build backend-ai
 #
-# Keep CI / default local stack on mock to avoid downloading weights.
+# Staging / production deploy scripts always include this file so
+# AI_VISION_BACKEND defaults to yolo26. CI and plain local compose stay on mock.
 
 services:
   backend-ai:

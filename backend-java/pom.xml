@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.uav</groupId>
     <artifactId>skytrace-backend-java</artifactId>
-    <version>0.3.0</version>
+    <version>1.0.0</version>
     <name>SkyTrace Backend Java</name>
     <properties>
         <java.version>21</java.version>

@@ -1,6 +1,6 @@
 [project]
 name = "skytrace-backend-ai"
-version = "0.3.0"
+version = "1.0.0"
 description = "SkyTrace AI service powered by LangChain and Ollama"
 requires-python = ">=3.12,<3.13"
 dependencies = [

@@ -2,7 +2,7 @@
 
 SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台，中文产品名为“天巡智控”。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
-当前平台版本：**0.3.0**（发版说明见 [`docs/releases/v0.3.0.md`](docs/releases/v0.3.0.md)；历史见 [`v0.2.3.md`](docs/releases/v0.2.3.md) / [`v0.2.2.md`](docs/releases/v0.2.2.md)）。
+当前平台版本：**1.0.0**（发版说明见 [`docs/releases/v1.0.0.md`](docs/releases/v1.0.0.md)；历史见 [`v0.3.0.md`](docs/releases/v0.3.0.md)）。
 
 运维速查见 [`docs/ops.md`](docs/ops.md)。
 
@@ -21,9 +21,9 @@ SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计�
 - **业务端**：Vue 3、TypeScript、Cesium，提供三维巡检、告警、知识库、AI 对话和审计概览。
 - **网关与身份**：Nginx 统一入口；Spring Cloud Gateway 执行 Keycloak JWT 校验、角色策略、Redis 限流、请求追踪与指标采集。
 - **业务服务**：NestJS BFF 聚合 API、透传 SSE、推送 Socket.IO 事件；Spring Boot 负责任务、告警、知识库边界、审计与 Temporal 工作流。
-- **AI 服务**：FastAPI、LangChain、Ollama 和 Qdrant 提供 RAG 知识库、流式问答与巡检分析；Redis 保存会话上下文；YOLO26 视觉推理（默认 mock，可选真实权重）。
+- **AI 服务**：FastAPI、LangChain、Ollama 和 Qdrant 提供 RAG 知识库、流式问答与巡检分析；Redis 保存会话上下文；YOLO26 视觉推理（本地/CI mock，预发/生产默认真实权重）。
 - **独立后台**：React + Ant Design 管理端与 NestJS 管理服务，使用 PostgreSQL、Prisma 和 MinIO 管理用户、角色、菜单、操作日志及头像上传。
-- **部署与运维**：Docker Compose 提供本地、预发、生产与监控覆盖层；CI 包含各服务测试、依赖/镜像安全扫描和全栈验收。
+- **部署与运维**：Docker Compose 提供本地、预发、生产与监控覆盖层；CI 包含各服务测试、依赖/镜像安全扫描、全栈与 Playwright 验收。
 
 服务职责、调用链和现阶段边界见 [`docs/architecture.md`](docs/architecture.md)；鉴权配置见 [`docs/gateway.md`](docs/gateway.md)。
 
@@ -57,7 +57,8 @@ skytrace-platform/
 │       ├── v0.2.1.md                    # 0.2.1 补丁说明
 │       ├── v0.2.2.md                    # 0.2.2 品牌统一说明
 │       ├── v0.2.3.md                    # 0.2.3 设备落库与证据查询
-│       └── v0.3.0.md                    # 0.3.0 航线、视频抽帧与可观测性
+│       ├── v0.3.0.md                    # 0.3.0 航线、视频抽帧与可观测性
+│       └── v1.0.0.md                    # 1.0.0 生产可值守首发
 ├── scripts/
 │   ├── skytrace.sh                      # 本地 Compose 管理和权限验收
 │   ├── mysql-backup.sh                  # MySQL 备份
@@ -142,17 +143,24 @@ ollama pull nomic-embed-text
 
 ### YOLO26 视觉推理
 
-默认使用 `AI_VISION_BACKEND=mock`，不下载权重，便于 CI/本地。真实 YOLO26：
+- **本地 / CI**：默认 `AI_VISION_BACKEND=mock`，不下载权重
+- **预发 / 生产**：部署脚本强制挂载 `docker-compose.vision.yml`；Publish 镜像已 `INSTALL_VISION=1`，默认 `yolo26`
+
+本地开启真实 YOLO：
 
 ```bash
-# 本地
+docker compose --env-file deploy/.env \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.vision.yml \
+  up -d --build backend-ai
+```
+
+或：
+
+```bash
 cd backend-ai
 uv sync --group vision
 export AI_VISION_BACKEND=yolo26 AI_VISION_MODEL=yolo26n.pt AI_VISION_DEVICE=cpu
-
-# Docker 镜像（体积较大，含 torch）
-docker compose build --build-arg INSTALL_VISION=1 backend-ai
-# deploy/.env 中设置 AI_VISION_BACKEND=yolo26
 ```
 
 识别入口：`POST /api/detections/analyze`（也可经 BFF `POST /api/alarms/analyze`）。
@@ -433,16 +441,16 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - 巡检任务绑定真实设备（创建/更新校验设备存在），响应带设备名与在线状态；可选绑定航线。
 - 航线主数据 CRUD（`inspection_route`）与业务端 `/routes` 页面。
 - 证据按任务/告警查询；任务页可选设备、查看与上传关联证据。
-- 视频抽帧视觉流水线（`/api/alarms/analyze-video`）与真实 YOLO 一键开启路径（vision overlay）。
-- 可观测性：Grafana 预置仪表盘、Alertmanager Webhook 注入；运维速查见 `docs/ops.md`。
+- 视频抽帧视觉流水线（`/api/alarms/analyze-video`）；预发/生产强制真实 YOLO，本地/CI 可 mock。
+- 可观测性：Grafana 预置仪表盘、Alertmanager Webhook；运维手册见 `docs/ops.md`。
 - Node 告警代理、证据上传代理、Socket.IO JWT 握手鉴权与实时广播。
 - Vue 3 + Cesium 业务端，包含任务、告警、知识库、聊天、主题、布局和国际化能力。
 - Temporal 巡检生命周期、同步 AI 分析和流式 AI 分析工作流。
 - LangChain + Ollama + Qdrant 知识库，支持 PDF、Markdown、TXT 入库和可追溯 RAG 检索。
 - `/chat` 使用 SSE 逐段显示 LangChain/Ollama 生成内容，并保留知识来源。
 - React + NestJS 独立管理后台，包含本地登录、用户、角色、菜单、操作日志和 MinIO 头像上传。
-- Docker Compose 的本地、预发、生产和可观测性覆盖层；CI 的全栈、权限、告警/证据链路验收；Publish 含 admin 镜像。
-- YOLO26 视觉推理入口（默认 mock；可选 ultralytics 真实权重）与告警投递联动。
+- Docker Compose 的本地、预发、生产和可观测性覆盖层；CI 含全栈、权限、告警/证据与 Playwright 登录闭环。
+- YOLO26 视觉推理入口（本地/CI mock；预发/生产默认真实权重）与告警投递联动。
 - Redis 最近告警缓存与设备 heartbeat 在线状态。
 
 预留或待完善：
@@ -450,4 +458,5 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - Temporal Nexus 跨服务能力。
 - 定制武器/缺陷数据集微调与航线地图可视化。
 - 飞控独立服务与完整任务领域数据权限。
-- 完整浏览器登录/告警推送 E2E 与生产值守手册。
+- Keycloak / 消息队列等运行时 `uav*` 标识全面品牌化。
+- 设备删除、证据分页与归档编排。

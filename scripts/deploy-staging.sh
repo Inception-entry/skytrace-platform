@@ -14,9 +14,12 @@ cd "$APP_DIR"
 PREV_TAG="$(cat .current-image-tag 2>/dev/null || true)"
 
 compose() {
+  # vision overlay forces AI_VISION_BACKEND=yolo26 on published images
+  # (INSTALL_VISION=1 is baked at Publish time).
   docker compose \
     --env-file deploy/.env \
     -f deploy/docker-compose.yml \
+    -f deploy/docker-compose.vision.yml \
     -f deploy/docker-compose.staging.yml \
     "$@"
 }
