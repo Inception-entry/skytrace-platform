@@ -2,7 +2,7 @@
 # expose HTTPS via Caddy, and adjust Keycloak to its public URL.
 #
 # Usage (on the test server; prefer scripts/deploy-staging.sh):
-#   export IMAGE_TAG=main-abc1234 REGISTRY=ghcr.io/owner/repo UAV_DOMAIN=test.example.com
+#   export IMAGE_TAG=main-abc1234 REGISTRY=ghcr.io/owner/repo SKYTRACE_DOMAIN=test.example.com
 #   docker compose --env-file deploy/.env \
 #     -f deploy/docker-compose.yml \
 #     -f deploy/docker-compose.vision.yml \
@@ -30,7 +30,7 @@ services:
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-8888}:80"
     environment:
-      NGINX_SERVER_NAME: ${UAV_DOMAIN:-localhost}
+      NGINX_SERVER_NAME: ${SKYTRACE_DOMAIN:-localhost}
 
   admin-service:
     image: ${REGISTRY}/admin-service:${IMAGE_TAG:-latest}
@@ -40,11 +40,11 @@ services:
     ports:
       - "127.0.0.1:${ADMIN_FRONTEND_PORT:-8889}:80"
     environment:
-      NGINX_SERVER_NAME: ${UAV_DOMAIN:-localhost}
+      NGINX_SERVER_NAME: ${SKYTRACE_DOMAIN:-localhost}
 
   keycloak:
     environment:
-      KC_HOSTNAME: https://${UAV_DOMAIN}
+      KC_HOSTNAME: https://${SKYTRACE_DOMAIN}
 
   caddy:
     image: caddy:2-alpine
@@ -59,7 +59,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     environment:
-      UAV_DOMAIN: ${UAV_DOMAIN}
+      SKYTRACE_DOMAIN: ${SKYTRACE_DOMAIN}
     networks:
       - edge
     depends_on:

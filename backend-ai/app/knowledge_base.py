@@ -97,7 +97,7 @@ class KnowledgeBase:
             point_id = str(
                 uuid.uuid5(
                     uuid.NAMESPACE_URL,
-                    f"uav-knowledge:{document_id}:{chunk_index}",
+                    f"skytrace-knowledge:{document_id}:{chunk_index}",
                 )
             )
             points.append(

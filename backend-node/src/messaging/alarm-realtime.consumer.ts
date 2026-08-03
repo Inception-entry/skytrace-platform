@@ -32,8 +32,8 @@ export class AlarmRealtimeConsumer
     try {
       this.connection = await amqp.connect(url);
       this.channel = await this.connection.createChannel();
-      const exchange = 'uav.alarm.realtime';
-      const queue = 'uav.alarm.realtime.node';
+      const exchange = 'skytrace.alarm.realtime';
+      const queue = 'skytrace.alarm.realtime.node';
       await this.channel.assertExchange(exchange, 'fanout', { durable: true });
       await this.channel.assertQueue(queue, { durable: true });
       await this.channel.bindQueue(queue, exchange, '');

@@ -41,7 +41,7 @@ Java Docker 环境会获得这些变量：
 ```text
 TEMPORAL_TARGET_ENDPOINT=temporal:7233
 TEMPORAL_NAMESPACE=default
-TEMPORAL_TASK_QUEUE=uav-inspection-task-queue
+TEMPORAL_TASK_QUEUE=skytrace-inspection-task-queue
 ```
 
 本地开发默认连接：
@@ -52,7 +52,7 @@ localhost:7233
 
 ## 已实现 Workflow
 
-Java Worker 使用 `uav-inspection-task-queue`，已注册：
+Java Worker 使用 `skytrace-inspection-task-queue`，已注册：
 
 - `InspectionWorkflow`：启动、查询状态、完成、取消，以及 `alarmDetected` Signal；
 - `InspectionAnalysisWorkflow`：可靠的完整 AI 分析；
@@ -80,10 +80,10 @@ POST /api/evidence
 识别结果已接入：
 
 ```text
-AI/API -> RabbitMQ uav.detection -> Java DetectionAlarmListener
+AI/API -> RabbitMQ skytrace.detection -> Java DetectionAlarmListener
        -> AlarmService.create
        -> InspectionWorkflow.alarmDetected(eventCode)
-       -> RabbitMQ uav.alarm.realtime -> Node Socket.IO alarm.created
+       -> RabbitMQ skytrace.alarm.realtime -> Node Socket.IO alarm.created
 ```
 
 这样即使 Java 服务重启，Workflow 的等待状态和历史仍由 Temporal 维护。

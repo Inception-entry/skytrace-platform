@@ -4,7 +4,7 @@ import { collectDefaultMetrics } from 'prom-client';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  collectDefaultMetrics({ prefix: 'uav_node_' });
+  collectDefaultMetrics({ prefix: 'skytrace_node_' });
 
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api', { exclude: ['metrics'] });

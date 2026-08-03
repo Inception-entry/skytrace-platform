@@ -1,7 +1,7 @@
 import { SetMetadata } from '@nestjs/common';
 
-export const PUBLIC_ROUTE = 'uav.public-route';
-export const REQUIRED_ROLES = 'uav.required-roles';
+export const PUBLIC_ROUTE = 'skytrace.public-route';
+export const REQUIRED_ROLES = 'skytrace.required-roles';
 
 export const PublicRoute = () => SetMetadata(PUBLIC_ROUTE, true);
 

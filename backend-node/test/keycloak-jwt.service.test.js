@@ -3,8 +3,8 @@ const { generateKeyPairSync, sign } = require('node:crypto');
 const { createServer } = require('node:http');
 const { after, before, test } = require('node:test');
 
-const ISSUER = 'http://issuer.test/realms/uav';
-const AUDIENCE = 'uav-web';
+const ISSUER = 'http://issuer.test/realms/skytrace';
+const AUDIENCE = 'skytrace-web';
 const KID = 'test-signing-key';
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', {
@@ -135,7 +135,7 @@ test('HTTP roles guard allows an administrator into an admin endpoint', () => {
     headers: {},
     authenticatedUser: {
       subject: 'admin-001',
-      username: 'uav-admin',
+      username: 'skytrace-admin',
       roles: ['ADMIN'],
     },
   })), true);

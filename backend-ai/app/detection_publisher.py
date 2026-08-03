@@ -60,7 +60,7 @@ async def publish_detection_alarm(
     try:
         channel = await connection.channel()
         exchange = await channel.declare_exchange(
-            "uav.detection",
+            "skytrace.detection",
             aio_pika.ExchangeType.DIRECT,
             durable=True,
         )

@@ -280,7 +280,7 @@ async def publish_detection(
                 "retryable": True,
             },
         ) from exc
-    return {"status": "queued", "exchange": "uav.detection"}
+    return {"status": "queued", "exchange": "skytrace.detection"}
 
 
 @app.post(

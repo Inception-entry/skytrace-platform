@@ -7,7 +7,7 @@
 #   bash scripts/staging-init.sh
 set -euo pipefail
 
-APP_DIR="/opt/uav"
+APP_DIR="/opt/skytrace"
 REPO_URL="${REPO_URL:-https://github.com/OWNER/skytrace-platform.git}"
 
 # --- Docker ---
@@ -36,8 +36,8 @@ if [[ ! -f "$ENV_FILE" ]]; then
   echo "  - Set real passwords for MySQL, RabbitMQ, MinIO, Keycloak."
   echo "  - Set KEYCLOAK_PUBLIC_URL=https://\$YOUR_DOMAIN"
   echo "  - Set GATEWAY_ALLOWED_ORIGIN=https://\$YOUR_DOMAIN"
-  echo "  - Set GATEWAY_JWT_ISSUER_URI=https://\$YOUR_DOMAIN/realms/uav"
-  echo "  - Set GATEWAY_JWT_JWK_SET_URI=https://\$YOUR_DOMAIN/realms/uav/protocol/openid-connect/certs"
+  echo "  - Set GATEWAY_JWT_ISSUER_URI=https://\$YOUR_DOMAIN/realms/skytrace"
+  echo "  - Set GATEWAY_JWT_JWK_SET_URI=https://\$YOUR_DOMAIN/realms/skytrace/protocol/openid-connect/certs"
 fi
 
 # --- Permissions ---

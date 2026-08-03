@@ -10,7 +10,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.uav</groupId>
+    <groupId>com.skytrace</groupId>
     <artifactId>skytrace-gateway-java</artifactId>
     <version>1.0.0</version>
     <name>SkyTrace Gateway Java</name>

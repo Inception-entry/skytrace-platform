@@ -1,13 +1,13 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
 
-export const E2E_USERNAME = process.env.E2E_USERNAME || 'uav-operator'
+export const E2E_USERNAME = process.env.E2E_USERNAME || 'skytrace-operator'
 export const E2E_PASSWORD =
   process.env.E2E_PASSWORD || process.env.KEYCLOAK_DEV_USER_PASSWORD || ''
 export const KEYCLOAK_URL =
   process.env.KEYCLOAK_URL || 'http://127.0.0.1:8180'
-export const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'uav'
+export const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'skytrace'
 export const KEYCLOAK_CLIENT_ID =
-  process.env.KEYCLOAK_CLIENT_ID || 'uav-service'
+  process.env.KEYCLOAK_CLIENT_ID || 'skytrace-service'
 export const KEYCLOAK_CLIENT_SECRET =
   process.env.KEYCLOAK_CLIENT_SECRET || ''
 export const GATEWAY_URL =
@@ -21,7 +21,7 @@ export async function loginAsOperator(page: Page) {
   }
 
   await page.goto('/drone')
-  await page.waitForURL(/\/realms\/uav\/protocol\/openid-connect\/auth/, {
+  await page.waitForURL(/\/realms\/skytrace\/protocol\/openid-connect\/auth/, {
     timeout: 60_000,
   })
 

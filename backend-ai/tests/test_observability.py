@@ -6,7 +6,7 @@ from app.observability import JsonLogFormatter, normalize_request_id
 
 def test_structured_log_contains_correlation_fields() -> None:
     record = logging.LogRecord(
-        name="uav.ai",
+        name="skytrace.ai",
         level=logging.WARNING,
         pathname=__file__,
         lineno=10,

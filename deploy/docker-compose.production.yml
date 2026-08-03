@@ -2,7 +2,7 @@
 # resource limits on all services, no dev ports exposed publicly.
 #
 # Usage (on production server; prefer scripts/deploy-production.sh):
-#   export IMAGE_TAG=main-abc1234 REGISTRY=ghcr.io/owner/repo UAV_DOMAIN=prod.example.com
+#   export IMAGE_TAG=main-abc1234 REGISTRY=ghcr.io/owner/repo SKYTRACE_DOMAIN=prod.example.com
 #   docker compose --env-file deploy/.env \
 #     -f deploy/docker-compose.yml \
 #     -f deploy/docker-compose.vision.yml \
@@ -48,7 +48,7 @@ services:
       KC_DB_URL: jdbc:mysql://mysql:3306/keycloak?characterEncoding=utf8
       KC_DB_USERNAME: ${MYSQL_USER}
       KC_DB_PASSWORD: ${MYSQL_PASSWORD}
-      KC_HOSTNAME: https://${UAV_DOMAIN}
+      KC_HOSTNAME: https://${SKYTRACE_DOMAIN}
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
       KC_HEALTH_ENABLED: "true"

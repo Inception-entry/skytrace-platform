@@ -122,10 +122,10 @@ gateway:
   trusted-proxy-count: ${GATEWAY_TRUSTED_PROXY_COUNT:1}
   security:
     enabled: ${GATEWAY_SECURITY_ENABLED:true}
-    jwk-set-uri: ${GATEWAY_JWT_JWK_SET_URI:http://localhost:8180/realms/uav/protocol/openid-connect/certs}
-    issuer-uri: ${GATEWAY_JWT_ISSUER_URI:http://localhost:8180/realms/uav}
-    audience: ${GATEWAY_JWT_AUDIENCE:uav-web}
-    client-id: ${GATEWAY_JWT_CLIENT_ID:uav-web}
+    jwk-set-uri: ${GATEWAY_JWT_JWK_SET_URI:http://localhost:8180/realms/skytrace/protocol/openid-connect/certs}
+    issuer-uri: ${GATEWAY_JWT_ISSUER_URI:http://localhost:8180/realms/skytrace}
+    audience: ${GATEWAY_JWT_AUDIENCE:skytrace-web}
+    client-id: ${GATEWAY_JWT_CLIENT_ID:skytrace-web}
     user-header: X-Authenticated-User
     username-header: X-Authenticated-Username
     roles-header: X-Authenticated-Roles

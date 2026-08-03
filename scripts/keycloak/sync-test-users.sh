@@ -3,7 +3,7 @@
 set -euo pipefail
 
 KEYCLOAK_CONTAINER="${KEYCLOAK_CONTAINER:-skytrace-keycloak}"
-KEYCLOAK_REALM="${KEYCLOAK_REALM:-uav}"
+KEYCLOAK_REALM="${KEYCLOAK_REALM:-skytrace}"
 KEYCLOAK_ADMIN_USERNAME="${KEYCLOAK_ADMIN_USERNAME:-}"
 KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-}"
 KEYCLOAK_TEST_USER_PASSWORD="${KEYCLOAK_TEST_USER_PASSWORD:-}"
@@ -16,7 +16,7 @@ if [[ -z "$KEYCLOAK_ADMIN_USERNAME" \
 fi
 
 KCADM="/opt/keycloak/bin/kcadm.sh"
-KCADM_CONFIG="/tmp/kcadm-uav-test-users.config"
+KCADM_CONFIG="/tmp/kcadm-skytrace-test-users.config"
 
 cleanup() {
   docker exec "$KEYCLOAK_CONTAINER" \
@@ -60,7 +60,7 @@ sync_user() {
       -s enabled=true \
       -s "email=$username@local.test" \
       -s emailVerified=true \
-      -s firstName=UAV \
+      -s firstName=SkyTrace \
       -s "lastName=$last_name" >/dev/null
     user_id="$(
       kcadm get users \
@@ -78,7 +78,7 @@ sync_user() {
     -s enabled=true \
     -s "email=$username@local.test" \
     -s emailVerified=true \
-    -s firstName=UAV \
+    -s firstName=SkyTrace \
     -s "lastName=$last_name" >/dev/null
 
   kcadm set-password \
@@ -101,6 +101,6 @@ sync_user() {
   printf '已同步测试账号：%s -> %s\n' "$username" "$role"
 }
 
-sync_user "uav-admin" "ADMIN" "Administrator"
-sync_user "uav-operator" "OPERATOR" "Operator"
-sync_user "uav-viewer" "VIEWER" "Viewer"
+sync_user "skytrace-admin" "ADMIN" "Administrator"
+sync_user "skytrace-operator" "OPERATOR" "Operator"
+sync_user "skytrace-viewer" "VIEWER" "Viewer"

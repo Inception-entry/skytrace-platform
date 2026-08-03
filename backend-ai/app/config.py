@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     chat_history_turns: int = 6
     chat_session_ttl_seconds: int = 86_400
     qdrant_url: str = "http://127.0.0.1:6333"
-    qdrant_collection: str = "uav_knowledge"
+    qdrant_collection: str = "skytrace_knowledge"
     knowledge_chunk_size: int = 800
     knowledge_chunk_overlap: int = 120
     knowledge_top_k: int = 4

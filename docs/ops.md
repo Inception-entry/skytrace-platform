@@ -12,6 +12,30 @@
 
 覆盖：业务 Compose 栈（不含独立飞控）。Keycloak / MySQL / MinIO / Temporal 均在同一部署拓扑内。
 
+## 1.1 品牌化与栈统一（`uav*` → `skytrace*`）
+
+运行时契约已统一为 SkyTrace 标识，例如：
+
+- Keycloak realm：`skytrace`；客户端：`skytrace-web` / `skytrace-service`
+- JWT issuer / audience、RabbitMQ、Temporal 队列、Redis key、MinIO/Qdrant 桶名等
+- 部署目录默认 `/opt/skytrace`；域名变量 `SKYTRACE_DOMAIN`
+
+**本地若仍混有历史 `uav-*` 容器**，先清干净再拉本仓栈（否则会出现连错网络/旧库名）：
+
+```bash
+# 停掉本仓 compose（按你实际用的 env/compose 文件调整）
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml down
+
+# 删除历史 uav-* 容器（勿误删其他项目）
+docker ps -a --format '{{.Names}}' | grep -E '^uav-' | xargs -r docker rm -f
+
+# Keycloak realm 从 uav 迁到 skytrace：需重建 keycloak 数据卷后重新 import
+docker volume ls | grep keycloak
+# 确认卷名后：docker volume rm <skytrace或deploy>_keycloak_data
+```
+
+设备编号如 `UAV-001`、类型 `UAV` 属于业务域语言，**保留**。
+
 ## 2. 端口与绑定
 
 - 业务入口默认 `127.0.0.1:8888`（生产经 Caddy HTTPS）
@@ -25,7 +49,7 @@
 在 `deploy/.env` 中至少配置（勿提交真实值）：
 
 - `KEYCLOAK_ADMIN_PASSWORD`
-- `KEYCLOAK_UAV_SERVICE_CLIENT_SECRET`
+- `KEYCLOAK_SERVICE_CLIENT_SECRET`
 - `KEYCLOAK_DEV_USER_PASSWORD`（仅开发/CI）
 - MySQL / PostgreSQL 密码
 - `ADMIN_JWT_SECRET` / `ADMIN_JWT_REFRESH_SECRET`
@@ -54,7 +78,7 @@ docker compose --env-file deploy/.env \
 ### 预发
 
 ```bash
-export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform UAV_DOMAIN=test.example.com
+export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform SKYTRACE_DOMAIN=test.example.com
 ./scripts/deploy-staging.sh
 ```
 
@@ -63,7 +87,7 @@ export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform UAV_DOMAIN=
 ### 生产（滚动）
 
 ```bash
-export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform UAV_DOMAIN=prod.example.com
+export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform SKYTRACE_DOMAIN=prod.example.com
 ./scripts/deploy-production.sh
 ```
 

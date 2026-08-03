@@ -1,17 +1,17 @@
 import Keycloak from 'keycloak-js'
 import { reactive, readonly } from 'vue'
 
-interface UavConfig {
+interface SkyTraceConfig {
   keycloakUrl?: string
   keycloakRealm?: string
   keycloakClientId?: string
 }
-const rc = ((window as unknown as Record<string, unknown>).__UAV_CONFIG__ ?? {}) as UavConfig
+const rc = ((window as unknown as Record<string, unknown>).__SKYTRACE_CONFIG__ ?? {}) as SkyTraceConfig
 
 const keycloak = new Keycloak({
   url: rc.keycloakUrl ?? import.meta.env.VITE_KEYCLOAK_URL ?? 'http://localhost:8180',
-  realm: rc.keycloakRealm ?? import.meta.env.VITE_KEYCLOAK_REALM ?? 'uav',
-  clientId: rc.keycloakClientId ?? import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'uav-web',
+  realm: rc.keycloakRealm ?? import.meta.env.VITE_KEYCLOAK_REALM ?? 'skytrace',
+  clientId: rc.keycloakClientId ?? import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'skytrace-web',
 })
 
 interface AuthenticationState {

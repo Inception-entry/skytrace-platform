@@ -3,8 +3,8 @@
 set -euo pipefail
 
 KEYCLOAK_CONTAINER="${KEYCLOAK_CONTAINER:-skytrace-keycloak}"
-KEYCLOAK_REALM="${KEYCLOAK_REALM:-uav}"
-KEYCLOAK_CLIENT_ID="${KEYCLOAK_CLIENT_ID:-uav-web}"
+KEYCLOAK_REALM="${KEYCLOAK_REALM:-skytrace}"
+KEYCLOAK_CLIENT_ID="${KEYCLOAK_CLIENT_ID:-skytrace-web}"
 KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8180}"
 KEYCLOAK_ADMIN_USERNAME="${KEYCLOAK_ADMIN_USERNAME:-}"
 KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-}"
@@ -21,8 +21,8 @@ if [[ -z "$KEYCLOAK_ADMIN_USERNAME" \
 fi
 
 KCADM="/opt/keycloak/bin/kcadm.sh"
-KCADM_CONFIG="/tmp/kcadm-uav-rbac-verify.config"
-RESPONSE_FILE="/tmp/uav-rbac-verify-response.$$"
+KCADM_CONFIG="/tmp/kcadm-skytrace-rbac-verify.config"
+RESPONSE_FILE="/tmp/skytrace-rbac-verify-response.$$"
 CLIENT_UUID=""
 PREVIOUS_DIRECT_GRANT=""
 
@@ -123,9 +123,9 @@ assert_status() {
   printf '验收通过：%-34s HTTP %s\n' "$label" "$actual"
 }
 
-admin_token="$(access_token uav-admin)"
-operator_token="$(access_token uav-operator)"
-viewer_token="$(access_token uav-viewer)"
+admin_token="$(access_token skytrace-admin)"
+operator_token="$(access_token skytrace-operator)"
+viewer_token="$(access_token skytrace-viewer)"
 
 assert_status "ADMIN Gateway 管理中心" 200 GET \
   "$GATEWAY_URL/api/admin/overview" "$admin_token"

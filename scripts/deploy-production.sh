@@ -3,10 +3,10 @@
 # health-check each before proceeding; rollback entire service on failure.
 #
 # Required env vars (set by deploy-production.yml via SSH):
-#   IMAGE_TAG, REGISTRY, UAV_DOMAIN
+#   IMAGE_TAG, REGISTRY, SKYTRACE_DOMAIN
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/uav}"
+APP_DIR="${APP_DIR:-/opt/skytrace}"
 cd "$APP_DIR"
 
 PREV_TAG="$(cat .current-image-tag 2>/dev/null || true)"

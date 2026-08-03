@@ -5,10 +5,10 @@
 # Required env vars (set by the CI workflow):
 #   IMAGE_TAG  e.g. main-abc1234
 #   REGISTRY   e.g. ghcr.io/owner/skytrace-platform
-#   UAV_DOMAIN e.g. test.example.com
+#   SKYTRACE_DOMAIN e.g. test.example.com
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/uav}"
+APP_DIR="${APP_DIR:-/opt/skytrace}"
 cd "$APP_DIR"
 
 PREV_TAG="$(cat .current-image-tag 2>/dev/null || true)"

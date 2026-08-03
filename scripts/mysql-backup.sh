@@ -1,25 +1,17 @@
 #!/usr/bin/env bash
 # MySQL backup: dump → gzip → upload to MinIO → prune old backups.
 #
-# Usage (run from the repo root or /opt/uav):
+# Usage (run from the repo root or /opt/skytrace):
 #   bash scripts/mysql-backup.sh
 #
 # Required env vars (or set in deploy/.env):
 #   MYSQL_ROOT_PASSWORD, MYSQL_DATABASE, MYSQL_HOST (default: 127.0.0.1),
 #   MYSQL_PORT (default: 3307),
 #   MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD,
-#   BACKUP_BUCKET (default: uav-backups), BACKUP_RETAIN_DAYS (default: 7)
+#   BACKUP_BUCKET (default: skytrace-backups), BACKUP_RETAIN_DAYS (default: 7)
 set -euo pipefail
 
-MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
-MYSQL_PORT="${MYSQL_PORT:-3307}"
-BACKUP_BUCKET="${BACKUP_BUCKET:-uav-backups}"
-BACKUP_RETAIN_DAYS="${BACKUP_RETAIN_DAYS:-7}"
-TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-BACKUP_FILE="/tmp/skytrace-mysql-${TIMESTAMP}.sql.gz"
-OBJECT_PATH="${MYSQL_DATABASE}/${TIMESTAMP}.sql.gz"
-
-# Load .env if present and vars are not already set
+# Load .env before expanding MYSQL_DATABASE / credentials
 ENV_FILE="${ENV_FILE:-$(dirname "$0")/../deploy/.env}"
 if [[ -f "$ENV_FILE" ]]; then
   set -o allexport
@@ -28,7 +20,15 @@ if [[ -f "$ENV_FILE" ]]; then
   set +o allexport
 fi
 
-echo "=== UAV MySQL backup: ${TIMESTAMP} ==="
+MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
+MYSQL_PORT="${MYSQL_PORT:-3307}"
+BACKUP_BUCKET="${BACKUP_BUCKET:-skytrace-backups}"
+BACKUP_RETAIN_DAYS="${BACKUP_RETAIN_DAYS:-7}"
+TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP_FILE="/tmp/skytrace-mysql-${TIMESTAMP}.sql.gz"
+OBJECT_PATH="${MYSQL_DATABASE:?Set MYSQL_DATABASE in deploy/.env}/${TIMESTAMP}.sql.gz"
+
+echo "=== SkyTrace MySQL backup: ${TIMESTAMP} ==="
 
 # 1. Dump
 mysqldump \

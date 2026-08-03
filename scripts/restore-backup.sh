@@ -18,9 +18,9 @@ if [[ -f "$ENV_FILE" ]]; then
   set +o allexport
 fi
 
-BACKUP_BUCKET="${BACKUP_BUCKET:-uav-backups}"
+BACKUP_BUCKET="${BACKUP_BUCKET:-skytrace-backups}"
 MC_ALIAS="skytrace-minio"
-TMP_FILE="/tmp/uav-restore-$$.sql.gz"
+TMP_FILE="/tmp/skytrace-restore-$$.sql.gz"
 
 mc alias set "${MC_ALIAS}" \
   "${MINIO_ENDPOINT}" \

@@ -53,16 +53,16 @@ class JsonLogFormatter(logging.Formatter):
 
 
 def configure_logging() -> logging.Logger:
-    logger = logging.getLogger("uav.ai")
+    logger = logging.getLogger("skytrace.ai")
     logger.setLevel(logging.INFO)
     logger.propagate = False
     if not any(
-        getattr(handler, "_uav_json_handler", False)
+        getattr(handler, "_skytrace_json_handler", False)
         for handler in logger.handlers
     ):
         handler = logging.StreamHandler()
         handler.setFormatter(JsonLogFormatter())
-        handler._uav_json_handler = True  # type: ignore[attr-defined]
+        handler._skytrace_json_handler = True  # type: ignore[attr-defined]
         logger.addHandler(handler)
     return logger
 

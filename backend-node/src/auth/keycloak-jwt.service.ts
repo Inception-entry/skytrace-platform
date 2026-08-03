@@ -65,10 +65,10 @@ export class RealtimeAuthorizationError extends Error {
 export class KeycloakJwtService {
   private readonly logger = new Logger(KeycloakJwtService.name);
   private readonly jwksUri = process.env.AUTH_JWT_JWK_SET_URI
-    ?? 'http://localhost:8180/realms/uav/protocol/openid-connect/certs';
+    ?? 'http://localhost:8180/realms/skytrace/protocol/openid-connect/certs';
   private readonly issuer = process.env.AUTH_JWT_ISSUER_URI
-    ?? 'http://localhost:8180/realms/uav';
-  private readonly audience = process.env.AUTH_JWT_AUDIENCE ?? 'uav-web';
+    ?? 'http://localhost:8180/realms/skytrace';
+  private readonly audience = process.env.AUTH_JWT_AUDIENCE ?? 'skytrace-web';
   private readonly signingKeys = new Map<string, CachedSigningKey>();
   private refreshPromise: Promise<void> | null = null;
 

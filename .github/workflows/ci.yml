@@ -218,14 +218,14 @@ jobs:
           replace_env RABBITMQ_DEFAULT_PASS "$rabbitmq_password"
           replace_env MINIO_ROOT_PASSWORD "$minio_password"
           replace_env KEYCLOAK_ADMIN_PASSWORD "$keycloak_admin_password"
-          replace_env KEYCLOAK_UAV_SERVICE_CLIENT_SECRET "$service_secret"
+          replace_env KEYCLOAK_SERVICE_CLIENT_SECRET "$service_secret"
           replace_env KEYCLOAK_DEV_USER_PASSWORD "$test_user_password"
           replace_env ADMIN_JWT_SECRET "$admin_jwt_secret"
           replace_env ADMIN_JWT_REFRESH_SECRET "$admin_jwt_refresh"
           replace_env POSTGRES_PASSWORD "$postgres_password"
           # Playwright / curl 走 127.0.0.1；issuer 必须与 KC_HOSTNAME 一致，否则 Gateway 验签 401
           replace_env KEYCLOAK_PUBLIC_URL "http://127.0.0.1:8180"
-          replace_env GATEWAY_JWT_ISSUER_URI "http://127.0.0.1:8180/realms/uav"
+          replace_env GATEWAY_JWT_ISSUER_URI "http://127.0.0.1:8180/realms/skytrace"
           replace_env GATEWAY_ALLOWED_ORIGIN "http://127.0.0.1:8888"
 
           echo "::add-mask::$mysql_root_password"
@@ -238,7 +238,7 @@ jobs:
           echo "::add-mask::$admin_jwt_secret"
           echo "::add-mask::$admin_jwt_refresh"
           echo "::add-mask::$postgres_password"
-          echo "UAV_ENV_FILE=$ci_env" >> "$GITHUB_ENV"
+          echo "SKYTRACE_ENV_FILE=$ci_env" >> "$GITHUB_ENV"
           echo "KEYCLOAK_CLIENT_SECRET=$service_secret" >> "$GITHUB_ENV"
           echo "KEYCLOAK_DEV_USER_PASSWORD=$test_user_password" >> "$GITHUB_ENV"
           echo "COMPOSE_PROJECT_NAME=skytrace-ci" >> "$GITHUB_ENV"
@@ -256,14 +256,14 @@ jobs:
       - name: Validate Compose configuration
         run: |
           docker compose \
-            --env-file "$UAV_ENV_FILE" \
+            --env-file "$SKYTRACE_ENV_FILE" \
             -f deploy/docker-compose.yml \
             config --quiet
 
       - name: Build application images
         run: |
           docker compose \
-            --env-file "$UAV_ENV_FILE" \
+            --env-file "$SKYTRACE_ENV_FILE" \
             -f deploy/docker-compose.yml \
             build backend-ai backend-java backend-node gateway frontend admin-service admin-frontend
 
@@ -286,7 +286,7 @@ jobs:
       - name: Start backend integration stack
         run: |
           docker compose \
-            --env-file "$UAV_ENV_FILE" \
+            --env-file "$SKYTRACE_ENV_FILE" \
             -f deploy/docker-compose.yml \
             up -d --no-build gateway frontend
 
@@ -294,7 +294,7 @@ jobs:
         shell: bash
         run: |
           scripts/ci/wait-for-http.sh \
-            http://127.0.0.1:8180/realms/uav/.well-known/openid-configuration \
+            http://127.0.0.1:8180/realms/skytrace/.well-known/openid-configuration \
             240 Keycloak
           scripts/ci/wait-for-http.sh \
             http://127.0.0.1:8000/health 180 "AI service"
@@ -348,11 +348,11 @@ jobs:
           log_dir="${RUNNER_TEMP}/skytrace-ci-logs"
           mkdir -p "$log_dir"
           docker compose \
-            --env-file "$UAV_ENV_FILE" \
+            --env-file "$SKYTRACE_ENV_FILE" \
             -f deploy/docker-compose.yml \
             ps --all > "$log_dir/compose-ps.txt" 2>&1
           docker compose \
-            --env-file "$UAV_ENV_FILE" \
+            --env-file "$SKYTRACE_ENV_FILE" \
             -f deploy/docker-compose.yml \
             logs --no-color --timestamps > "$log_dir/compose.log" 2>&1
           docker images > "$log_dir/docker-images.txt" 2>&1
@@ -372,9 +372,9 @@ jobs:
         if: always()
         shell: bash
         run: |
-          if [[ -n "${UAV_ENV_FILE:-}" && -f "$UAV_ENV_FILE" ]]; then
+          if [[ -n "${SKYTRACE_ENV_FILE:-}" && -f "$SKYTRACE_ENV_FILE" ]]; then
             docker compose \
-              --env-file "$UAV_ENV_FILE" \
+              --env-file "$SKYTRACE_ENV_FILE" \
               -f deploy/docker-compose.yml \
               down --volumes --remove-orphans
           fi

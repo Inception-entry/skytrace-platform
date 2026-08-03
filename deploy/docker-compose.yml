@@ -49,7 +49,7 @@ services:
     container_name: skytrace-postgres
     restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-uav_admin}
+      POSTGRES_DB: ${POSTGRES_DB:-skytrace_admin}
       POSTGRES_USER: ${POSTGRES_USER:-admin_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123456}
     ports:
@@ -57,7 +57,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-admin_user}", "-d", "${POSTGRES_DB:-uav_admin}"]
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-admin_user}", "-d", "${POSTGRES_DB:-skytrace_admin}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -148,7 +148,7 @@ services:
       AI_DEPENDENCY_HEALTH_TIMEOUT_SECONDS: ${AI_DEPENDENCY_HEALTH_TIMEOUT_SECONDS:-5}
       AI_REDIS_URL: redis://redis:6379/0
       AI_QDRANT_URL: http://qdrant:6333
-      AI_QDRANT_COLLECTION: ${AI_QDRANT_COLLECTION:-uav_knowledge}
+      AI_QDRANT_COLLECTION: ${AI_QDRANT_COLLECTION:-skytrace_knowledge}
       AI_CHAT_HISTORY_TURNS: ${AI_CHAT_HISTORY_TURNS:-6}
       AI_CHAT_SESSION_TTL_SECONDS: ${AI_CHAT_SESSION_TTL_SECONDS:-86400}
       AI_KNOWLEDGE_CHUNK_SIZE: ${AI_KNOWLEDGE_CHUNK_SIZE:-800}
@@ -210,7 +210,7 @@ services:
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      MINIO_EVIDENCE_BUCKET: ${MINIO_EVIDENCE_BUCKET:-uav-evidence}
+      MINIO_EVIDENCE_BUCKET: ${MINIO_EVIDENCE_BUCKET:-skytrace-evidence}
       MINIO_ENABLED: "true"
       MESSAGING_ENABLED: "true"
       CACHE_ENABLED: "true"
@@ -218,12 +218,12 @@ services:
       CACHE_DEVICE_PRESENCE_TTL_SECONDS: ${CACHE_DEVICE_PRESENCE_TTL_SECONDS:-90}
       TEMPORAL_TARGET_ENDPOINT: temporal:7233
       TEMPORAL_NAMESPACE: default
-      TEMPORAL_TASK_QUEUE: uav-inspection-task-queue
+      TEMPORAL_TASK_QUEUE: skytrace-inspection-task-queue
       APP_SECURITY_ENABLED: ${BACKEND_SECURITY_ENABLED:-true}
-      AUTH_JWT_JWK_SET_URI: ${GATEWAY_JWT_JWK_SET_URI:-http://keycloak:8080/realms/uav/protocol/openid-connect/certs}
-      AUTH_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/uav}
-      AUTH_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-uav-web}
-      AUTH_JWT_CLIENT_ID: ${GATEWAY_JWT_CLIENT_ID:-uav-web}
+      AUTH_JWT_JWK_SET_URI: ${GATEWAY_JWT_JWK_SET_URI:-http://keycloak:8080/realms/skytrace/protocol/openid-connect/certs}
+      AUTH_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/skytrace}
+      AUTH_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-skytrace-web}
+      AUTH_JWT_CLIENT_ID: ${GATEWAY_JWT_CLIENT_ID:-skytrace-web}
       AI_BASE_URL: http://host.docker.internal:8000
       AI_CONNECT_TIMEOUT: ${AI_CONNECT_TIMEOUT:-3s}
       AI_READ_TIMEOUT: ${AI_READ_TIMEOUT:-250s}
@@ -266,9 +266,9 @@ services:
       JAVA_BASE_URL: http://backend-java:8080
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      AUTH_JWT_JWK_SET_URI: ${GATEWAY_JWT_JWK_SET_URI:-http://keycloak:8080/realms/uav/protocol/openid-connect/certs}
-      AUTH_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/uav}
-      AUTH_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-uav-web}
+      AUTH_JWT_JWK_SET_URI: ${GATEWAY_JWT_JWK_SET_URI:-http://keycloak:8080/realms/skytrace/protocol/openid-connect/certs}
+      AUTH_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/skytrace}
+      AUTH_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-skytrace-web}
       WS_ALLOWED_ORIGIN: ${GATEWAY_ALLOWED_ORIGIN:-http://localhost:8888}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: "5672"
@@ -314,10 +314,10 @@ services:
       REDIS_PORT: 6379
       GATEWAY_ALLOWED_ORIGIN: ${GATEWAY_ALLOWED_ORIGIN:-http://localhost:8888}
       GATEWAY_SECURITY_ENABLED: ${GATEWAY_SECURITY_ENABLED:-true}
-      GATEWAY_JWT_JWK_SET_URI: ${GATEWAY_JWT_JWK_SET_URI:-http://keycloak:8080/realms/uav/protocol/openid-connect/certs}
-      GATEWAY_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/uav}
-      GATEWAY_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-uav-web}
-      GATEWAY_JWT_CLIENT_ID: ${GATEWAY_JWT_CLIENT_ID:-uav-web}
+      GATEWAY_JWT_JWK_SET_URI: ${GATEWAY_JWT_JWK_SET_URI:-http://keycloak:8080/realms/skytrace/protocol/openid-connect/certs}
+      GATEWAY_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/skytrace}
+      GATEWAY_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-skytrace-web}
+      GATEWAY_JWT_CLIENT_ID: ${GATEWAY_JWT_CLIENT_ID:-skytrace-web}
       GATEWAY_RATE_LIMIT_REPLENISH_RATE: ${GATEWAY_RATE_LIMIT_REPLENISH_RATE:-20}
       GATEWAY_RATE_LIMIT_BURST_CAPACITY: ${GATEWAY_RATE_LIMIT_BURST_CAPACITY:-40}
       GATEWAY_AI_RATE_LIMIT_REPLENISH_RATE: ${GATEWAY_AI_RATE_LIMIT_REPLENISH_RATE:-1}
@@ -361,13 +361,13 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
-      UAV_SERVICE_CLIENT_SECRET: ${KEYCLOAK_UAV_SERVICE_CLIENT_SECRET:-}
-      UAV_DEV_USER_PASSWORD: ${KEYCLOAK_DEV_USER_PASSWORD:-}
+      SKYTRACE_SERVICE_CLIENT_SECRET: ${KEYCLOAK_SERVICE_CLIENT_SECRET:-}
+      SKYTRACE_DEV_USER_PASSWORD: ${KEYCLOAK_DEV_USER_PASSWORD:-}
     ports:
       - "127.0.0.1:${KEYCLOAK_PORT:-8180}:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
-      - ./keycloak/uav-realm.json:/opt/keycloak/data/import/uav-realm.json:ro
+      - ./keycloak/skytrace-realm.json:/opt/keycloak/data/import/skytrace-realm.json:ro
     networks:
       - edge
       - backend
@@ -380,7 +380,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-admin_user}:${POSTGRES_PASSWORD:-admin123456}@postgres:5432/${POSTGRES_DB:-uav_admin}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin_user}:${POSTGRES_PASSWORD:-admin123456}@postgres:5432/${POSTGRES_DB:-skytrace_admin}
       JWT_SECRET: ${ADMIN_JWT_SECRET:?Set ADMIN_JWT_SECRET in deploy/.env}
       JWT_REFRESH_SECRET: ${ADMIN_JWT_REFRESH_SECRET:?Set ADMIN_JWT_REFRESH_SECRET in deploy/.env}
       MINIO_ENDPOINT: minio
@@ -429,8 +429,8 @@ services:
     environment:
       NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-localhost}
       KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8180}
-      KEYCLOAK_REALM: uav
-      KEYCLOAK_CLIENT_ID: uav-web
+      KEYCLOAK_REALM: skytrace
+      KEYCLOAK_CLIENT_ID: skytrace-web
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-8888}:80"
       - "127.0.0.1:${HTTPS_PORT:-8443}:443"

@@ -47,10 +47,10 @@ Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `skytrace.sh s
    ./scripts/skytrace.sh auth-start
    ```
 
-3. 访问 `http://localhost:8180`，进入 `uav` realm。首次启动会从
-   `deploy/keycloak/uav-realm.json` 导入以下内容：
+3. 访问 `http://localhost:8180`，进入 `skytrace` realm。首次启动会从
+   `deploy/keycloak/skytrace-realm.json` 导入以下内容：
 
-   - 公共客户端：`uav-web`，使用 Authorization Code + PKCE。
+   - 公共客户端：`skytrace-web`，使用 Authorization Code + PKCE。
    - Realm 角色：`ADMIN`、`OPERATOR`、`VIEWER`。
 
 4. 本地 realm 会创建三个开发测试用户，密码统一读取被 Git 忽略的
@@ -58,9 +58,9 @@ Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `skytrace.sh s
 
    | 用户名 | 角色 | 用途 |
    | --- | --- | --- |
-   | `uav-admin` | `ADMIN` | 审计中心、知识库管理和全部业务操作 |
-   | `uav-operator` | `OPERATOR` | 任务操作和 AI 分析 |
-   | `uav-viewer` | `VIEWER` | 任务与知识库只读访问 |
+   | `skytrace-admin` | `ADMIN` | 审计中心、知识库管理和全部业务操作 |
+   | `skytrace-operator` | `OPERATOR` | 任务操作和 AI 分析 |
+   | `skytrace-viewer` | `VIEWER` | 任务与知识库只读访问 |
 
    已经导入过 realm 的现有环境不会重复执行导入，可以运行以下幂等命令同步
    测试用户、密码和角色：
@@ -76,20 +76,20 @@ Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `skytrace.sh s
    ```
 
    验收命令会临时启用本地 Password Grant 来获取测试 Token，并在退出时恢复
-   `uav-web` 原有配置。正常前端登录始终使用 Authorization Code + PKCE。
+   `skytrace-web` 原有配置。正常前端登录始终使用 Authorization Code + PKCE。
 
    这些账号仅供本地开发和权限验收，生产环境不得使用。
 
 ## 获取服务调用 Token
 
-Realm 会同时创建机密客户端 `uav-service`，用于脚本、Node 或其他后端服务
+Realm 会同时创建机密客户端 `skytrace-service`，用于脚本、Node 或其他后端服务
 通过 `client_credentials` 获取 Bearer Token。它的 Service Account 默认只有
 `OPERATOR` 角色，不能访问仅管理员可用的接口。
 
 Client Secret 只保存在被 Git 忽略的 `deploy/.env`：
 
 ```dotenv
-KEYCLOAK_UAV_SERVICE_CLIENT_SECRET=请使用随机强密钥
+KEYCLOAK_SERVICE_CLIENT_SECRET=请使用随机强密钥
 ```
 
 启动 Keycloak 并获取 Token：
@@ -120,10 +120,10 @@ unset AUTHORIZATION
 
 ```dotenv
 GATEWAY_SECURITY_ENABLED=true
-GATEWAY_JWT_JWK_SET_URI=http://keycloak:8080/realms/uav/protocol/openid-connect/certs
-GATEWAY_JWT_ISSUER_URI=http://localhost:8180/realms/uav
-GATEWAY_JWT_AUDIENCE=uav-web
-GATEWAY_JWT_CLIENT_ID=uav-web
+GATEWAY_JWT_JWK_SET_URI=http://keycloak:8080/realms/skytrace/protocol/openid-connect/certs
+GATEWAY_JWT_ISSUER_URI=http://localhost:8180/realms/skytrace
+GATEWAY_JWT_AUDIENCE=skytrace-web
+GATEWAY_JWT_CLIENT_ID=skytrace-web
 ```
 
 然后重新创建 Node BFF、Gateway 和前端，使新的容器环境变量生效：
@@ -134,7 +134,7 @@ GATEWAY_JWT_CLIENT_ID=uav-web
 
 Vue 启动后会跳转到 Keycloak，使用上述任一测试账号和 `deploy/.env` 中的
 `KEYCLOAK_DEV_USER_PASSWORD` 登录。前端只使用 Authorization Code + PKCE，
-不会持有 `uav-service` Client Secret。登录成功后，每次 API 请求都会自动刷新
+不会持有 `skytrace-service` Client Secret。登录成功后，每次 API 请求都会自动刷新
 并携带 Access Token。
 
 Socket.IO 使用 `handshake.auth.token` 传递同一个短期 Access Token，Token 不会

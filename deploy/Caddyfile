@@ -1,4 +1,4 @@
-{$UAV_DOMAIN} {
+{$SKYTRACE_DOMAIN} {
     encode gzip zstd
 
     # Keycloak: auth, login page resources, and JS adapter

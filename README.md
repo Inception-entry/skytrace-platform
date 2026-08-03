@@ -91,7 +91,7 @@ cp deploy/.env.example deploy/.env
 ```
 
 2. 在 `deploy/.env` 中替换所有示例密码。至少应设置
-   `KEYCLOAK_ADMIN_PASSWORD`、`KEYCLOAK_UAV_SERVICE_CLIENT_SECRET`、
+   `KEYCLOAK_ADMIN_PASSWORD`、`KEYCLOAK_SERVICE_CLIENT_SECRET`、
    `KEYCLOAK_DEV_USER_PASSWORD`、数据库密码和 `ADMIN_JWT_SECRET`。
 
 3. 首次运行或代码发生变化时，构建并启动全部服务：
@@ -171,7 +171,7 @@ export AI_VISION_BACKEND=yolo26 AI_VISION_MODEL=yolo26n.pt AI_VISION_DEVICE=cpu
 > 登录，具体配置见 [`docs/gateway.md`](docs/gateway.md)。
 
 > `scripts/skytrace.sh` 可以从任意目录调用，默认使用项目中的 `deploy/.env`
-> 和 Compose 文件；CI 可以通过 `UAV_ENV_FILE` 指定一次性的隔离配置。
+> 和 Compose 文件；CI 可以通过 `SKYTRACE_ENV_FILE` 指定一次性的隔离配置。
 > 运行 `./scripts/skytrace.sh help` 可以查看全部子命令。
 
 ### 可选覆盖层
@@ -458,5 +458,4 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - Temporal Nexus 跨服务能力。
 - 定制武器/缺陷数据集微调与航线地图可视化。
 - 飞控独立服务与完整任务领域数据权限。
-- Keycloak / 消息队列等运行时 `uav*` 标识全面品牌化。
 - 设备删除、证据分页与归档编排。

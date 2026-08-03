@@ -17,7 +17,7 @@ class RedisChatHistory:
 
     @staticmethod
     def _key(session_id: str) -> str:
-        return f"uav:chat:{session_id}"
+        return f"skytrace:chat:{session_id}"
 
     async def get_messages(self, session_id: str) -> list[BaseMessage]:
         values = await self.redis.lrange(

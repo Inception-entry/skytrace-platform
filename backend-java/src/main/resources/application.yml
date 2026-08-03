@@ -32,21 +32,21 @@ spring:
       target: ${TEMPORAL_TARGET_ENDPOINT:localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:default}
     workers:
-      - task-queue: ${TEMPORAL_TASK_QUEUE:uav-inspection-task-queue}
+      - task-queue: ${TEMPORAL_TASK_QUEUE:skytrace-inspection-task-queue}
         workflow-classes:
-          - com.uav.backend.temporal.workflow.InspectionWorkflowImpl
-          - com.uav.backend.temporal.workflow.InspectionAnalysisWorkflowImpl
-          - com.uav.backend.temporal.workflow.InspectionChatWorkflowImpl
+          - com.skytrace.backend.temporal.workflow.InspectionWorkflowImpl
+          - com.skytrace.backend.temporal.workflow.InspectionAnalysisWorkflowImpl
+          - com.skytrace.backend.temporal.workflow.InspectionChatWorkflowImpl
         activity-beans:
           - inspectionTaskActivities
           - inspectionAnalysisActivities
 app:
   security:
     enabled: ${APP_SECURITY_ENABLED:true}
-    jwk-set-uri: ${AUTH_JWT_JWK_SET_URI:http://localhost:8180/realms/uav/protocol/openid-connect/certs}
-    issuer-uri: ${AUTH_JWT_ISSUER_URI:http://localhost:8180/realms/uav}
-    audience: ${AUTH_JWT_AUDIENCE:uav-web}
-    client-id: ${AUTH_JWT_CLIENT_ID:uav-web}
+    jwk-set-uri: ${AUTH_JWT_JWK_SET_URI:http://localhost:8180/realms/skytrace/protocol/openid-connect/certs}
+    issuer-uri: ${AUTH_JWT_ISSUER_URI:http://localhost:8180/realms/skytrace}
+    audience: ${AUTH_JWT_AUDIENCE:skytrace-web}
+    client-id: ${AUTH_JWT_CLIENT_ID:skytrace-web}
   ai:
     base-url: ${AI_BASE_URL:http://localhost:8000}
     connect-timeout: ${AI_CONNECT_TIMEOUT:3s}
@@ -59,7 +59,7 @@ app:
     endpoint: ${MINIO_ENDPOINT:http://localhost:9011}
     access-key: ${MINIO_ACCESS_KEY:minioadmin}
     secret-key: ${MINIO_SECRET_KEY:minioadmin123}
-    evidence-bucket: ${MINIO_EVIDENCE_BUCKET:uav-evidence}
+    evidence-bucket: ${MINIO_EVIDENCE_BUCKET:skytrace-evidence}
   messaging:
     enabled: ${MESSAGING_ENABLED:true}
   cache:

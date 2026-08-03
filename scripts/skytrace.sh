@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${UAV_ENV_FILE:-$ROOT_DIR/deploy/.env}"
+ENV_FILE="${SKYTRACE_ENV_FILE:-$ROOT_DIR/deploy/.env}"
 COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.yml"
 
 compose() {
@@ -35,7 +35,7 @@ show_help() {
   skytrace.sh auth-logs            查看 Keycloak 日志
   skytrace.sh auth-users           同步 OPERATOR、VIEWER 测试账号
   skytrace.sh auth-verify          执行 ADMIN/OPERATOR/VIEWER 权限验收
-  skytrace.sh auth-token           获取 uav-service 的 Bearer Token
+  skytrace.sh auth-token           获取 skytrace-service 的 Bearer Token
   skytrace.sh help                 显示帮助
 
 示例：
@@ -77,9 +77,9 @@ env_value_or_default() {
 require_service_client_secret() {
   local client_secret
 
-  client_secret="$(env_value KEYCLOAK_UAV_SERVICE_CLIENT_SECRET)"
+  client_secret="$(env_value KEYCLOAK_SERVICE_CLIENT_SECRET)"
   if [[ -z "$client_secret" ]]; then
-    echo "请先在 deploy/.env 设置 KEYCLOAK_UAV_SERVICE_CLIENT_SECRET"
+    echo "请先在 deploy/.env 设置 KEYCLOAK_SERVICE_CLIENT_SECRET"
     exit 1
   fi
 }
@@ -144,7 +144,7 @@ case "$ACTION" in
   auth-users)
     require_local_keycloak_secrets
     KEYCLOAK_CONTAINER=skytrace-keycloak \
-    KEYCLOAK_REALM=uav \
+    KEYCLOAK_REALM=skytrace \
     KEYCLOAK_ADMIN_USERNAME="$(env_value KEYCLOAK_ADMIN_USERNAME)" \
     KEYCLOAK_ADMIN_PASSWORD="$(env_value KEYCLOAK_ADMIN_PASSWORD)" \
     KEYCLOAK_TEST_USER_PASSWORD="$(env_value KEYCLOAK_DEV_USER_PASSWORD)" \
@@ -153,8 +153,8 @@ case "$ACTION" in
   auth-verify)
     require_local_keycloak_secrets
     KEYCLOAK_CONTAINER=skytrace-keycloak \
-    KEYCLOAK_REALM=uav \
-    KEYCLOAK_CLIENT_ID=uav-web \
+    KEYCLOAK_REALM=skytrace \
+    KEYCLOAK_CLIENT_ID=skytrace-web \
     KEYCLOAK_URL="$(env_value_or_default \
       KEYCLOAK_PUBLIC_URL http://localhost:8180)" \
     KEYCLOAK_ADMIN_USERNAME="$(env_value KEYCLOAK_ADMIN_USERNAME)" \
@@ -172,13 +172,13 @@ case "$ACTION" in
     require_service_client_secret
     keycloak_url="$(env_value KEYCLOAK_PUBLIC_URL)"
     keycloak_url="${keycloak_url:-http://localhost:8180}"
-    client_secret="$(env_value KEYCLOAK_UAV_SERVICE_CLIENT_SECRET)"
+    client_secret="$(env_value KEYCLOAK_SERVICE_CLIENT_SECRET)"
     response="$(curl --fail --silent --show-error \
       -X POST \
-      "$keycloak_url/realms/uav/protocol/openid-connect/token" \
+      "$keycloak_url/realms/skytrace/protocol/openid-connect/token" \
       -H "Content-Type: application/x-www-form-urlencoded" \
       --data-urlencode "grant_type=client_credentials" \
-      --data-urlencode "client_id=uav-service" \
+      --data-urlencode "client_id=skytrace-service" \
       --data-urlencode "client_secret=$client_secret")"
     token="$(python3 -c '
 import json

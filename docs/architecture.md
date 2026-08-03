@@ -107,9 +107,9 @@ Gateway 默认在宿主机 `8082` 端口开放调试入口，并提供：
 
 ```dotenv
 GATEWAY_SECURITY_ENABLED=true
-GATEWAY_JWT_JWK_SET_URI=https://auth.example.com/realms/uav/protocol/openid-connect/certs
-GATEWAY_JWT_ISSUER_URI=https://auth.example.com/realms/uav
-GATEWAY_JWT_AUDIENCE=uav-web
+GATEWAY_JWT_JWK_SET_URI=https://auth.example.com/realms/skytrace/protocol/openid-connect/certs
+GATEWAY_JWT_ISSUER_URI=https://auth.example.com/realms/skytrace
+GATEWAY_JWT_AUDIENCE=skytrace-web
 ```
 
 无论 JWT 是否启用，Gateway 都会删除客户端传入的
@@ -129,7 +129,7 @@ Nginx 默认使用 HTTP 配置。启用 HTTPS 时：
 ## Temporal 现状与后续
 
 Temporal 已接入 Spring Boot 进程。当前 Worker 在
-`uav-inspection-task-queue` 注册巡检生命周期、同步 AI 分析和聊天分析
+`skytrace-inspection-task-queue` 注册巡检生命周期、同步 AI 分析和聊天分析
 Workflow；业务端仍经由 Node BFF 调用 Java，Temporal 不直接暴露给前端。
 
 现有巡检接口可启动、查询、完成或取消工作流。同步 AI 分析走 Workflow，
