@@ -6,7 +6,7 @@
 #   bash scripts/restore-backup.sh --list
 #
 #   # Restore a specific backup:
-#   RESTORE_FILE=uav_inspection/20240101T120000Z.sql.gz \
+#   RESTORE_FILE=skytrace_inspection/20240101T120000Z.sql.gz \
 #   bash scripts/restore-backup.sh
 set -euo pipefail
 
