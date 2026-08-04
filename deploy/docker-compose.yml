@@ -136,9 +136,9 @@ services:
     container_name: skytrace-backend-ai
     restart: always
     extra_hosts:
-      - "host-gateway:host-gateway"
+      - "host.docker.internal:host-gateway"
     environment:
-      AI_OLLAMA_BASE_URL: http://host-gateway:${AI_OLLAMA_PORT:-11434}
+      AI_OLLAMA_BASE_URL: http://host.docker.internal:${AI_OLLAMA_PORT:-11434}
       AI_OLLAMA_MODEL: ${AI_OLLAMA_MODEL:-my-drone-expert}
       AI_OLLAMA_EMBEDDING_MODEL: ${AI_OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
       AI_OLLAMA_TIMEOUT_SECONDS: ${AI_OLLAMA_TIMEOUT_SECONDS:-120}
