@@ -6,6 +6,7 @@ import { UsersPage } from './pages/Users'
 import { RolesPage } from './pages/Roles'
 import { MenusPage } from './pages/Menus'
 import { LogsPage } from './pages/Logs'
+import { RequirePermission } from './components/RequirePermission'
 import { useAuthStore } from './store/auth'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -27,10 +28,38 @@ export default function App() {
           }
         >
           <Route index element={<DashboardPage />} />
-          <Route path="admin/users" element={<UsersPage />} />
-          <Route path="admin/roles" element={<RolesPage />} />
-          <Route path="admin/menus" element={<MenusPage />} />
-          <Route path="admin/logs" element={<LogsPage />} />
+          <Route
+            path="admin/users"
+            element={
+              <RequirePermission code="user:list">
+                <UsersPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="admin/roles"
+            element={
+              <RequirePermission code="role:list">
+                <RolesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="admin/menus"
+            element={
+              <RequirePermission code="menu:list">
+                <MenusPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="admin/logs"
+            element={
+              <RequirePermission code="log:list">
+                <LogsPage />
+              </RequirePermission>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -7,7 +7,9 @@ interface AuthState {
   accessToken: string | null
   refreshToken: string | null
   user: MeResponse | null
+  // eslint-disable-next-line no-unused-vars
   setTokens: (access: string, refresh: string) => void
+  // eslint-disable-next-line no-unused-vars
   setUser: (user: MeResponse) => void
   logout: () => void
 }

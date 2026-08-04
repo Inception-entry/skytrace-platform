@@ -5,7 +5,9 @@ const client = axios.create({ baseURL: '/admin-api' })
 
 let isRefreshing = false
 let failedQueue: Array<{
+  // eslint-disable-next-line no-unused-vars
   resolve: (token: string) => void
+  // eslint-disable-next-line no-unused-vars
   reject: (err: unknown) => void
 }> = []
 

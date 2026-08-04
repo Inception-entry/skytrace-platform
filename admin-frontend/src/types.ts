@@ -7,6 +7,7 @@ export interface User {
   status: number
   createdAt: string
   updatedAt: string
+  roles?: Pick<Role, 'id' | 'name' | 'code'>[]
 }
 
 export interface Role {

@@ -1,19 +1,38 @@
-import { useEffect, useState } from 'react'
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { ProLayout, ProForm, ProFormText } from '@ant-design/pro-components'
-import { Dropdown, Drawer, Avatar, Upload, Divider, Form, Input, Button, message } from 'antd'
-import { LogoutOutlined, UserOutlined, UploadOutlined } from '@ant-design/icons'
+import { useEffect, useMemo, useState } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  Avatar,
+  Button,
+  Divider,
+  Drawer,
+  Dropdown,
+  Form,
+  Input,
+  Layout,
+  Menu,
+  Switch,
+  Upload,
+  message,
+} from 'antd'
+import { LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, MoonOutlined, SunOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons'
 import type { UploadChangeParam } from 'antd/es/upload'
 import { useAuthStore } from '../store/auth'
+import { useThemeStore } from '../store/theme'
 import { me, updateProfile, changePassword } from '../api/auth'
 import { uploadAvatar } from '../api/upload'
-import { menuTreeToProLayout } from '../utils/menu'
+import { collectOpenKeys, menuTreeToItems } from '../utils/menu'
+import { SkyTraceLogo } from '../components/SkyTraceLogo'
+
+const { Header, Sider, Content } = Layout
 
 export function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { accessToken, user, setUser, logout } = useAuthStore()
+  const { mode, toggleMode } = useThemeStore()
   const [loading, setLoading] = useState(!user)
+  const [collapsed, setCollapsed] = useState(false)
+  const [openKeys, setOpenKeys] = useState<string[]>([])
   const [profileOpen, setProfileOpen] = useState(false)
   const [profileForm] = Form.useForm()
   const [passwordForm] = Form.useForm()
@@ -21,13 +40,29 @@ export function AdminLayout() {
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
-    if (!accessToken) { navigate('/login', { replace: true }); return }
-    if (user) { setLoading(false); return }
+    if (!accessToken) {
+      navigate('/login', { replace: true })
+      return
+    }
+    if (user) {
+      setLoading(false)
+      return
+    }
     me()
       .then(setUser)
-      .catch(() => { message.error('获取用户信息失败'); logout() })
+      .catch(() => {
+        message.error('获取用户信息失败')
+        logout()
+      })
       .finally(() => setLoading(false))
-  }, [accessToken, user, navigate, setUser, logout])
+  }, [accessToken, logout, navigate, setUser, user])
+
+  const menuItems = useMemo(() => menuTreeToItems(user?.menus ?? []), [user?.menus])
+  const derivedOpenKeys = useMemo(() => collectOpenKeys(user?.menus ?? [], location.pathname), [location.pathname, user?.menus])
+
+  useEffect(() => {
+    setOpenKeys(derivedOpenKeys)
+  }, [derivedOpenKeys])
 
   function openProfile() {
     profileForm.setFieldsValue({ nickname: user?.nickname ?? '', email: user?.email ?? '' })
@@ -78,43 +113,72 @@ export function AdminLayout() {
 
   if (loading) return null
 
-  const routes = { path: '/', routes: menuTreeToProLayout(user?.menus ?? []) }
-
   return (
     <>
-      <ProLayout
-        title="SkyTrace 天巡智控"
-        logo={false}
-        route={routes}
-        location={{ pathname: location.pathname }}
-        onMenuHeaderClick={() => navigate('/')}
-        menuItemRender={(item, dom) => (
-          <span onClick={() => item.path && !item.path.startsWith('/_cat_') && navigate(item.path)}>
-            {dom}
-          </span>
-        )}
-        avatarProps={{
-          src: user?.avatar ?? undefined,
-          icon: !user?.avatar ? <UserOutlined /> : undefined,
-          title: user?.nickname ?? user?.username ?? '',
-          size: 'small',
-          render: (_, dom) => (
-            <Dropdown
-              menu={{
-                items: [
-                  { key: 'profile', icon: <UserOutlined />, label: '个人中心', onClick: openProfile },
-                  { type: 'divider' },
-                  { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: logout },
-                ],
-              }}
-            >
-              {dom}
-            </Dropdown>
-          ),
-        }}
-      >
-        <Outlet />
-      </ProLayout>
+      <Layout className="skytrace-admin-shell">
+        <Sider
+          className="skytrace-admin-sider"
+          collapsed={collapsed}
+          collapsible
+          trigger={null}
+          width={248}
+        >
+          <button className="skytrace-admin-brand" type="button" onClick={() => navigate('/')}>
+            <SkyTraceLogo size={28} />
+            {!collapsed ? <span>SkyTrace</span> : null}
+          </button>
+          <Menu
+            mode="inline"
+            items={menuItems}
+            selectedKeys={[location.pathname]}
+            openKeys={collapsed ? [] : openKeys}
+            onOpenChange={keys => setOpenKeys(keys as string[])}
+            onClick={({ key }) => !String(key).startsWith('/_cat_') && navigate(String(key))}
+            className="skytrace-admin-menu"
+          />
+        </Sider>
+
+        <Layout>
+          <Header className="skytrace-admin-header">
+            <div className="skytrace-admin-header__left">
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(value => !value)}
+                aria-label="切换侧边栏"
+              />
+            </div>
+
+            <div className="skytrace-admin-header__right">
+              <span className="skytrace-theme-switch-label">Admin Console</span>
+              <div className="skytrace-theme-switch">
+                <SunOutlined className={mode === 'light' ? 'is-active' : undefined} />
+                <Switch size="small" checked={mode === 'dark'} onChange={toggleMode} aria-label="切换深浅主题" />
+                <MoonOutlined className={mode === 'dark' ? 'is-active' : undefined} />
+              </div>
+
+              <Dropdown
+                menu={{
+                  items: [
+                    { key: 'profile', icon: <UserOutlined />, label: '个人中心', onClick: openProfile },
+                    { type: 'divider' },
+                    { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: logout },
+                  ],
+                }}
+              >
+                <button type="button" className="skytrace-admin-account">
+                  <Avatar src={user?.avatar ?? undefined} icon={!user?.avatar ? <UserOutlined /> : undefined} size="small" />
+                  <span>{user?.nickname ?? user?.username ?? ''}</span>
+                </button>
+              </Dropdown>
+            </div>
+          </Header>
+
+          <Content className="skytrace-admin-content">
+            <Outlet />
+          </Content>
+        </Layout>
+      </Layout>
 
       <Drawer
         title="个人中心"
@@ -127,16 +191,10 @@ export function AdminLayout() {
           </Button>
         }
       >
-        {/* Avatar */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Avatar src={avatarUrl ?? undefined} icon={!avatarUrl ? <UserOutlined /> : undefined} size={80} />
           <div style={{ marginTop: 8 }}>
-            <Upload
-              accept="image/*"
-              showUploadList={false}
-              beforeUpload={() => false}
-              onChange={handleAvatarChange}
-            >
+            <Upload accept="image/*" showUploadList={false} beforeUpload={() => false} onChange={handleAvatarChange}>
               <Button icon={<UploadOutlined />} size="small" loading={uploading}>
                 更换头像
               </Button>
@@ -144,11 +202,14 @@ export function AdminLayout() {
           </div>
         </div>
 
-        {/* Profile form */}
-        <ProForm form={profileForm} submitter={false}>
-          <ProFormText name="nickname" label="昵称" placeholder="请输入昵称" />
-          <ProFormText name="email" label="邮箱" placeholder="请输入邮箱" rules={[{ type: 'email' }]} />
-        </ProForm>
+        <Form form={profileForm} layout="vertical">
+          <Form.Item name="nickname" label="昵称">
+            <Input placeholder="请输入昵称" />
+          </Form.Item>
+          <Form.Item name="email" label="邮箱" rules={[{ type: 'email' }]}>
+            <Input placeholder="请输入邮箱" />
+          </Form.Item>
+        </Form>
 
         <Divider>修改密码</Divider>
 
@@ -156,11 +217,7 @@ export function AdminLayout() {
           <Form.Item name="currentPassword" label="当前密码" rules={[{ required: true }]}>
             <Input.Password />
           </Form.Item>
-          <Form.Item
-            name="newPassword"
-            label="新密码"
-            rules={[{ required: true }, { min: 6, message: '至少 6 位' }]}
-          >
+          <Form.Item name="newPassword" label="新密码" rules={[{ required: true }, { min: 6, message: '至少 6 位' }]}>
             <Input.Password />
           </Form.Item>
           <Button onClick={handleChangePassword} block>

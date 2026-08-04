@@ -1,0 +1,351 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root,
+html[data-theme="light"],
+body[data-theme="light"] {
+  --sky-bg: #f4f7fb;
+  --sky-text: #1f2937;
+  --sky-border: #e8edf5;
+  --sky-border-soft: #eef2f7;
+  --sky-panel: #ffffff;
+  --sky-panel-strong: rgba(255, 255, 255, 0.72);
+  --sky-shadow: rgba(31, 41, 55, 0.04);
+  --sky-shadow-strong: rgba(31, 41, 55, 0.08);
+  --sky-header-shadow: rgba(31, 41, 55, 0.03);
+  --sky-sider-shadow: rgba(31, 41, 55, 0.03);
+  --sky-title: #1e293b;
+  --sky-muted: #64748b;
+  --sky-login-panel: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(244, 247, 251, 0.94));
+  --sky-login-card-bg: #ffffff;
+  --sky-login-card-shadow: rgba(31, 41, 55, 0.08);
+  --sky-login-heading: #0f172a;
+  --sky-input-icon: #94a3b8;
+}
+
+html[data-theme="dark"],
+body[data-theme="dark"] {
+  --sky-bg: #0b1220;
+  --sky-text: #dbe6f5;
+  --sky-border: #1f2937;
+  --sky-border-soft: #243244;
+  --sky-panel: #111827;
+  --sky-panel-strong: rgba(17, 24, 39, 0.78);
+  --sky-shadow: rgba(2, 6, 23, 0.32);
+  --sky-shadow-strong: rgba(2, 6, 23, 0.52);
+  --sky-header-shadow: rgba(2, 6, 23, 0.24);
+  --sky-sider-shadow: rgba(2, 6, 23, 0.26);
+  --sky-title: #f8fafc;
+  --sky-muted: #94a3b8;
+  --sky-login-panel: linear-gradient(180deg, rgba(11, 18, 32, 0.88), rgba(10, 16, 28, 0.96));
+  --sky-login-card-bg: rgba(15, 23, 42, 0.86);
+  --sky-login-card-shadow: rgba(2, 6, 23, 0.4);
+  --sky-login-heading: #f8fafc;
+  --sky-input-icon: #64748b;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--sky-bg);
+  color: var(--sky-text);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+a {
+  color: inherit;
+}
+
+.skytrace-admin-shell {
+  height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, var(--sky-panel-strong) 0, rgba(0, 0, 0, 0) 220px),
+    var(--sky-bg) !important;
+}
+
+.skytrace-admin-shell > .ant-layout,
+.skytrace-admin-shell .ant-layout {
+  min-height: 0;
+}
+
+.skytrace-admin-sider {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  border-right: 1px solid var(--sky-border);
+  box-shadow: 8px 0 24px var(--sky-sider-shadow);
+}
+
+.skytrace-admin-brand {
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--sky-border-soft);
+  background: transparent;
+  color: var(--sky-title);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skytrace-admin-menu {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-inline-end: 0 !important;
+  padding: 12px 10px;
+  background: transparent !important;
+}
+
+.skytrace-admin-header {
+  flex: 0 0 64px;
+  height: 64px;
+  line-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px !important;
+  border-bottom: 1px solid var(--sky-border-soft);
+  background: var(--sky-panel) !important;
+  box-shadow: 0 1px 10px var(--sky-header-shadow);
+}
+
+.skytrace-admin-header__left,
+.skytrace-admin-header__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skytrace-admin-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sky-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.skytrace-admin-content {
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 24px 24px;
+}
+
+.skytrace-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.skytrace-panel,
+.skytrace-stat-card {
+  border: 1px solid var(--sky-border) !important;
+  box-shadow: 0 8px 24px var(--sky-shadow);
+}
+
+.skytrace-stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.skytrace-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px var(--sky-shadow-strong);
+}
+
+.skytrace-theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--sky-border);
+  border-radius: 999px;
+  background: var(--sky-panel);
+  color: var(--sky-muted);
+}
+
+.skytrace-theme-switch .is-active {
+  color: #1677ff;
+}
+
+.skytrace-theme-switch-label {
+  font-size: 12px;
+  color: var(--sky-muted);
+}
+
+.skytrace-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.skytrace-form-grid .ant-form-item:only-child,
+.skytrace-form-grid .ant-form-item:nth-child(odd):last-child {
+  grid-column: 1 / -1;
+}
+
+.skytrace-login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 480px);
+  background: var(--sky-bg);
+}
+
+.skytrace-login__brand {
+  position: relative;
+  overflow: hidden;
+  padding: 48px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #e2e8f0;
+  background:
+    radial-gradient(ellipse 80% 60% at 18% 28%, rgba(22, 119, 255, 0.28), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 82% 72%, rgba(99, 102, 241, 0.22), transparent 50%),
+    linear-gradient(145deg, #10203d 0%, #1d4ed8 52%, #3b82f6 100%);
+}
+
+.skytrace-login__brand::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 70% at 40% 40%, #000 20%, transparent 75%);
+  pointer-events: none;
+}
+
+.skytrace-login__brand-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.skytrace-login__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #dbeafe;
+  margin-bottom: 28px;
+}
+
+.skytrace-login__title {
+  margin: 0 0 16px;
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.skytrace-login__desc {
+  margin: 0;
+  max-width: 36ch;
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.skytrace-login__footer {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.skytrace-login__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  background: var(--sky-login-panel), var(--sky-bg);
+}
+
+.skytrace-login__card {
+  width: 100%;
+  max-width: 360px;
+  padding: 32px;
+  border: 1px solid var(--sky-border);
+  border-radius: 8px;
+  background: var(--sky-login-card-bg);
+  box-shadow: 0 20px 45px var(--sky-login-card-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.skytrace-login__card h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 650;
+  color: var(--sky-login-heading);
+}
+
+.skytrace-login__card p {
+  margin: 0 0 28px;
+  color: var(--sky-muted);
+  font-size: 14px;
+}
+
+.skytrace-login__card .ant-btn-primary {
+  height: 42px;
+  font-weight: 600;
+}
+
+.skytrace-input-icon {
+  color: var(--sky-input-icon);
+}
+
+@media (max-width: 900px) {
+  .skytrace-admin-header {
+    padding-inline: 16px !important;
+  }
+
+  .skytrace-admin-content {
+    padding: 16px;
+  }
+
+  .skytrace-page-header {
+    flex-direction: column;
+  }
+
+  .skytrace-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .skytrace-login {
+    grid-template-columns: 1fr;
+  }
+
+  .skytrace-login__brand {
+    min-height: 220px;
+    padding: 32px 28px;
+  }
+
+  .skytrace-login__desc {
+    display: none;
+  }
+}
