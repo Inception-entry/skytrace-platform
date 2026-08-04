@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, BadRequestException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { randomUUID } from 'crypto'
 import * as path from 'path'
-import Minio from 'minio'
+import * as Minio from 'minio'
 
 @Injectable()
 export class UploadService implements OnModuleInit {

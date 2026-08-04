@@ -12,7 +12,11 @@ FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate && npm run build
+# Incremental tsbuildinfo from host can leave dist empty after deleteOutDir.
+RUN rm -f tsconfig.tsbuildinfo \
+    && npx prisma generate \
+    && npm run build \
+    && test -f dist/main.js
 
 FROM node:20-alpine
 WORKDIR /app
@@ -25,4 +29,4 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY prisma ./prisma
 EXPOSE 3000
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && if [ -f dist/main.js ]; then node dist/main.js; else node dist/src/main.js; fi"]
