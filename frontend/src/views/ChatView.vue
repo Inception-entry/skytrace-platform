@@ -1,35 +1,33 @@
 <template>
-  <main class="chat-page">
-    <section class="chat-shell">
+  <main class="chat-page st-page">
+    <section class="chat-shell st-panel">
       <header class="chat-header">
         <div>
-          <p class="eyebrow">SKYTRACE AI COPILOT</p>
-          <h1>无人机巡检 AI 分析</h1>
-          <p class="subtitle">
-            LangChain · Ollama · RAG 实时流式分析
-          </p>
+          <p class="eyebrow">{{ $t('chat.eyebrow') }}</p>
+          <h1>{{ $t('chat.titleAlt') }}</h1>
+          <p class="subtitle">{{ $t('chat.subtitleDetail') }}</p>
         </div>
 
         <nav class="header-links">
           <RouterLink class="back-link" to="/devices">
-            设备管理
+            {{ $t('nav.devices') }}
           </RouterLink>
           <RouterLink class="back-link" to="/knowledge">
-            知识库
+            {{ $t('nav.knowledge') }}
           </RouterLink>
           <RouterLink class="back-link" to="/drone">
-            返回任务列表
+            {{ $t('chat.backToTasks') }}
           </RouterLink>
         </nav>
       </header>
 
       <div class="task-bar">
-        <label for="task-code">当前任务编号</label>
+        <label for="task-code">{{ $t('chat.taskCode') }}</label>
         <input
           id="task-code"
           v-model.trim="taskCode"
           maxlength="64"
-          placeholder="例如 TASK-001"
+          :placeholder="$t('chat.taskCodePlaceholder')"
           :disabled="submitting"
         />
         <span class="model-badge">my-drone-expert</span>
@@ -39,18 +37,15 @@
           :disabled="submitting"
           @click="startNewConversation"
         >
-          新对话
+          {{ $t('chat.newChat') }}
         </button>
       </div>
 
       <section ref="messagePanel" class="message-panel">
         <div v-if="messages.length === 0" class="empty-state">
           <div class="assistant-mark">AI</div>
-          <h2>需要分析什么？</h2>
-          <p>
-            输入巡检任务编号，然后询问飞行安全、通信、
-            告警处置或故障恢复问题。
-          </p>
+          <h2>{{ $t('chat.emptyTitle') }}</h2>
+          <p>{{ $t('chat.emptyHint') }}</p>
 
           <div class="suggestions">
             <button
@@ -71,20 +66,20 @@
           :class="message.role"
         >
           <div class="avatar">
-            {{ message.role === 'user' ? '我' : 'AI' }}
+            {{ message.role === 'user' ? $t('chat.userAvatar') : 'AI' }}
           </div>
 
           <div class="message-content">
             <div class="message-meta">
               <strong>
-                {{ message.role === 'user' ? '巡检人员' : '无人机助手' }}
+                {{ message.role === 'user' ? $t('chat.userLabel') : $t('chat.assistantLabel') }}
               </strong>
               <span>{{ message.taskCode }}</span>
               <span v-if="message.sourceCount">
-                {{ message.sourceCount }} 条知识来源
+                {{ $t('chat.sourceCount', { count: message.sourceCount }) }}
               </span>
               <span v-if="message.streaming" class="live-status">
-                实时生成中
+                {{ $t('chat.streaming') }}
               </span>
             </div>
 
@@ -117,7 +112,7 @@
           v-model="question"
           rows="3"
           maxlength="2000"
-          placeholder="输入问题，Enter 发送，Shift + Enter 换行"
+          :placeholder="$t('chat.placeholderDetail')"
           :disabled="submitting"
           @keydown.enter.exact.prevent="sendMessage"
         ></textarea>
@@ -128,7 +123,7 @@
             type="submit"
             :disabled="!canSubmit"
           >
-            {{ submitting ? '生成中' : '发送分析' }}
+            {{ submitting ? $t('chat.generating') : $t('chat.sendAnalyze') }}
           </button>
         </div>
       </form>
@@ -138,6 +133,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
+import { useTranslation } from 'i18next-vue'
 import { streamInspectionAnalysis } from '@/api/inspection-task'
 
 type MessageRole = 'user' | 'assistant'
@@ -152,11 +148,13 @@ interface ChatMessage {
   sourceCount?: number
 }
 
-const suggestions = [
-  '分析当前任务可能存在的通信风险',
-  '无人机图传中断后应该如何处置？',
-  '给出低电量返航的安全检查清单',
-]
+const { t } = useTranslation()
+
+const suggestions = computed(() => [
+  t('chat.suggestion1'),
+  t('chat.suggestion2'),
+  t('chat.suggestion3'),
+])
 
 const taskCode = ref('TASK-001')
 const question = ref('')
@@ -253,10 +251,10 @@ const sendMessage = async () => {
       item => item.id === assistantId,
     )
     if (message && !message.content.trim()) {
-      message.content = '回答生成中断，请稍后重试。'
+      message.content = t('chat.interrupted')
     }
     errorMessage.value =
-      error instanceof Error ? error.message : 'AI 分析失败，请稍后重试'
+      error instanceof Error ? error.message : t('chat.analyzeFailed')
   } finally {
     const message = messages.value.find(
       item => item.id === assistantId,
@@ -279,14 +277,7 @@ const startNewConversation = () => {
 
 <style scoped>
 .chat-page {
-  min-height: 100vh;
   padding: 28px;
-  box-sizing: border-box;
-  color: #172033;
-  background:
-    radial-gradient(circle at 12% 8%, #dbeafe 0, transparent 32%),
-    radial-gradient(circle at 88% 92%, #dcfce7 0, transparent 28%),
-    #f5f7fb;
 }
 
 .chat-shell {
@@ -297,11 +288,6 @@ const startNewConversation = () => {
   min-height: 620px;
   margin: 0 auto;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 22px;
-  box-shadow: 0 24px 70px rgba(30, 64, 175, 0.12);
-  backdrop-filter: blur(14px);
 }
 
 .chat-header {
@@ -310,7 +296,7 @@ const startNewConversation = () => {
   justify-content: space-between;
   gap: 20px;
   padding: 24px 28px 18px;
-  border-bottom: 1px solid #e8edf5;
+  border-bottom: 1px solid var(--st-border);
 }
 
 .chat-header h1 {
@@ -318,25 +304,11 @@ const startNewConversation = () => {
   font-size: 25px;
 }
 
-.eyebrow {
-  margin: 0;
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-}
-
-.subtitle {
-  margin: 0;
-  color: #748198;
-  font-size: 13px;
-}
-
 .back-link {
   padding: 9px 14px;
-  color: #334155;
+  color: var(--st-text);
   text-decoration: none;
-  background: #f1f5f9;
+  background: var(--st-bg-elevated);
   border-radius: 9px;
 }
 
@@ -351,12 +323,12 @@ const startNewConversation = () => {
   align-items: center;
   gap: 12px;
   padding: 12px 28px;
-  background: #fbfcff;
-  border-bottom: 1px solid #e8edf5;
+  background: var(--st-bg-elevated);
+  border-bottom: 1px solid var(--st-border);
 }
 
 .task-bar label {
-  color: #526077;
+  color: var(--st-text-muted);
   font-size: 13px;
   font-weight: 700;
 }
@@ -364,36 +336,36 @@ const startNewConversation = () => {
 .task-bar input {
   width: 220px;
   padding: 9px 11px;
-  color: #172033;
-  background: white;
-  border: 1px solid #d8e0ec;
+  color: var(--st-text);
+  background: var(--st-input-bg);
+  border: 1px solid var(--st-border);
   border-radius: 8px;
   outline: none;
 }
 
 .task-bar input:focus,
 .composer textarea:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: var(--st-color-primary);
+  box-shadow: 0 0 0 3px var(--st-color-primary-soft);
 }
 
 .model-badge {
   margin-left: auto;
   padding: 5px 9px;
-  color: #047857;
+  color: var(--st-success);
   font-size: 12px;
   font-weight: 700;
-  background: #d1fae5;
+  background: color-mix(in srgb, var(--st-success) 18%, transparent);
   border-radius: 999px;
 }
 
 .new-chat-button {
   padding: 7px 11px;
-  color: #334155;
+  color: var(--st-text);
   font-weight: 700;
   cursor: pointer;
-  background: white;
-  border: 1px solid #d8e0ec;
+  background: var(--st-bg-elevated);
+  border: 1px solid var(--st-border);
   border-radius: 8px;
 }
 
@@ -426,23 +398,23 @@ const startNewConversation = () => {
 .empty-state p {
   max-width: 520px;
   margin: 0;
-  color: #6b7890;
+  color: var(--st-text-muted);
 }
 
 .assistant-mark,
 .avatar {
   display: grid;
   place-items: center;
-  color: white;
+  color: #fff;
   font-weight: 800;
-  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  background: linear-gradient(135deg, var(--st-color-primary), var(--st-color-accent));
 }
 
 .assistant-mark {
   width: 54px;
   height: 54px;
   border-radius: 17px;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+  box-shadow: var(--st-shadow);
 }
 
 .suggestions {
@@ -455,16 +427,16 @@ const startNewConversation = () => {
 
 .suggestions button {
   padding: 9px 13px;
-  color: #334155;
+  color: var(--st-text);
   cursor: pointer;
-  background: white;
-  border: 1px solid #dbe3ef;
+  background: var(--st-bg-elevated);
+  border: 1px solid var(--st-border);
   border-radius: 999px;
 }
 
 .suggestions button:hover {
-  color: #1d4ed8;
-  border-color: #93c5fd;
+  color: var(--st-color-accent);
+  border-color: var(--st-border-strong);
 }
 
 .message {
@@ -488,21 +460,21 @@ const startNewConversation = () => {
 }
 
 .user .avatar {
-  background: linear-gradient(135deg, #334155, #64748b);
+  background: linear-gradient(135deg, var(--st-text-muted), var(--st-text));
 }
 
 .message-content {
   min-width: 0;
   padding: 14px 16px;
-  background: #f4f7fb;
-  border: 1px solid #e4eaf2;
+  background: var(--st-bg-elevated);
+  border: 1px solid var(--st-border);
   border-radius: 5px 16px 16px;
 }
 
 .user .message-content {
-  color: white;
-  background: #2563eb;
-  border-color: #2563eb;
+  color: #fff;
+  background: var(--st-color-primary);
+  border-color: var(--st-color-primary);
   border-radius: 16px 5px 16px 16px;
 }
 
@@ -515,16 +487,16 @@ const startNewConversation = () => {
 }
 
 .message-meta span {
-  color: #8490a3;
+  color: var(--st-text-muted);
 }
 
 .message-meta .live-status {
-  color: #047857;
+  color: var(--st-success);
   font-weight: 700;
 }
 
 .user .message-meta span {
-  color: #bfdbfe;
+  color: color-mix(in srgb, #fff 70%, transparent);
 }
 
 .message-text {
@@ -539,7 +511,7 @@ const startNewConversation = () => {
   height: 1.1em;
   margin-left: 3px;
   vertical-align: -0.18em;
-  background: #2563eb;
+  background: var(--st-color-primary);
   border-radius: 2px;
   animation: cursor-blink 0.8s steps(1) infinite;
 }
@@ -549,59 +521,31 @@ const startNewConversation = () => {
   margin-top: 12px;
   padding-top: 9px;
   overflow: hidden;
-  color: #77849a;
+  color: var(--st-text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-top: 1px solid #dde5ef;
-}
-
-.loading-card {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.loading-card span {
-  width: 7px;
-  height: 7px;
-  background: #3b82f6;
-  border-radius: 50%;
-  animation: pulse 1s infinite alternate;
-}
-
-.loading-card span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.loading-card span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-.loading-card p {
-  margin: 0 0 0 7px;
-  color: #64748b;
-  font-size: 13px;
+  border-top: 1px solid var(--st-border);
 }
 
 .error-message {
   margin: 0 28px 10px;
   padding: 10px 12px;
-  color: #b91c1c;
+  color: var(--st-danger);
   font-size: 13px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: color-mix(in srgb, var(--st-danger) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--st-danger) 35%, transparent);
   border-radius: 9px;
 }
 
 .composer {
   margin: 0 28px 24px;
   overflow: hidden;
-  background: white;
-  border: 1px solid #dbe3ef;
+  background: var(--st-input-bg);
+  border: 1px solid var(--st-border);
   border-radius: 15px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+  box-shadow: var(--st-shadow);
 }
 
 .composer textarea {
@@ -610,7 +554,7 @@ const startNewConversation = () => {
   min-height: 74px;
   padding: 14px 15px 8px;
   box-sizing: border-box;
-  color: #172033;
+  color: var(--st-text);
   font: inherit;
   resize: none;
   background: transparent;
@@ -626,16 +570,16 @@ const startNewConversation = () => {
 }
 
 .composer-footer span {
-  color: #94a3b8;
+  color: var(--st-text-muted);
   font-size: 11px;
 }
 
 .composer-footer button {
   padding: 9px 16px;
-  color: white;
+  color: #fff;
   font-weight: 700;
   cursor: pointer;
-  background: #2563eb;
+  background: var(--st-color-primary);
   border: 0;
   border-radius: 9px;
 }
@@ -643,17 +587,6 @@ const startNewConversation = () => {
 .composer-footer button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
-}
-
-@keyframes pulse {
-  from {
-    opacity: 0.35;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(-2px);
-  }
 }
 
 @keyframes cursor-blink {

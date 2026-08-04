@@ -1,13 +1,13 @@
-const themeKey = 'skytrace-theme';
+const themeKey = 'skytrace-theme'
 
 export function getTheme() {
-  return localStorage.getItem(themeKey) || '';
+  return localStorage.getItem(themeKey) || ''
 }
 
 export function setTheme(key: string) {
-  localStorage.setItem(themeKey, key);
+  localStorage.setItem(themeKey, key)
 }
 
 export function removeTheme() {
-  localStorage.setItem(themeKey, '');
+  localStorage.removeItem(themeKey)
 }

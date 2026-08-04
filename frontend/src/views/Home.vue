@@ -5,7 +5,6 @@
     </overlay>
     <st-cesium-vue @loaded="loaded" :depthTestAgainstTerrain="true" />
     <st-tool-header />
-    <st-menu-aside />
   </div>
 </template>
 
@@ -13,14 +12,14 @@
 import overlay from '@/components/st-overlay/index.vue'
 import stCesiumVue from '@/components/st-cesium-vue/index.vue'
 import StToolHeader from '@/components/st-tool-header/index.vue'
-import StMenuAside from '@/components/st-menu-aside/index.vue'
 import { ref } from 'vue'
 
-const cesiumLoaded = ref<boolean>(false)
+const cesiumLoaded = ref(false)
 const loaded = (): void => {
   cesiumLoaded.value = true
 }
 </script>
+
 <style lang="scss" scoped>
 .h-screen.map-shell {
   position: relative;

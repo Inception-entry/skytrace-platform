@@ -1,33 +1,40 @@
-// 语言相关
 import { defineStore } from 'pinia'
 import { store } from '@/store'
-import { getLang, setLang, removeLang } from '@/utils/lang';
+import { getLang, setLang, removeLang, type LangKey } from '@/utils/lang'
+import i18n from '@/i18n'
 
-interface ThemeState {
-  langKey: string;
+interface LangState {
+  langKey: LangKey
 }
 
 export const useLangStore = defineStore('lang', {
-  state: ():ThemeState => ({
-    langKey: '',
+  state: (): LangState => ({
+    langKey: getLang(),
   }),
   getters: {
-    getLang(): string {
-      return this.langKey || getLang()
-    }
+    getLang(): LangKey {
+      return this.langKey
+    },
   },
   actions: {
-    setLang(info: string) {
-      this.langKey = info ?? ''; // for null or undefined value
-      setLang(info);
+    async hydrate() {
+      await this.applyLang(getLang())
+    },
+    async applyLang(raw: string) {
+      const lang = (raw === 'en' ? 'en' : 'zh') as LangKey
+      this.langKey = lang
+      setLang(lang)
+      document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN'
+      await i18n.changeLanguage(lang)
+    },
+    async setLang(info: string) {
+      await this.applyLang(info)
     },
     removeLang() {
-      removeLang();
-    }
-  }
+      removeLang()
+      void this.applyLang('zh')
+    },
+  },
 })
 
-// Need to be used outside the setup
-export const useLangStoreWithOut = () => {
-  return useLangStore(store);
-}
+export const useLangStoreWithOut = () => useLangStore(store)

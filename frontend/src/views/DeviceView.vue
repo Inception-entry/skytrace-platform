@@ -1,13 +1,11 @@
 <template>
-  <main class="device-page">
+  <main class="device-page st-page">
     <section class="device-panel">
       <header class="panel-header">
         <div>
-          <p class="eyebrow">SKYTRACE DEVICES</p>
-          <h1>设备管理</h1>
-          <p class="subtitle">
-            设备主数据来自数据库，在线状态由 heartbeat 写入 Redis
-          </p>
+          <p class="eyebrow">{{ $t('devices.eyebrow') }}</p>
+          <h1>{{ $t('devices.title') }}</h1>
+          <p class="subtitle">{{ $t('devices.subtitleDetail') }}</p>
         </div>
 
         <div class="header-actions">
@@ -18,22 +16,22 @@
             :disabled="loading"
             @click="openCreateForm"
           >
-            新建设备
+            {{ $t('devices.create') }}
           </button>
-          <RouterLink class="nav-link" to="/drone">巡检任务</RouterLink>
-          <RouterLink class="nav-link" to="/knowledge">知识库</RouterLink>
+          <RouterLink class="nav-link" to="/drone">{{ $t('nav.tasks') }}</RouterLink>
+          <RouterLink class="nav-link" to="/knowledge">{{ $t('nav.knowledge') }}</RouterLink>
         </div>
       </header>
 
       <form
         v-if="formVisible"
-        class="device-form"
+        class="device-form st-panel"
         @submit.prevent="saveDevice"
       >
         <div class="form-title">
           <div>
-            <h2>{{ editingDeviceCode ? '编辑设备' : '新建设备' }}</h2>
-            <p>编号创建后不可修改；类型建议使用 UAV / CAMERA。</p>
+            <h2>{{ editingDeviceCode ? $t('devices.editTitle') : $t('devices.createTitle') }}</h2>
+            <p>{{ $t('devices.formHint') }}</p>
           </div>
           <button
             class="text-button"
@@ -41,39 +39,39 @@
             :disabled="loading"
             @click="closeForm"
           >
-            关闭
+            {{ $t('common.close') }}
           </button>
         </div>
 
         <div class="form-grid">
           <label>
-            <span>设备编号</span>
+            <span>{{ $t('devices.deviceCode') }}</span>
             <input
               v-model.trim="form.deviceCode"
               maxlength="64"
               pattern="[A-Za-z0-9_-]+"
-              placeholder="例如 UAV-003"
+              :placeholder="$t('devices.deviceCodePlaceholder')"
               :disabled="loading || Boolean(editingDeviceCode)"
               required
             />
           </label>
           <label>
-            <span>设备名称</span>
+            <span>{{ $t('devices.deviceName') }}</span>
             <input
               v-model.trim="form.deviceName"
               maxlength="128"
-              placeholder="例如 东区巡检无人机"
+              :placeholder="$t('devices.deviceNamePlaceholder')"
               :disabled="loading"
               required
             />
           </label>
           <label>
-            <span>设备类型</span>
+            <span>{{ $t('devices.deviceType') }}</span>
             <input
               v-model.trim="form.deviceType"
               maxlength="64"
               pattern="[A-Za-z0-9_-]+"
-              placeholder="例如 UAV"
+              :placeholder="$t('devices.deviceTypePlaceholder')"
               :disabled="loading"
               required
             />
@@ -82,7 +80,7 @@
 
         <div class="form-actions">
           <button class="primary-button" type="submit" :disabled="loading">
-            {{ editingDeviceCode ? '保存修改' : '创建设备' }}
+            {{ editingDeviceCode ? $t('devices.saveChanges') : $t('devices.createDevice') }}
           </button>
         </div>
       </form>
@@ -92,20 +90,20 @@
         {{ successMessage }}
       </p>
 
-      <div class="table-wrap">
+      <div class="table-wrap st-panel">
         <table>
           <thead>
             <tr>
-              <th>编号</th>
-              <th>名称</th>
-              <th>类型</th>
-              <th>状态</th>
-              <th>操作</th>
+              <th>{{ $t('devices.code') }}</th>
+              <th>{{ $t('devices.name') }}</th>
+              <th>{{ $t('devices.type') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th>{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!devices.length">
-              <td colspan="5" class="empty">暂无设备</td>
+              <td colspan="5" class="empty">{{ $t('devices.empty') }}</td>
             </tr>
             <tr v-for="device in devices" :key="device.deviceCode">
               <td>{{ device.deviceCode }}</td>
@@ -116,7 +114,7 @@
                   class="status-pill"
                   :class="device.status === 'ONLINE' ? 'online' : 'offline'"
                 >
-                  {{ device.status }}
+                  {{ device.status === 'ONLINE' ? $t('devices.online') : $t('devices.offline') }}
                 </span>
               </td>
               <td class="actions">
@@ -127,7 +125,7 @@
                   :disabled="loading"
                   @click="openEditForm(device)"
                 >
-                  编辑
+                  {{ $t('common.edit') }}
                 </button>
                 <button
                   v-if="canOperate"
@@ -136,7 +134,7 @@
                   :disabled="loading"
                   @click="sendHeartbeat(device.deviceCode)"
                 >
-                  Heartbeat
+                  {{ $t('devices.heartbeat') }}
                 </button>
               </td>
             </tr>
@@ -149,6 +147,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
   createDevice,
@@ -157,6 +156,8 @@ import {
   updateDevice,
   type Device,
 } from '@/api/device'
+
+const { t } = useTranslation()
 
 const devices = ref<Device[]>([])
 const loading = ref(false)
@@ -184,7 +185,7 @@ async function refresh() {
     devices.value = await getDevices()
   } catch (error) {
     errorMessage.value =
-      error instanceof Error ? error.message : '加载设备失败'
+      error instanceof Error ? error.message : t('devices.loadFailed')
   } finally {
     loading.value = false
   }
@@ -223,20 +224,20 @@ async function saveDevice() {
         deviceName: form.deviceName,
         deviceType: form.deviceType,
       })
-      successMessage.value = '设备已更新'
+      successMessage.value = t('devices.updated')
     } else {
       await createDevice({
         deviceCode: form.deviceCode,
         deviceName: form.deviceName,
         deviceType: form.deviceType,
       })
-      successMessage.value = '设备已创建'
+      successMessage.value = t('devices.created')
     }
     closeForm()
     await refresh()
   } catch (error) {
     errorMessage.value =
-      error instanceof Error ? error.message : '保存设备失败'
+      error instanceof Error ? error.message : t('devices.saveFailed')
   } finally {
     loading.value = false
   }
@@ -252,7 +253,7 @@ async function sendHeartbeat(deviceCode: string) {
     await refresh()
   } catch (error) {
     errorMessage.value =
-      error instanceof Error ? error.message : 'Heartbeat 失败'
+      error instanceof Error ? error.message : t('devices.heartbeatFailed')
   } finally {
     loading.value = false
   }
@@ -265,12 +266,7 @@ onMounted(() => {
 
 <style scoped>
 .device-page {
-  min-height: 100vh;
   padding: 32px 24px 48px;
-  color: #e8eef7;
-  background:
-    radial-gradient(circle at top left, #1d4f7a 0%, transparent 40%),
-    linear-gradient(160deg, #0b1624 0%, #132033 45%, #0a121c 100%);
 }
 
 .device-panel {
@@ -286,21 +282,9 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
-.eyebrow {
-  margin: 0 0 8px;
-  letter-spacing: 0.14em;
-  font-size: 12px;
-  color: #7eb6ff;
-}
-
 h1 {
   margin: 0 0 8px;
   font-size: 32px;
-}
-
-.subtitle {
-  margin: 0;
-  color: #9db0c7;
 }
 
 .header-actions {
@@ -314,27 +298,25 @@ h1 {
 .secondary-button,
 .primary-button,
 .text-button {
-  border: 1px solid rgb(255 255 255 / 18%);
+  border: 1px solid var(--st-border);
   border-radius: 8px;
-  background: rgb(255 255 255 / 6%);
-  color: inherit;
+  background: var(--st-bg-elevated);
+  color: var(--st-text);
   text-decoration: none;
   padding: 8px 12px;
   cursor: pointer;
 }
 
 .primary-button {
-  background: #2f6fed;
-  border-color: #2f6fed;
+  background: var(--st-color-primary);
+  border-color: var(--st-color-primary);
+  color: #fff;
 }
 
 .device-form,
 .table-wrap {
   margin-bottom: 20px;
   padding: 18px;
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: 14px;
-  background: rgb(8 16 28 / 72%);
 }
 
 .form-title {
@@ -342,6 +324,10 @@ h1 {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.form-title p {
+  color: var(--st-text-muted);
 }
 
 .form-grid {
@@ -357,15 +343,15 @@ label {
 
 label span {
   font-size: 13px;
-  color: #9db0c7;
+  color: var(--st-text-muted);
 }
 
 input {
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgb(255 255 255 / 16%);
-  background: rgb(0 0 0 / 25%);
-  color: inherit;
+  border: 1px solid var(--st-border);
+  background: var(--st-input-bg);
+  color: var(--st-text);
 }
 
 .form-actions {
@@ -380,12 +366,12 @@ table {
 th,
 td {
   padding: 12px 10px;
-  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  border-bottom: 1px solid var(--st-border);
   text-align: left;
 }
 
 .empty {
-  color: #9db0c7;
+  color: var(--st-text-muted);
   text-align: center;
 }
 
@@ -402,13 +388,13 @@ td {
 }
 
 .status-pill.online {
-  background: rgb(34 197 94 / 20%);
-  color: #86efac;
+  background: color-mix(in srgb, var(--st-success) 20%, transparent);
+  color: var(--st-success);
 }
 
 .status-pill.offline {
-  background: rgb(148 163 184 / 18%);
-  color: #cbd5e1;
+  background: var(--st-bg-elevated);
+  color: var(--st-text-muted);
 }
 
 .error-message,
@@ -419,12 +405,12 @@ td {
 }
 
 .error-message {
-  background: rgb(239 68 68 / 16%);
-  color: #fecaca;
+  background: color-mix(in srgb, var(--st-danger) 16%, transparent);
+  color: var(--st-danger);
 }
 
 .success-message {
-  background: rgb(34 197 94 / 16%);
-  color: #bbf7d0;
+  background: color-mix(in srgb, var(--st-success) 16%, transparent);
+  color: var(--st-success);
 }
 </style>

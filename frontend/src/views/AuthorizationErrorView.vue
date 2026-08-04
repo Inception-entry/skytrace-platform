@@ -1,23 +1,23 @@
 <template>
-  <main class="authorization-page">
-    <section class="authorization-card">
+  <main class="authorization-page st-page">
+    <section class="authorization-card st-panel">
       <div class="status-code">{{ status }}</div>
-      <p class="eyebrow">访问控制</p>
+      <p class="eyebrow">{{ $t('auth.accessControl') }}</p>
       <h1>{{ title }}</h1>
       <p class="description">{{ description }}</p>
 
       <div class="identity">
-        <span>当前用户</span>
-        <strong>{{ authenticationState.username || '未知用户' }}</strong>
-        <span>当前角色</span>
-        <strong>{{ displayedRoles || '无业务角色' }}</strong>
+        <span>{{ $t('auth.currentUser') }}</span>
+        <strong>{{ authenticationState.username || $t('common.unknownUser') }}</strong>
+        <span>{{ $t('auth.currentRoles') }}</span>
+        <strong>{{ displayedRoles || $t('common.noRoles') }}</strong>
       </div>
 
       <div class="actions">
         <a-button type="primary" @click="handlePrimaryAction">
-          {{ status === 401 ? '重新登录' : '返回巡检任务' }}
+          {{ status === 401 ? $t('auth.reLogin') : $t('auth.backToTasks') }}
         </a-button>
-        <a-button @click="goHome">返回首页</a-button>
+        <a-button @click="goHome">{{ $t('common.backHome') }}</a-button>
       </div>
     </section>
   </main>
@@ -25,6 +25,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useTranslation } from 'i18next-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   authenticationState,
@@ -35,15 +36,16 @@ import { resolveSafeRedirect } from '@/auth/authorization-navigation'
 const props = defineProps<{
   status: 401 | 403
 }>()
+const { t } = useTranslation()
 const route = useRoute()
 const router = useRouter()
 
 const title = computed(() => props.status === 401
-  ? '登录状态已失效'
-  : '没有访问权限')
+  ? t('auth.expiredTitle')
+  : t('auth.forbiddenTitle'))
 const description = computed(() => props.status === 401
-  ? '访问令牌缺失、失效或无法通过身份校验，请重新登录。'
-  : '当前账号已登录，但没有执行该操作所需的业务角色。')
+  ? t('auth.expiredBody')
+  : t('auth.forbiddenBody'))
 const displayedRoles = computed(() => authenticationState.roles
   .filter((role) => ['ADMIN', 'OPERATOR', 'VIEWER'].includes(role))
   .join(', '))
@@ -71,23 +73,15 @@ const goHome = () => {
   min-height: 100vh;
   place-items: center;
   padding: 24px;
-  color: #172033;
-  background:
-    radial-gradient(circle at top right, #dbeafe 0, transparent 36%),
-    linear-gradient(145deg, #f8fafc, #e2e8f0);
 }
 
 .authorization-card {
   width: min(560px, 100%);
   padding: 44px;
-  background: rgb(255 255 255 / 92%);
-  border: 1px solid #dbe3ef;
-  border-radius: 18px;
-  box-shadow: 0 24px 70px rgb(15 23 42 / 14%);
 }
 
 .status-code {
-  color: #1677ff;
+  color: var(--st-color-primary);
   font-size: clamp(72px, 18vw, 132px);
   font-weight: 800;
   line-height: 0.85;
@@ -96,10 +90,6 @@ const goHome = () => {
 
 .eyebrow {
   margin: 30px 0 8px;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
 }
 
 h1 {
@@ -109,7 +99,7 @@ h1 {
 
 .description {
   margin: 14px 0 24px;
-  color: #64748b;
+  color: var(--st-text-muted);
   line-height: 1.7;
 }
 
@@ -118,12 +108,12 @@ h1 {
   grid-template-columns: 90px 1fr;
   gap: 10px 16px;
   padding: 18px;
-  background: #f8fafc;
+  background: var(--st-bg-elevated);
   border-radius: 10px;
 }
 
 .identity span {
-  color: #64748b;
+  color: var(--st-text-muted);
 }
 
 .actions {

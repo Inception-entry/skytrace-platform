@@ -1,18 +1,16 @@
 <template>
-  <main class="knowledge-page">
+  <main class="knowledge-page st-page">
     <section class="knowledge-shell">
-      <header class="page-header">
+      <header class="page-header st-panel">
         <div>
-          <p class="eyebrow">SKYTRACE RAG KNOWLEDGE BASE</p>
-          <h1>无人机知识库</h1>
-          <p class="subtitle">
-            上传手册和故障文档，让 AI 分析使用可追溯的内部资料
-          </p>
+          <p class="eyebrow">{{ $t('knowledge.eyebrow') }}</p>
+          <h1>{{ $t('knowledge.titleAlt') }}</h1>
+          <p class="subtitle">{{ $t('knowledge.subtitleDetail') }}</p>
         </div>
         <nav class="page-nav">
-          <RouterLink to="/chat">AI 分析</RouterLink>
-          <RouterLink to="/drone">任务列表</RouterLink>
-          <RouterLink to="/devices">设备管理</RouterLink>
+          <RouterLink to="/chat">{{ $t('nav.chat') }}</RouterLink>
+          <RouterLink to="/drone">{{ $t('nav.tasks') }}</RouterLink>
+          <RouterLink to="/devices">{{ $t('nav.devices') }}</RouterLink>
         </nav>
       </header>
 
@@ -24,11 +22,11 @@
       </p>
 
       <div class="content-grid">
-        <section class="card document-card">
+        <section class="card document-card st-panel">
           <div class="card-heading">
             <div>
-              <h2>知识文档</h2>
-              <p>{{ documents.length }} 份文档，数据持久化在 Qdrant</p>
+              <h2>{{ $t('knowledge.documentsTitle') }}</h2>
+              <p>{{ $t('knowledge.documentsCount', { count: documents.length }) }}</p>
             </div>
             <button
               class="ghost-button"
@@ -36,7 +34,7 @@
               :disabled="loadingDocuments"
               @click="loadDocuments"
             >
-              刷新
+              {{ $t('common.refresh') }}
             </button>
           </div>
 
@@ -49,8 +47,8 @@
               @change="selectFile"
             />
             <div class="upload-copy">
-              <strong>{{ selectedFile?.name || '选择知识文档' }}</strong>
-              <span>PDF / Markdown / TXT，单个文件不超过 10 MB</span>
+              <strong>{{ selectedFile?.name || $t('knowledge.selectFile') }}</strong>
+              <span>{{ $t('knowledge.fileTypesHint') }}</span>
             </div>
             <button
               class="primary-button"
@@ -58,17 +56,17 @@
               :disabled="!selectedFile || uploading"
               @click="uploadDocument"
             >
-              {{ uploading ? '正在解析并向量化…' : '上传入库' }}
+              {{ uploading ? $t('knowledge.uploading') : $t('knowledge.uploadIngest') }}
             </button>
           </div>
 
           <p v-else class="permission-hint">
-            当前角色可以查询知识库；上传和删除需要 ADMIN 权限。
+            {{ $t('knowledge.permissionHint') }}
           </p>
 
-          <div v-if="loadingDocuments" class="empty-state">正在加载…</div>
+          <div v-if="loadingDocuments" class="empty-state">{{ $t('common.loading') }}</div>
           <div v-else-if="documents.length === 0" class="empty-state">
-            尚未上传文档。先用 ADMIN 账号加入一份无人机手册。
+            {{ $t('knowledge.emptyHint') }}
           </div>
           <div v-else class="document-list">
             <article
@@ -80,8 +78,10 @@
               <div class="document-info">
                 <strong>{{ document.filename }}</strong>
                 <span>
-                  {{ document.chunkCount }} 个知识片段 ·
-                  {{ formatDate(document.uploadedAt) }}
+                  {{ $t('knowledge.chunkMeta', {
+                    count: document.chunkCount,
+                    time: formatDate(document.uploadedAt),
+                  }) }}
                 </span>
                 <code>{{ document.documentId.slice(0, 16) }}…</code>
               </div>
@@ -92,17 +92,17 @@
                 :disabled="deletingId === document.documentId"
                 @click="removeDocument(document)"
               >
-                {{ deletingId === document.documentId ? '删除中' : '删除' }}
+                {{ deletingId === document.documentId ? $t('common.deleting') : $t('common.delete') }}
               </button>
             </article>
           </div>
         </section>
 
-        <section class="card search-card">
+        <section class="card search-card st-panel">
           <div class="card-heading">
             <div>
-              <h2>语义检索测试</h2>
-              <p>这里看到的片段，就是聊天时提供给模型的 RAG 上下文</p>
+              <h2>{{ $t('knowledge.searchTitle') }}</h2>
+              <p>{{ $t('knowledge.searchHint') }}</p>
             </div>
           </div>
 
@@ -111,7 +111,7 @@
               v-model="query"
               rows="3"
               maxlength="2000"
-              placeholder="例如：图传中断后，操作员应该先做什么？"
+              :placeholder="$t('knowledge.queryPlaceholderExample')"
               :disabled="searching"
             ></textarea>
             <button
@@ -119,12 +119,12 @@
               type="submit"
               :disabled="!query.trim() || searching"
             >
-              {{ searching ? '检索中…' : '检索知识库' }}
+              {{ searching ? $t('knowledge.searching') : $t('knowledge.searchButton') }}
             </button>
           </form>
 
           <div v-if="hasSearched && results.length === 0" class="empty-state">
-            没有达到相似度阈值的片段，请换一种问法或上传相关资料。
+            {{ $t('knowledge.noResults') }}
           </div>
 
           <div class="result-list">
@@ -134,9 +134,9 @@
               class="result-item"
             >
               <div class="result-meta">
-                <strong>[资料{{ index + 1 }}] {{ result.filename }}</strong>
-                <span v-if="result.page">第 {{ result.page }} 页</span>
-                <span>相似度 {{ formatScore(result.score) }}</span>
+                <strong>{{ $t('knowledge.sourceLabel', { index: index + 1, filename: result.filename }) }}</strong>
+                <span v-if="result.page">{{ $t('knowledge.pageLabel', { page: result.page }) }}</span>
+                <span>{{ $t('knowledge.scoreLabel', { score: formatScore(result.score) }) }}</span>
               </div>
               <p>{{ result.content }}</p>
             </article>
@@ -149,6 +149,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useTranslation } from 'i18next-vue'
 import {
   deleteKnowledgeDocument,
   getKnowledgeDocuments,
@@ -158,6 +159,9 @@ import {
   type KnowledgeSearchResult,
 } from '@/api/knowledge'
 import { authenticationState } from '@/auth/keycloak'
+import i18n from '@/i18n'
+
+const { t } = useTranslation()
 
 const documents = ref<KnowledgeDocument[]>([])
 const results = ref<KnowledgeSearchResult[]>([])
@@ -187,7 +191,7 @@ async function loadDocuments() {
   try {
     documents.value = await getKnowledgeDocuments()
   } catch (error) {
-    errorMessage.value = errorText(error, '知识文档加载失败')
+    errorMessage.value = errorText(error, t('knowledge.loadFailed'))
   } finally {
     loadingDocuments.value = false
   }
@@ -203,12 +207,12 @@ async function uploadDocument() {
   uploading.value = true
   try {
     const document = await uploadKnowledgeDocument(selectedFile.value)
-    successMessage.value = `${document.filename} 已完成解析和向量入库`
+    successMessage.value = t('knowledge.uploaded', { filename: document.filename })
     selectedFile.value = undefined
     if (fileInput.value) fileInput.value.value = ''
     await loadDocuments()
   } catch (error) {
-    errorMessage.value = errorText(error, '文档上传失败')
+    errorMessage.value = errorText(error, t('knowledge.uploadFailed'))
   } finally {
     uploading.value = false
   }
@@ -224,25 +228,28 @@ async function runSearch() {
     results.value = await searchKnowledge(currentQuery)
     hasSearched.value = true
   } catch (error) {
-    errorMessage.value = errorText(error, '知识库检索失败')
+    errorMessage.value = errorText(error, t('knowledge.searchFailed'))
   } finally {
     searching.value = false
   }
 }
 
 async function removeDocument(document: KnowledgeDocument) {
-  if (!window.confirm(`确定删除知识文档“${document.filename}”吗？`)) return
+  if (!window.confirm(t('knowledge.deleteConfirmNamed', { name: document.filename }))) return
   resetMessages()
   deletingId.value = document.documentId
   try {
     const result = await deleteKnowledgeDocument(document.documentId)
-    successMessage.value = `已删除 ${document.filename} 的 ${result.deletedChunks} 个知识片段`
+    successMessage.value = t('knowledge.deleted', {
+      filename: document.filename,
+      count: result.deletedChunks,
+    })
     results.value = results.value.filter(
       item => item.documentId !== document.documentId,
     )
     await loadDocuments()
   } catch (error) {
-    errorMessage.value = errorText(error, '文档删除失败')
+    errorMessage.value = errorText(error, t('knowledge.deleteFailed'))
   } finally {
     deletingId.value = ''
   }
@@ -252,7 +259,9 @@ const fileMark = (filename: string) =>
   filename.split('.').pop()?.toUpperCase().slice(0, 4) || 'DOC'
 
 const formatDate = (value: string) =>
-  value ? new Date(value).toLocaleString('zh-CN') : '未知时间'
+  value
+    ? new Date(value).toLocaleString(i18n.language === 'en' ? 'en-US' : 'zh-CN')
+    : t('knowledge.unknownTime')
 
 const formatScore = (score: number) => `${(score * 100).toFixed(1)}%`
 
@@ -264,14 +273,7 @@ onMounted(loadDocuments)
 
 <style scoped>
 .knowledge-page {
-  min-height: 100vh;
   padding: 34px;
-  box-sizing: border-box;
-  color: #172033;
-  background:
-    radial-gradient(circle at 10% 0, #dbeafe 0, transparent 28%),
-    radial-gradient(circle at 92% 100%, #d1fae5 0, transparent 26%),
-    #f4f7fb;
 }
 
 .knowledge-shell {
@@ -294,10 +296,6 @@ onMounted(loadDocuments)
   gap: 24px;
   margin-bottom: 24px;
   padding: 26px 28px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  box-shadow: 0 16px 46px rgba(15, 23, 42, 0.07);
 }
 
 .page-header h1 {
@@ -305,22 +303,9 @@ onMounted(loadDocuments)
   font-size: 27px;
 }
 
-.eyebrow,
-.subtitle,
 .card-heading p {
   margin: 0;
-}
-
-.eyebrow {
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-}
-
-.subtitle,
-.card-heading p {
-  color: #718096;
+  color: var(--st-text-muted);
 }
 
 .page-nav {
@@ -336,14 +321,14 @@ onMounted(loadDocuments)
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  border: 1px solid #d7dfeb;
+  border: 1px solid var(--st-border);
   border-radius: 9px;
 }
 
 .page-nav a {
-  color: #334155;
+  color: var(--st-text);
   text-decoration: none;
-  background: #f8fafc;
+  background: var(--st-bg-elevated);
 }
 
 .content-grid {
@@ -355,10 +340,6 @@ onMounted(loadDocuments)
 .card {
   min-width: 0;
   padding: 24px;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  box-shadow: 0 16px 46px rgba(15, 23, 42, 0.06);
 }
 
 .card-heading {
@@ -377,14 +358,14 @@ onMounted(loadDocuments)
 }
 
 .ghost-button {
-  color: #334155;
-  background: #f8fafc;
+  color: var(--st-text);
+  background: var(--st-bg-elevated);
 }
 
 .primary-button {
-  color: white;
-  background: #2563eb;
-  border-color: #2563eb;
+  color: #fff;
+  background: var(--st-color-primary);
+  border-color: var(--st-color-primary);
 }
 
 button:disabled {
@@ -397,8 +378,8 @@ button:disabled {
   gap: 12px;
   margin-bottom: 18px;
   padding: 14px;
-  background: #f8faff;
-  border: 1px dashed #93b4e7;
+  background: var(--st-bg-elevated);
+  border: 1px dashed var(--st-border-strong);
   border-radius: 12px;
 }
 
@@ -428,7 +409,7 @@ button:disabled {
 .permission-hint,
 .document-info span,
 .document-info code {
-  color: #718096;
+  color: var(--st-text-muted);
   font-size: 12px;
 }
 
@@ -440,7 +421,7 @@ button:disabled {
 .permission-hint {
   margin: 0 0 18px;
   padding: 11px 13px;
-  background: #f8fafc;
+  background: var(--st-bg-elevated);
   border-radius: 9px;
 }
 
@@ -453,7 +434,7 @@ button:disabled {
 .document-item {
   gap: 12px;
   padding: 13px;
-  border: 1px solid #e4eaf2;
+  border: 1px solid var(--st-border);
   border-radius: 11px;
 }
 
@@ -463,10 +444,10 @@ button:disabled {
   width: 44px;
   height: 44px;
   place-items: center;
-  color: #1d4ed8;
+  color: var(--st-color-accent);
   font-size: 11px;
   font-weight: 900;
-  background: #dbeafe;
+  background: var(--st-color-primary-soft);
   border-radius: 10px;
 }
 
@@ -485,9 +466,9 @@ button:disabled {
 }
 
 .delete-button {
-  color: #b91c1c;
-  background: #fff;
-  border-color: #fecaca;
+  color: var(--st-danger);
+  background: var(--st-bg-panel);
+  border-color: color-mix(in srgb, var(--st-danger) 35%, transparent);
 }
 
 .search-form {
@@ -500,18 +481,19 @@ button:disabled {
   width: 100%;
   padding: 12px;
   box-sizing: border-box;
-  color: #172033;
+  color: var(--st-text);
   font: inherit;
   line-height: 1.6;
   resize: vertical;
-  border: 1px solid #d7dfeb;
+  background: var(--st-input-bg);
+  border: 1px solid var(--st-border);
   border-radius: 10px;
   outline: none;
 }
 
 .search-form textarea:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: var(--st-color-primary);
+  box-shadow: 0 0 0 3px var(--st-color-primary-soft);
 }
 
 .search-form button {
@@ -520,8 +502,8 @@ button:disabled {
 
 .result-item {
   padding: 15px;
-  background: #fbfcff;
-  border: 1px solid #e4eaf2;
+  background: var(--st-bg-elevated);
+  border: 1px solid var(--st-border);
   border-radius: 11px;
 }
 
@@ -533,30 +515,30 @@ button:disabled {
 
 .result-meta strong {
   margin-right: auto;
-  color: #1e40af;
+  color: var(--st-color-accent);
 }
 
 .result-meta span {
   padding: 3px 7px;
-  color: #526077;
+  color: var(--st-text-muted);
   font-size: 11px;
-  background: #eef2f7;
+  background: var(--st-bg-elevated);
   border-radius: 999px;
 }
 
 .result-item p {
   margin: 0;
-  color: #334155;
+  color: var(--st-text);
   line-height: 1.72;
   white-space: pre-wrap;
 }
 
 .empty-state {
   padding: 34px 18px;
-  color: #8490a3;
+  color: var(--st-text-muted);
   text-align: center;
-  background: #fbfcff;
-  border: 1px dashed #d8e0ec;
+  background: var(--st-bg-elevated);
+  border: 1px dashed var(--st-border);
   border-radius: 11px;
 }
 
@@ -567,15 +549,15 @@ button:disabled {
 }
 
 .notice.success {
-  color: #047857;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  color: var(--st-success);
+  background: color-mix(in srgb, var(--st-success) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--st-success) 35%, transparent);
 }
 
 .notice.error {
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  color: var(--st-danger);
+  background: color-mix(in srgb, var(--st-danger) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--st-danger) 35%, transparent);
 }
 
 @media (max-width: 980px) {

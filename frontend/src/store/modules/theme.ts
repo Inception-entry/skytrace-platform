@@ -1,41 +1,64 @@
-// 主题相关
 import { defineStore } from 'pinia'
 import { store } from '@/store'
-import { getTheme, setTheme, removeTheme } from '@/utils/theme';
+import { getTheme, setTheme, removeTheme } from '@/utils/theme'
+import {
+  applyThemeToDocument,
+  resolveThemeKey,
+  themeRegistry,
+  type ThemeKey,
+} from '@/theme/registry'
+import type { ThemeConfig } from 'ant-design-vue/es/config-provider/context'
 
 interface ThemeState {
-  theme: object;
-  themeKey: string;
+  themeKey: ThemeKey
+  antTheme: ThemeConfig
+}
+
+function buildState(key: ThemeKey): ThemeState {
+  const def = themeRegistry[key]
+  return {
+    themeKey: key,
+    antTheme: def.ant,
+  }
 }
 
 export const useThemeStore = defineStore('theme', {
-  state: ():ThemeState => ({
-    theme: {},
-    themeKey: '',
-  }),
+  state: (): ThemeState => {
+    const key = resolveThemeKey(getTheme())
+    return buildState(key)
+  },
   getters: {
-    getTheme(): string {
-      return this.themeKey || getTheme()
+    getTheme(): ThemeKey {
+      return this.themeKey
     },
-    getThemeValue(): any {
-      return this.theme || {}
-    }
+    getThemeValue(): ThemeConfig {
+      return this.antTheme
+    },
   },
   actions: {
-    setTheme(info: string) {
-      this.themeKey = info ?? ''; // for null or undefined value
-      setTheme(info);
+    hydrate() {
+      this.applyTheme(resolveThemeKey(getTheme()))
     },
-    setThemeValue(config: any) {
-      this.theme = config ?? '';
+    applyTheme(rawKey: string) {
+      const key = resolveThemeKey(rawKey)
+      const def = themeRegistry[key]
+      this.themeKey = key
+      this.antTheme = def.ant
+      setTheme(key)
+      applyThemeToDocument(def)
+    },
+    setTheme(info: string) {
+      this.applyTheme(info)
+    },
+    setThemeValue(_config: unknown) {
+      // kept for backward compatibility with old SwitchTheme callers
+      this.applyTheme(this.themeKey)
     },
     removeTheme() {
-      removeTheme();
-    }
-  }
+      removeTheme()
+      this.applyTheme('classic')
+    },
+  },
 })
 
-// Need to be used outside the setup
-export const useThemeStoreWithOut = () => {
-  return useThemeStore(store);
-}
+export const useThemeStoreWithOut = () => useThemeStore(store)

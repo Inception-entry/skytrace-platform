@@ -1,11 +1,11 @@
 <template>
-  <main class="task-page">
-    <section class="task-panel">
+  <main class="task-page st-page">
+    <section class="task-panel st-panel">
       <header class="panel-header">
         <div>
-          <p class="eyebrow">SKYTRACE INSPECTION</p>
-          <h1>无人机巡检任务</h1>
-          <p class="subtitle">先维护真实任务数据，再交给 Temporal 执行</p>
+          <p class="eyebrow">{{ $t('tasks.eyebrow') }}</p>
+          <h1>{{ $t('tasks.title') }}</h1>
+          <p class="subtitle">{{ $t('tasks.subtitle') }}</p>
         </div>
 
         <div class="header-actions">
@@ -16,19 +16,19 @@
             :disabled="loading"
             @click="openCreateForm"
           >
-            新建任务
+            {{ $t('tasks.create') }}
           </button>
           <RouterLink class="knowledge-link" to="/devices">
-            设备管理
+            {{ $t('nav.devices') }}
           </RouterLink>
           <RouterLink class="knowledge-link" to="/routes">
-            航线管理
+            {{ $t('nav.routes') }}
           </RouterLink>
           <RouterLink v-if="canOperate" class="chat-link" to="/chat">
-            AI 智能分析
+            {{ $t('nav.chat') }}
           </RouterLink>
           <RouterLink class="knowledge-link" to="/knowledge">
-            知识库
+            {{ $t('nav.knowledge') }}
           </RouterLink>
         </div>
       </header>
@@ -40,8 +40,8 @@
       >
         <div class="form-title">
           <div>
-            <h2>{{ editingTaskCode ? '编辑巡检任务' : '新建巡检任务' }}</h2>
-            <p>设备编号和计划时间会作为 AI 分析的真实上下文。</p>
+            <h2>{{ editingTaskCode ? $t('tasks.editTitle') : $t('tasks.createTitle') }}</h2>
+            <p>{{ $t('tasks.formHint') }}</p>
           </div>
           <button
             class="text-button"
@@ -49,43 +49,43 @@
             :disabled="loading"
             @click="closeForm"
           >
-            关闭
+            {{ $t('common.close') }}
           </button>
         </div>
 
         <div class="form-grid">
           <label>
-            <span>任务编号</span>
+            <span>{{ $t('tasks.taskCode') }}</span>
             <input
               v-model.trim="form.taskCode"
               maxlength="64"
               pattern="[A-Za-z0-9_-]+"
-              placeholder="例如 TASK-006"
+              :placeholder="$t('tasks.taskCodePlaceholder')"
               :disabled="loading || Boolean(editingTaskCode)"
               required
             />
           </label>
 
           <label>
-            <span>任务名称</span>
+            <span>{{ $t('tasks.taskName') }}</span>
             <input
               v-model.trim="form.taskName"
               maxlength="128"
-              placeholder="例如 东区输电线路巡检"
+              :placeholder="$t('tasks.taskNamePlaceholder')"
               :disabled="loading"
               required
             />
           </label>
 
           <label>
-            <span>关联设备</span>
+            <span>{{ $t('tasks.device') }}</span>
             <select
               v-model="form.deviceCode"
               :disabled="loading || devices.length === 0"
               required
             >
               <option disabled value="">
-                {{ devices.length ? '请选择设备' : '暂无可用设备' }}
+                {{ devices.length ? $t('tasks.selectDevice') : $t('tasks.noDevice') }}
               </option>
               <option
                 v-for="device in devices"
@@ -99,12 +99,12 @@
           </label>
 
           <label>
-            <span>关联航线（可选）</span>
+            <span>{{ $t('tasks.route') }}</span>
             <select
               v-model="form.routeCode"
               :disabled="loading"
             >
-              <option value="">不绑定航线</option>
+              <option value="">{{ $t('tasks.noRoute') }}</option>
               <option
                 v-for="route in routes"
                 :key="route.routeCode"
@@ -116,7 +116,7 @@
           </label>
 
           <label>
-            <span>计划开始时间</span>
+            <span>{{ $t('tasks.plannedStart') }}</span>
             <input
               v-model="form.planStartTime"
               type="datetime-local"
@@ -126,7 +126,7 @@
           </label>
 
           <label>
-            <span>计划结束时间</span>
+            <span>{{ $t('tasks.plannedEnd') }}</span>
             <input
               v-model="form.planEndTime"
               type="datetime-local"
@@ -142,7 +142,7 @@
             type="submit"
             :disabled="loading"
           >
-            {{ loading ? '保存中……' : '保存任务' }}
+            {{ loading ? $t('common.saving') : $t('tasks.save') }}
           </button>
           <button
             class="secondary-button"
@@ -150,20 +150,20 @@
             :disabled="loading"
             @click="closeForm"
           >
-            取消
+            {{ $t('common.cancel') }}
           </button>
         </div>
       </form>
 
       <div class="toolbar">
-        <p>共 {{ tasks.length }} 条任务</p>
+        <p>{{ $t('tasks.totalTasks', { count: tasks.length }) }}</p>
         <button
           class="secondary-button"
           type="button"
           :disabled="loading"
           @click="loadTasks"
         >
-          刷新
+          {{ $t('common.refresh') }}
         </button>
       </div>
 
@@ -175,19 +175,19 @@
       </p>
 
       <p v-if="loading && !formVisible" class="loading-text">
-        加载中……
+        {{ $t('common.loading') }}
       </p>
 
       <div v-else class="table-wrapper">
         <table>
           <thead>
             <tr>
-              <th>任务信息</th>
-              <th>设备</th>
-              <th>航线</th>
-              <th>计划时间</th>
-              <th>状态</th>
-              <th>操作</th>
+              <th>{{ $t('tasks.taskInfo') }}</th>
+              <th>{{ $t('tasks.device') }}</th>
+              <th>{{ $t('nav.routes') }}</th>
+              <th>{{ $t('tasks.plannedTime') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th>{{ $t('common.actions') }}</th>
             </tr>
           </thead>
 
@@ -198,7 +198,7 @@
                 <small>{{ task.taskCode }}</small>
               </td>
               <td>
-                <strong>{{ task.deviceName || task.deviceCode || '未设置' }}</strong>
+                <strong>{{ task.deviceName || task.deviceCode || $t('common.unset') }}</strong>
                 <small v-if="task.deviceCode">
                   {{ task.deviceCode }}
                   <template v-if="task.deviceStatus">
@@ -207,12 +207,12 @@
                 </small>
               </td>
               <td>
-                <strong>{{ task.routeName || task.routeCode || '未绑定' }}</strong>
+                <strong>{{ task.routeName || task.routeCode || $t('tasks.unbound') }}</strong>
                 <small v-if="task.routeCode">{{ task.routeCode }}</small>
               </td>
               <td>
                 <span>{{ formatDateTime(task.planStartTime) }}</span>
-                <small>至 {{ formatDateTime(task.planEndTime) }}</small>
+                <small>{{ $t('tasks.timeTo', { time: formatDateTime(task.planEndTime) }) }}</small>
               </td>
               <td>
                 <span class="status-badge" :class="task.status.toLowerCase()">
@@ -226,7 +226,7 @@
                     :disabled="loading"
                     @click="selectTask(task.taskCode)"
                   >
-                    证据
+                    {{ $t('tasks.evidence') }}
                   </button>
                   <template v-if="canOperate">
                     <button
@@ -234,37 +234,37 @@
                       :disabled="loading || task.status !== 'CREATED'"
                       @click="handleStart(task.taskCode)"
                     >
-                      启动
+                      {{ $t('tasks.start') }}
                     </button>
                     <button
                       type="button"
                       :disabled="loading || isTerminal(task.status)"
                       @click="openEditForm(task)"
                     >
-                      编辑
+                      {{ $t('common.edit') }}
                     </button>
                     <button
                       type="button"
                       :disabled="loading || task.status !== 'RUNNING'"
                       @click="handleComplete(task.taskCode)"
                     >
-                      完成
+                      {{ $t('tasks.complete') }}
                     </button>
                     <button
                       type="button"
                       :disabled="loading || task.status !== 'RUNNING'"
                       @click="handleCancel(task.taskCode)"
                     >
-                      取消
+                      {{ $t('common.cancel') }}
                     </button>
                   </template>
-                  <span v-else class="read-only-hint">只读权限</span>
+                  <span v-else class="read-only-hint">{{ $t('common.readOnlyHint') }}</span>
                 </div>
               </td>
             </tr>
 
             <tr v-if="tasks.length === 0">
-              <td colspan="6" class="empty-cell">暂无巡检任务</td>
+              <td colspan="6" class="empty-cell">{{ $t('tasks.empty') }}</td>
             </tr>
           </tbody>
         </table>
@@ -273,8 +273,8 @@
       <section v-if="selectedTaskCode" class="evidence-panel">
         <div class="evidence-header">
           <div>
-            <h2>任务证据 · {{ selectedTaskCode }}</h2>
-            <p>按任务编号查询已上传的截图/视频元数据</p>
+            <h2>{{ $t('tasks.evidenceTitle', { code: selectedTaskCode }) }}</h2>
+            <p>{{ $t('tasks.evidenceHint') }}</p>
           </div>
           <div class="evidence-actions">
             <label class="upload-button">
@@ -284,7 +284,7 @@
                 :disabled="loading || !canOperate"
                 @change="handleEvidenceUpload"
               />
-              {{ canOperate ? '上传证据' : '只读' }}
+              {{ canOperate ? $t('tasks.uploadEvidence') : $t('common.readOnly') }}
             </label>
             <button
               class="secondary-button"
@@ -292,12 +292,12 @@
               :disabled="loading"
               @click="loadEvidence(selectedTaskCode)"
             >
-              刷新证据
+              {{ $t('tasks.refreshEvidence') }}
             </button>
           </div>
         </div>
 
-        <p v-if="evidenceLoading" class="loading-text">证据加载中……</p>
+        <p v-if="evidenceLoading" class="loading-text">{{ $t('tasks.evidenceLoading') }}</p>
         <ul v-else-if="evidenceList.length" class="evidence-list">
           <li v-for="item in evidenceList" :key="item.objectKey">
             <div>
@@ -315,11 +315,11 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              打开
+              {{ $t('common.open') }}
             </a>
           </li>
         </ul>
-        <p v-else class="empty-evidence">该任务暂无证据</p>
+        <p v-else class="empty-evidence">{{ $t('tasks.evidenceEmpty') }}</p>
       </section>
     </section>
   </main>
@@ -327,6 +327,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
   getEvidence,
@@ -353,6 +354,8 @@ interface TaskForm {
   planStartTime: string
   planEndTime: string
 }
+
+const { t } = useTranslation()
 
 const tasks = ref<InspectionTask[]>([])
 const devices = ref<Device[]>([])
@@ -431,7 +434,7 @@ const loadDevices = async () => {
   try {
     devices.value = await getDevices()
   } catch (error) {
-    errorMessage.value = errorText(error, '加载设备失败')
+    errorMessage.value = errorText(error, t('tasks.loadDevicesFailed'))
   }
 }
 
@@ -439,7 +442,7 @@ const loadRoutes = async () => {
   try {
     routes.value = await getRoutes()
   } catch (error) {
-    errorMessage.value = errorText(error, '加载航线失败')
+    errorMessage.value = errorText(error, t('tasks.loadRoutesFailed'))
   }
 }
 
@@ -450,7 +453,7 @@ const loadTasks = async () => {
   try {
     tasks.value = await getInspectionTasks()
   } catch (error) {
-    errorMessage.value = errorText(error, '加载失败')
+    errorMessage.value = errorText(error, t('tasks.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -467,7 +470,7 @@ const loadEvidence = async (taskCode: string) => {
     evidenceList.value = await getEvidence({ taskCode })
   } catch (error) {
     evidenceList.value = []
-    errorMessage.value = errorText(error, '加载证据失败')
+    errorMessage.value = errorText(error, t('tasks.loadEvidenceFailed'))
   } finally {
     evidenceLoading.value = false
   }
@@ -483,10 +486,10 @@ const handleEvidenceUpload = async (event: Event) => {
   resetMessages()
   try {
     await uploadEvidence(file, selectedTaskCode.value)
-    successMessage.value = `证据已上传到 ${selectedTaskCode.value}`
+    successMessage.value = t('tasks.evidenceUploaded', { code: selectedTaskCode.value })
     await loadEvidence(selectedTaskCode.value)
   } catch (error) {
-    errorMessage.value = errorText(error, '证据上传失败')
+    errorMessage.value = errorText(error, t('tasks.uploadEvidenceFailed'))
   } finally {
     loading.value = false
     input.value = ''
@@ -496,11 +499,11 @@ const handleEvidenceUpload = async (event: Event) => {
 const saveTask = async () => {
   resetMessages()
   if (!form.deviceCode) {
-    errorMessage.value = '请选择关联设备'
+    errorMessage.value = t('tasks.selectDeviceRequired')
     return
   }
   if (form.planEndTime <= form.planStartTime) {
-    errorMessage.value = '计划结束时间必须晚于计划开始时间'
+    errorMessage.value = t('tasks.invalidPlanRange')
     return
   }
 
@@ -516,20 +519,20 @@ const saveTask = async () => {
 
     if (editingTaskCode.value) {
       await updateInspectionTask(editingTaskCode.value, details)
-      successMessage.value = `任务 ${editingTaskCode.value} 已更新`
+      successMessage.value = t('tasks.updated', { code: editingTaskCode.value })
     } else {
       await createInspectionTask({
         taskCode: form.taskCode,
         ...details,
       })
-      successMessage.value = `任务 ${form.taskCode} 已创建，可以启动执行`
+      successMessage.value = t('tasks.created', { code: form.taskCode })
     }
 
     formVisible.value = false
     resetForm()
     await loadTasks()
   } catch (error) {
-    errorMessage.value = errorText(error, '保存失败')
+    errorMessage.value = errorText(error, t('tasks.saveFailed'))
     loading.value = false
   }
 }
@@ -538,8 +541,8 @@ const handleStart = async (taskCode: string) => {
   await runTaskAction(
     () => startInspectionTask(taskCode),
     taskCode,
-    '已启动',
-    '启动失败',
+    t('tasks.started'),
+    t('tasks.startFailed'),
   )
 }
 
@@ -547,8 +550,8 @@ const handleComplete = async (taskCode: string) => {
   await runTaskAction(
     () => completeInspectionTask(taskCode),
     taskCode,
-    '已完成',
-    '完成失败',
+    t('tasks.completed'),
+    t('tasks.completeFailed'),
   )
 }
 
@@ -556,8 +559,8 @@ const handleCancel = async (taskCode: string) => {
   await runTaskAction(
     () => cancelInspectionTask(taskCode),
     taskCode,
-    '已取消',
-    '取消失败',
+    t('tasks.cancelled'),
+    t('tasks.cancelFailed'),
   )
 }
 
@@ -573,7 +576,7 @@ const runTaskAction = async (
   try {
     await action()
     await delay(500)
-    successMessage.value = `任务 ${taskCode} ${successText}`
+    successMessage.value = t('tasks.actionDone', { code: taskCode, action: successText })
     await loadTasks()
   } catch (error) {
     errorMessage.value = errorText(error, failureText)
@@ -584,19 +587,17 @@ const runTaskAction = async (
 const isTerminal = (status: string) =>
   status === 'COMPLETED' || status === 'CANCELLED'
 
-const statusLabel = (status: string) =>
-  ({
-    CREATED: '待启动',
-    RUNNING: '执行中',
-    COMPLETED: '已完成',
-    CANCELLED: '已取消',
-  })[status] ?? status
+const statusLabel = (status: string) => {
+  const key = `tasks.status.${status}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
 
 const toDateTimeInput = (value: string | null) =>
   value ? value.slice(0, 16) : ''
 
 const formatDateTime = (value: string | null) =>
-  value ? value.replace('T', ' ').slice(0, 16) : '未设置'
+  value ? value.replace('T', ' ').slice(0, 16) : t('common.unset')
 
 const formatBytes = (size: number) => {
   if (size < 1024) return `${size} B`
@@ -614,21 +615,13 @@ onMounted(async () => {
 
 <style scoped>
 .task-page {
-  min-height: 100vh;
   padding: 36px;
-  box-sizing: border-box;
-  color: #172033;
-  background: #f4f7fb;
 }
 
 .task-panel {
   max-width: 1240px;
   margin: 0 auto;
   padding: 28px;
-  background: white;
-  border: 1px solid #e4eaf2;
-  border-radius: 16px;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.07);
 }
 
 .panel-header,
@@ -660,18 +653,10 @@ onMounted(async () => {
   margin: 0;
 }
 
-.eyebrow {
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-}
-
-.subtitle,
 .form-title p,
 small,
 .toolbar p {
-  color: #718096;
+  color: var(--st-text-muted);
 }
 
 .header-actions,
@@ -684,36 +669,38 @@ small,
 .knowledge-link,
 button {
   padding: 9px 13px;
-  border: 1px solid #d7dfeb;
+  border: 1px solid var(--st-border);
   border-radius: 8px;
   font: inherit;
   cursor: pointer;
-  background: white;
+  background: var(--st-bg-elevated);
+  color: var(--st-text);
 }
 
 .chat-link,
 .primary-button {
-  color: white;
+  color: #fff;
   text-decoration: none;
-  background: #2563eb;
-  border-color: #2563eb;
+  background: var(--st-color-primary);
+  border-color: var(--st-color-primary);
 }
 
 .knowledge-link {
-  color: #1d4ed8;
+  color: var(--st-color-accent);
   text-decoration: none;
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: var(--st-bg-elevated);
+  border-color: var(--st-border);
 }
 
 .secondary-button {
-  color: #334155;
-  background: #f8fafc;
+  color: var(--st-text);
+  background: var(--st-bg-elevated);
 }
 
 .text-button {
-  color: #64748b;
+  color: var(--st-text-muted);
   border: 0;
+  background: transparent;
 }
 
 button:disabled {
@@ -724,8 +711,8 @@ button:disabled {
 .task-form {
   margin: 26px 0;
   padding: 22px;
-  background: #f8faff;
-  border: 1px solid #dce7f8;
+  background: var(--st-bg-elevated);
+  border: 1px solid var(--st-border);
   border-radius: 13px;
 }
 
@@ -740,37 +727,27 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  color: #475569;
+  color: var(--st-text-muted);
   font-size: 13px;
   font-weight: 650;
 }
 
-input {
-  width: 100%;
-  padding: 10px 12px;
-  box-sizing: border-box;
-  color: #172033;
-  background: white;
-  border: 1px solid #ccd6e4;
-  border-radius: 8px;
-  outline: none;
-}
-
+input,
 select {
   width: 100%;
   padding: 10px 12px;
   box-sizing: border-box;
-  color: #172033;
-  background: white;
-  border: 1px solid #ccd6e4;
+  color: var(--st-text);
+  background: var(--st-input-bg);
+  border: 1px solid var(--st-border);
   border-radius: 8px;
   outline: none;
 }
 
 input:focus,
 select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: var(--st-color-primary);
+  box-shadow: 0 0 0 3px var(--st-color-primary-soft);
 }
 
 .toolbar {
@@ -784,23 +761,23 @@ select:focus {
 }
 
 .error {
-  color: #b91c1c;
-  background: #fef2f2;
+  color: var(--st-danger);
+  background: color-mix(in srgb, var(--st-danger) 14%, transparent);
 }
 
 .success {
-  color: #166534;
-  background: #f0fdf4;
+  color: var(--st-success);
+  background: color-mix(in srgb, var(--st-success) 14%, transparent);
 }
 
 .loading-text,
 .empty-cell {
-  color: #64748b;
+  color: var(--st-text-muted);
   text-align: center;
 }
 
 .read-only-hint {
-  color: #64748b;
+  color: var(--st-text-muted);
   font-size: 12px;
 }
 
@@ -818,14 +795,14 @@ th,
 td {
   padding: 14px 12px;
   text-align: left;
-  border-bottom: 1px solid #e5eaf1;
+  border-bottom: 1px solid var(--st-border);
 }
 
 th {
-  color: #64748b;
+  color: var(--st-text-muted);
   font-size: 12px;
   letter-spacing: 0.04em;
-  background: #f8fafc;
+  background: var(--st-bg-elevated);
 }
 
 td strong,
@@ -841,26 +818,26 @@ td small {
 .status-badge {
   width: fit-content;
   padding: 5px 9px;
-  color: #475569;
+  color: var(--st-text-muted);
   font-size: 12px;
   font-weight: 700;
-  background: #f1f5f9;
+  background: var(--st-bg-elevated);
   border-radius: 999px;
 }
 
 .status-badge.running {
-  color: #1d4ed8;
-  background: #dbeafe;
+  color: var(--st-color-accent);
+  background: var(--st-color-primary-soft);
 }
 
 .status-badge.completed {
-  color: #15803d;
-  background: #dcfce7;
+  color: var(--st-success);
+  background: color-mix(in srgb, var(--st-success) 18%, transparent);
 }
 
 .status-badge.cancelled {
-  color: #b91c1c;
-  background: #fee2e2;
+  color: var(--st-danger);
+  background: color-mix(in srgb, var(--st-danger) 18%, transparent);
 }
 
 .row-actions {
@@ -875,8 +852,8 @@ td small {
 .evidence-panel {
   margin-top: 24px;
   padding: 18px;
-  background: #f8faff;
-  border: 1px solid #dce7f8;
+  background: var(--st-bg-elevated);
+  border: 1px solid var(--st-border);
   border-radius: 13px;
 }
 
@@ -895,7 +872,7 @@ td small {
 .evidence-header p,
 .empty-evidence {
   margin: 0;
-  color: #718096;
+  color: var(--st-text-muted);
 }
 
 .evidence-actions {
@@ -906,9 +883,9 @@ td small {
   display: inline-flex;
   align-items: center;
   padding: 9px 13px;
-  color: white;
-  background: #2563eb;
-  border: 1px solid #2563eb;
+  color: #fff;
+  background: var(--st-color-primary);
+  border: 1px solid var(--st-color-primary);
   border-radius: 8px;
   cursor: pointer;
 }
@@ -929,11 +906,11 @@ td small {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #e5eaf1;
+  border-bottom: 1px solid var(--st-border);
 }
 
 .evidence-link {
-  color: #1d4ed8;
+  color: var(--st-color-accent);
   text-decoration: none;
   white-space: nowrap;
 }

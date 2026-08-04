@@ -1,0 +1,116 @@
+:root {
+  --st-color-primary: #2f6fed;
+  --st-color-primary-soft: rgba(47, 111, 237, 0.28);
+  --st-color-accent: #7eb6ff;
+  --st-bg-page: #07111f;
+  --st-bg-page-gradient: radial-gradient(ellipse 120% 80% at 20% 0%, #13233f 0%, #07111f 55%, #050a14 100%);
+  --st-bg-panel: rgba(12, 22, 40, 0.86);
+  --st-bg-panel-solid: #0f1a2e;
+  --st-bg-elevated: rgba(255, 255, 255, 0.06);
+  --st-border: rgba(255, 255, 255, 0.12);
+  --st-border-strong: rgba(126, 182, 255, 0.35);
+  --st-text: #e8eef7;
+  --st-text-muted: #9db0c7;
+  --st-text-inverse: #0b1220;
+  --st-danger: #ef4444;
+  --st-success: #22c55e;
+  --st-toolbar-bg: rgba(0, 21, 41, 0.78);
+  --st-drawer-bg: rgba(0, 21, 41, 0.92);
+  --st-input-bg: rgba(255, 255, 255, 0.06);
+  --st-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+  color: var(--st-text);
+  background: var(--st-bg-page);
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--st-bg-page-gradient);
+  background-attachment: fixed;
+}
+
+/* Shared business page skin — views should prefer these classes / CSS vars */
+.st-page {
+  min-height: 100vh;
+  padding: 24px;
+  color: var(--st-text);
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.st-panel {
+  background: var(--st-bg-panel);
+  border: 1px solid var(--st-border);
+  border-radius: 16px;
+  box-shadow: var(--st-shadow);
+  backdrop-filter: blur(10px);
+}
+
+.st-page h1,
+.st-page h2,
+.st-page h3 {
+  color: var(--st-text);
+}
+
+.st-page .eyebrow {
+  margin: 0 0 8px;
+  color: var(--st-color-accent);
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.st-page .subtitle,
+.st-page .aside-desc {
+  color: var(--st-text-muted);
+}
+
+.st-page input,
+.st-page select,
+.st-page textarea {
+  color: var(--st-text);
+  background: var(--st-input-bg);
+  border: 1px solid var(--st-border);
+}
+
+.st-page button,
+.st-page .primary-button,
+.st-page .secondary-button {
+  border-radius: 8px;
+}
+
+.st-page .primary-button,
+.st-page button[type='submit'] {
+  color: #fff;
+  background: var(--st-color-primary);
+  border: 1px solid var(--st-color-primary);
+}
+
+.st-page .secondary-button,
+.st-page .text-button {
+  color: var(--st-text);
+  background: var(--st-bg-elevated);
+  border: 1px solid var(--st-border);
+}
+
+.st-page a.knowledge-link,
+.st-page a.chat-link,
+.st-page a.admin-link {
+  color: var(--st-color-accent);
+}
+
+body > .authentication-error {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  color: var(--st-danger);
+  font-size: 18px;
+  background: var(--st-bg-page);
+}

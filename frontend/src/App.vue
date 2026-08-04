@@ -1,70 +1,26 @@
 <template>
-  <a-config-provider
-    :theme="currentTheme"
-  >
+  <a-config-provider :theme="currentTheme" :locale="antdLocale">
+    <st-menu-aside v-if="showChrome" />
     <router-view />
-    <div
-      v-if="authenticationState.authenticated"
-      class="authentication-user"
-    >
-      <span>{{ authenticationState.username }}</span>
-      <span class="authentication-role">{{ displayedRoles }}</span>
-      <RouterLink
-        v-if="isAdministrator"
-        class="admin-link"
-        to="/audit"
-      >
-        审计中心
-      </RouterLink>
-      <a-button size="small" @click="handleLogout">退出</a-button>
-    </div>
+    <st-auth-toolbar v-if="showChrome && route.path !== '/map'" />
   </a-config-provider>
 </template>
+
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
+import enUS from 'ant-design-vue/es/locale/en_US'
 import { useThemeStore } from '@/store/modules/theme'
-import { authenticationState, logout } from '@/auth/keycloak'
+import { useLangStore } from '@/store/modules/lang'
+import StAuthToolbar from '@/components/st-auth-toolbar/index.vue'
+import StMenuAside from '@/components/st-menu-aside/index.vue'
 
 const themeStore = useThemeStore()
-const currentTheme = computed(() => themeStore.getThemeValue);
-const displayedRoles = computed(() =>
-  authenticationState.roles
-    .filter((role) => ['ADMIN', 'OPERATOR', 'VIEWER'].includes(role))
-    .join(', '),
-)
-const isAdministrator = computed(() =>
-  authenticationState.roles.includes('ADMIN'),
-)
+const langStore = useLangStore()
+const route = useRoute()
 
-const handleLogout = () => {
-  void logout()
-}
-
+const currentTheme = computed(() => themeStore.getThemeValue)
+const antdLocale = computed(() => (langStore.getLang === 'en' ? enUS : zhCN))
+const showChrome = computed(() => route.path !== '/401' && route.path !== '/403')
 </script>
-<style scoped>
-.authentication-user {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  color: #fff;
-  background: rgb(0 21 41 / 78%);
-  border: 1px solid rgb(255 255 255 / 20%);
-  border-radius: 6px;
-  backdrop-filter: blur(6px);
-}
-
-.authentication-role {
-  color: #91caff;
-  font-size: 12px;
-}
-
-.admin-link {
-  color: #fff;
-  text-decoration: none;
-}
-</style>

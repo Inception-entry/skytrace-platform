@@ -1,18 +1,18 @@
 <template>
-  <main class="admin-page">
+  <main class="admin-page st-page">
     <section class="admin-shell">
-      <header class="page-header">
+      <header class="page-header st-panel">
         <div>
-          <p class="eyebrow">SECURITY &amp; GOVERNANCE</p>
-          <h1>审计中心</h1>
-          <p>查看运行概况、权限边界与关键操作审计记录</p>
+          <p class="eyebrow">{{ $t('audit.eyebrow') }}</p>
+          <h1>{{ $t('audit.title') }}</h1>
+          <p class="subtitle">{{ $t('audit.subtitleDetail') }}</p>
         </div>
         <nav>
-          <RouterLink to="/drone">巡检任务</RouterLink>
-          <RouterLink to="/devices">设备管理</RouterLink>
-          <RouterLink to="/knowledge">知识库</RouterLink>
+          <RouterLink to="/drone">{{ $t('nav.tasks') }}</RouterLink>
+          <RouterLink to="/devices">{{ $t('nav.devices') }}</RouterLink>
+          <RouterLink to="/knowledge">{{ $t('nav.knowledge') }}</RouterLink>
           <button type="button" :disabled="loading" @click="refreshAll">
-            刷新
+            {{ $t('common.refresh') }}
           </button>
         </nav>
       </header>
@@ -22,48 +22,50 @@
       </p>
 
       <section class="metric-grid">
-        <article class="metric-card primary">
-          <span>巡检任务</span>
+        <article class="metric-card primary st-panel">
+          <span>{{ $t('audit.metricTasks') }}</span>
           <strong>{{ overview.totalTasks }}</strong>
           <small>
-            执行中 {{ overview.runningTasks }} · 待启动
-            {{ overview.createdTasks }}
+            {{ $t('audit.metricTasksDetail', {
+              running: overview.runningTasks,
+              created: overview.createdTasks,
+            }) }}
           </small>
         </article>
-        <article class="metric-card">
-          <span>AI 分析记录</span>
+        <article class="metric-card st-panel">
+          <span>{{ $t('audit.metricAnalyses') }}</span>
           <strong>{{ overview.totalAnalyses }}</strong>
-          <small>包含同步与流式分析的持久化记录</small>
+          <small>{{ $t('audit.metricAnalysesDetail') }}</small>
         </article>
-        <article class="metric-card">
-          <span>审计事件</span>
+        <article class="metric-card st-panel">
+          <span>{{ $t('audit.metricEvents') }}</span>
           <strong>{{ overview.totalAuditEvents }}</strong>
-          <small>关键写操作均保留责任人和结果</small>
+          <small>{{ $t('audit.metricEventsDetail') }}</small>
         </article>
         <article
-          class="metric-card"
+          class="metric-card st-panel"
           :class="{ warning: overview.failedAuditEventsLast24Hours > 0 }"
         >
-          <span>24 小时失败</span>
+          <span>{{ $t('audit.metricFailures') }}</span>
           <strong>{{ overview.failedAuditEventsLast24Hours }}</strong>
-          <small>包括校验失败和上游执行失败</small>
+          <small>{{ $t('audit.metricFailuresDetail') }}</small>
         </article>
       </section>
 
-      <section class="audit-card">
+      <section class="audit-card st-panel">
         <div class="section-heading">
           <div>
-            <h2>操作审计</h2>
-            <p>不记录 Token、AI Prompt、请求正文或完整响应</p>
+            <h2>{{ $t('audit.logs') }}</h2>
+            <p>{{ $t('audit.logsHint') }}</p>
           </div>
-          <span class="total-mark">共 {{ auditPage.totalElements }} 条</span>
+          <span class="total-mark">{{ $t('common.totalCount', { count: auditPage.totalElements }) }}</span>
         </div>
 
         <form class="filters" @submit.prevent="applyFilters">
           <label>
-            <span>操作类型</span>
+            <span>{{ $t('audit.actionType') }}</span>
             <select v-model="filters.action">
-              <option value="">全部操作</option>
+              <option value="">{{ $t('audit.allActions') }}</option>
               <option
                 v-for="item in actionOptions"
                 :key="item"
@@ -74,23 +76,23 @@
             </select>
           </label>
           <label>
-            <span>执行结果</span>
+            <span>{{ $t('audit.outcome') }}</span>
             <select v-model="filters.outcome">
-              <option value="">全部结果</option>
-              <option value="SUCCESS">成功</option>
-              <option value="FAILURE">失败</option>
+              <option value="">{{ $t('audit.allOutcomes') }}</option>
+              <option value="SUCCESS">{{ $t('audit.outcomeSuccess') }}</option>
+              <option value="FAILURE">{{ $t('audit.outcomeFailure') }}</option>
             </select>
           </label>
           <label class="username-filter">
-            <span>操作账号</span>
+            <span>{{ $t('audit.username') }}</span>
             <input
               v-model.trim="filters.username"
               maxlength="128"
-              placeholder="输入用户名"
+              :placeholder="$t('audit.usernamePlaceholder')"
             />
           </label>
           <button class="search-button" type="submit" :disabled="loading">
-            查询
+            {{ $t('common.query') }}
           </button>
           <button
             class="reset-button"
@@ -98,7 +100,7 @@
             :disabled="loading"
             @click="resetFilters"
           >
-            重置
+            {{ $t('common.reset') }}
           </button>
         </form>
 
@@ -106,11 +108,11 @@
           <table>
             <thead>
               <tr>
-                <th>时间 / 操作</th>
-                <th>账号</th>
-                <th>资源</th>
-                <th>结果</th>
-                <th>请求追踪</th>
+                <th>{{ $t('audit.colTimeAction') }}</th>
+                <th>{{ $t('audit.colAccount') }}</th>
+                <th>{{ $t('audit.colResource') }}</th>
+                <th>{{ $t('audit.colResult') }}</th>
+                <th>{{ $t('audit.colTrace') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -121,7 +123,7 @@
                 </td>
                 <td>
                   <strong>{{ audit.username }}</strong>
-                  <small>{{ audit.roles || '无业务角色' }}</small>
+                  <small>{{ audit.roles || $t('common.noRoles') }}</small>
                 </td>
                 <td>
                   <span>{{ resourceLabel(audit.resourceType) }}</span>
@@ -132,7 +134,7 @@
                     class="outcome"
                     :class="audit.outcome.toLowerCase()"
                   >
-                    {{ audit.outcome === 'SUCCESS' ? '成功' : '失败' }}
+                    {{ audit.outcome === 'SUCCESS' ? $t('audit.outcomeSuccess') : $t('audit.outcomeFailure') }}
                   </span>
                   <small>
                     HTTP {{ audit.statusCode }} · {{ audit.durationMs }} ms
@@ -146,7 +148,7 @@
                 </td>
               </tr>
               <tr v-if="!loading && auditPage.content.length === 0">
-                <td class="empty-cell" colspan="5">没有符合条件的审计记录</td>
+                <td class="empty-cell" colspan="5">{{ $t('audit.emptyFiltered') }}</td>
               </tr>
             </tbody>
           </table>
@@ -154,8 +156,10 @@
 
         <footer class="pagination">
           <span>
-            第 {{ auditPage.page + 1 }} /
-            {{ Math.max(auditPage.totalPages, 1) }} 页
+            {{ $t('common.pageOf', {
+              current: auditPage.page + 1,
+              total: Math.max(auditPage.totalPages, 1),
+            }) }}
           </span>
           <div>
             <button
@@ -163,7 +167,7 @@
               :disabled="loading || auditPage.page === 0"
               @click="changePage(auditPage.page - 1)"
             >
-              上一页
+              {{ $t('common.prevPage') }}
             </button>
             <button
               type="button"
@@ -173,7 +177,7 @@
               "
               @click="changePage(auditPage.page + 1)"
             >
-              下一页
+              {{ $t('common.nextPage') }}
             </button>
           </div>
         </footer>
@@ -184,12 +188,16 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useTranslation } from 'i18next-vue'
 import {
   getAdminOverview,
   getAuditLogs,
   type AdminOverview,
   type AuditLogPage,
 } from '@/api/admin'
+import i18n from '@/i18n'
+
+const { t } = useTranslation()
 
 const emptyOverview = (): AdminOverview => ({
   totalTasks: 0,
@@ -233,20 +241,6 @@ const actionOptions = [
   'ALARM_CREATE',
 ]
 
-const actionLabels: Record<string, string> = {
-  TASK_CREATE: '创建巡检任务',
-  TASK_UPDATE: '修改巡检任务',
-  WORKFLOW_START: '启动巡检流程',
-  WORKFLOW_COMPLETE: '完成巡检流程',
-  WORKFLOW_CANCEL: '取消巡检流程',
-  AI_ANALYSIS: '执行 AI 分析',
-  AI_ANALYSIS_STREAM: '执行流式 AI 分析',
-  KNOWLEDGE_UPLOAD: '上传知识文档',
-  KNOWLEDGE_DELETE: '删除知识文档',
-  ALARM_CREATE: '创建告警',
-  API_MUTATION: '其他数据变更',
-}
-
 async function refreshAll() {
   loading.value = true
   errorMessage.value = ''
@@ -264,7 +258,7 @@ async function refreshAll() {
   } catch (error) {
     errorMessage.value = error instanceof Error
       ? error.message
-      : '管理数据加载失败'
+      : t('audit.loadFailed')
   } finally {
     loading.value = false
   }
@@ -288,19 +282,23 @@ async function changePage(page: number) {
   await refreshAll()
 }
 
-const actionLabel = (action: string) =>
-  actionLabels[action] ?? action
+const actionLabel = (action: string) => {
+  const key = `audit.actions.${action}`
+  const translated = t(key)
+  return translated === key ? action : translated
+}
 
-const resourceLabel = (type: string) =>
-  ({
-    INSPECTION_TASK: '巡检任务',
-    KNOWLEDGE_DOCUMENT: '知识文档',
-    ALARM: '告警',
-    API: '接口资源',
-  })[type] ?? type
+const resourceLabel = (type: string) => {
+  const key = `audit.resources.${type}`
+  const translated = t(key)
+  return translated === key ? type : translated
+}
 
 const formatTime = (value: string) =>
-  new Date(value).toLocaleString('zh-CN', { hour12: false })
+  new Date(value).toLocaleString(
+    i18n.language === 'en' ? 'en-US' : 'zh-CN',
+    { hour12: false },
+  )
 
 const shortRequestId = (value: string) =>
   value.length > 18 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value
@@ -310,27 +308,12 @@ onMounted(refreshAll)
 
 <style scoped>
 .admin-page {
-  min-height: 100vh;
   padding: 34px;
-  box-sizing: border-box;
-  color: #172033;
-  background:
-    radial-gradient(circle at 12% 0, #dbeafe 0, transparent 27%),
-    radial-gradient(circle at 88% 96%, #e0e7ff 0, transparent 25%),
-    #f4f7fb;
 }
 
 .admin-shell {
   width: min(1380px, 100%);
   margin: 0 auto;
-}
-
-.page-header,
-.audit-card,
-.metric-card {
-  background: rgb(255 255 255 / 94%);
-  border: 1px solid #e1e7f0;
-  box-shadow: 0 18px 50px rgb(15 23 42 / 7%);
 }
 
 .page-header {
@@ -339,28 +322,11 @@ onMounted(refreshAll)
   justify-content: space-between;
   gap: 24px;
   padding: 26px 28px;
-  border-radius: 18px;
 }
 
 .page-header h1 {
   margin: 3px 0 5px;
   font-size: 28px;
-}
-
-.page-header p,
-.eyebrow {
-  margin: 0;
-}
-
-.page-header p {
-  color: #6b7280;
-}
-
-.eyebrow {
-  color: #2563eb !important;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
 }
 
 nav {
@@ -375,15 +341,15 @@ select,
 input {
   padding: 9px 12px;
   font: inherit;
-  border: 1px solid #d6deea;
+  border: 1px solid var(--st-border);
   border-radius: 9px;
 }
 
 button,
 nav a {
-  color: #334155;
+  color: var(--st-text);
   text-decoration: none;
-  background: #f8fafc;
+  background: var(--st-bg-elevated);
   cursor: pointer;
 }
 
@@ -401,13 +367,12 @@ button:disabled {
 
 .metric-card {
   padding: 20px;
-  border-radius: 15px;
 }
 
 .metric-card span,
 .metric-card small {
   display: block;
-  color: #64748b;
+  color: var(--st-text-muted);
 }
 
 .metric-card strong {
@@ -417,23 +382,22 @@ button:disabled {
 }
 
 .metric-card.primary {
-  color: white;
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: #fff;
+  background: linear-gradient(135deg, var(--st-color-primary), var(--st-color-accent));
   border-color: transparent;
 }
 
 .metric-card.primary span,
 .metric-card.primary small {
-  color: #dbeafe;
+  color: color-mix(in srgb, #fff 80%, transparent);
 }
 
 .metric-card.warning strong {
-  color: #dc2626;
+  color: var(--st-danger);
 }
 
 .audit-card {
   padding: 24px;
-  border-radius: 18px;
 }
 
 .section-heading,
@@ -456,14 +420,14 @@ button:disabled {
 
 .section-heading p {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--st-text-muted);
 }
 
 .total-mark {
   padding: 6px 10px;
-  color: #1d4ed8;
+  color: var(--st-color-accent);
   font-weight: 700;
-  background: #eff6ff;
+  background: var(--st-color-primary-soft);
   border-radius: 999px;
 }
 
@@ -471,7 +435,7 @@ button:disabled {
   gap: 12px;
   margin: 22px 0 18px;
   padding: 15px;
-  background: #f8fafc;
+  background: var(--st-bg-elevated);
   border-radius: 12px;
 }
 
@@ -479,7 +443,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #64748b;
+  color: var(--st-text-muted);
   font-size: 13px;
 }
 
@@ -487,16 +451,21 @@ button:disabled {
   flex: 1;
 }
 
+.username-filter input,
+select {
+  color: var(--st-text);
+  background: var(--st-input-bg);
+}
+
 .username-filter input {
   width: 100%;
   box-sizing: border-box;
-  background: white;
 }
 
 .search-button {
-  color: white;
-  background: #2563eb;
-  border-color: #2563eb;
+  color: #fff;
+  background: var(--st-color-primary);
+  border-color: var(--st-color-primary);
 }
 
 .table-wrapper {
@@ -513,13 +482,13 @@ th,
 td {
   padding: 14px 12px;
   text-align: left;
-  border-bottom: 1px solid #e7ebf1;
+  border-bottom: 1px solid var(--st-border);
 }
 
 th {
-  color: #64748b;
+  color: var(--st-text-muted);
   font-size: 12px;
-  background: #f8fafc;
+  background: var(--st-bg-elevated);
 }
 
 td strong,
@@ -531,13 +500,13 @@ td small {
   max-width: 300px;
   margin-top: 5px;
   overflow: hidden;
-  color: #718096;
+  color: var(--st-text-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 code {
-  color: #334155;
+  color: var(--st-text);
   font-size: 12px;
 }
 
@@ -550,18 +519,18 @@ code {
 }
 
 .outcome.success {
-  color: #15803d;
-  background: #dcfce7;
+  color: var(--st-success);
+  background: color-mix(in srgb, var(--st-success) 18%, transparent);
 }
 
 .outcome.failure {
-  color: #b91c1c;
-  background: #fee2e2;
+  color: var(--st-danger);
+  background: color-mix(in srgb, var(--st-danger) 18%, transparent);
 }
 
 .pagination {
   margin-top: 18px;
-  color: #64748b;
+  color: var(--st-text-muted);
 }
 
 .pagination div {
@@ -570,15 +539,15 @@ code {
 
 .error-message {
   padding: 11px 14px;
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  color: var(--st-danger);
+  background: color-mix(in srgb, var(--st-danger) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--st-danger) 35%, transparent);
   border-radius: 10px;
 }
 
 .empty-cell {
   padding: 32px;
-  color: #64748b;
+  color: var(--st-text-muted);
   text-align: center;
 }
 

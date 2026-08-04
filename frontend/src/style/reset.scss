@@ -1,7 +1,6 @@
-
-// 主题/语言 激活的样式
+// Active theme/lang menu item
 .active_theme,
 .active_lang {
   color: #fff !important;
-  background-color: variables.$primary-color;
+  background-color: var(--st-color-primary, #2f6fed) !important;
 }
