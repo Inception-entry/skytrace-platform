@@ -9,6 +9,7 @@ const menus = [
   { name: '新增用户', code: 'user:create', type: 3, sort: 1, parentCode: 'user:list' },
   { name: '编辑用户', code: 'user:update', type: 3, sort: 2, parentCode: 'user:list' },
   { name: '删除用户', code: 'user:delete', type: 3, sort: 3, parentCode: 'user:list' },
+  { name: '分配角色', code: 'user:assign-roles', type: 3, sort: 4, parentCode: 'user:list' },
   { name: '角色管理', code: 'role:list', path: '/admin/roles', component: 'RoleList', type: 2, sort: 2, icon: 'TeamOutlined', parentCode: 'system' },
   { name: '新增角色', code: 'role:create', type: 3, sort: 1, parentCode: 'role:list' },
   { name: '编辑角色', code: 'role:update', type: 3, sort: 2, parentCode: 'role:list' },
@@ -18,6 +19,8 @@ const menus = [
   { name: '新增菜单', code: 'menu:create', type: 3, sort: 1, parentCode: 'menu:list' },
   { name: '编辑菜单', code: 'menu:update', type: 3, sort: 2, parentCode: 'menu:list' },
   { name: '删除菜单', code: 'menu:delete', type: 3, sort: 3, parentCode: 'menu:list' },
+  { name: '操作日志', code: 'log:list', path: '/admin/logs', component: 'LogList', type: 2, sort: 4, icon: 'FileSearchOutlined', parentCode: 'system' },
+  { name: '清空日志', code: 'log:clear', type: 3, sort: 1, parentCode: 'log:list' },
 ]
 
 async function main() {
@@ -29,7 +32,14 @@ async function main() {
   for (const m of parents) {
     await prisma.menu.upsert({
       where: { code: m.code },
-      update: {},
+      update: {
+        name: m.name,
+        path: m.path ?? null,
+        component: m.component ?? null,
+        icon: m.icon ?? null,
+        type: m.type,
+        sort: m.sort,
+      },
       create: { name: m.name, code: m.code, path: m.path ?? null, component: m.component ?? null, icon: m.icon ?? null, type: m.type, sort: m.sort },
     })
   }
@@ -38,7 +48,15 @@ async function main() {
     const parent = await prisma.menu.findUniqueOrThrow({ where: { code: m.parentCode! } })
     await prisma.menu.upsert({
       where: { code: m.code },
-      update: {},
+      update: {
+        name: m.name,
+        path: m.path ?? null,
+        component: m.component ?? null,
+        icon: m.icon ?? null,
+        type: m.type,
+        sort: m.sort,
+        parentId: parent.id,
+      },
       create: { name: m.name, code: m.code, path: m.path ?? null, component: m.component ?? null, icon: m.icon ?? null, type: m.type, sort: m.sort, parentId: parent.id },
     })
   }

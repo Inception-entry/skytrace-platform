@@ -10,6 +10,7 @@ const mockPrisma = {
   user: {
     findUnique: jest.fn(),
     findUniqueOrThrow: jest.fn(),
+    update: jest.fn(),
   },
   refreshToken: {
     create: jest.fn(),
@@ -116,16 +117,38 @@ describe('AuthService', () => {
       await expect(service.refresh('valid-jwt-but-revoked')).rejects.toThrow(UnauthorizedException)
     })
 
+    it('throws when refresh token row is expired', async () => {
+      mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'hash',
+        userId: 1,
+        expiresAt: new Date(Date.now() - 1000),
+      })
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
+      await expect(service.refresh('rt')).rejects.toThrow(UnauthorizedException)
+    })
+
     it('throws when user is disabled', async () => {
       mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
-      mockPrisma.refreshToken.findUnique.mockResolvedValue({ id: 1, token: 'hash', userId: 1 })
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'hash',
+        userId: 1,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
       mockPrisma.user.findUnique.mockResolvedValue({ id: 1, status: 0 })
       await expect(service.refresh('rt')).rejects.toThrow(UnauthorizedException)
     })
 
     it('rotates token and returns new token pair', async () => {
       mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
-      mockPrisma.refreshToken.findUnique.mockResolvedValue({ id: 1, token: 'hash', userId: 1 })
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'hash',
+        userId: 1,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
       mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'admin', status: 1 })
       mockJwt.sign
         .mockReturnValueOnce('new-access-token')
@@ -146,6 +169,18 @@ describe('AuthService', () => {
       mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
       await service.logout('some-refresh-token')
       expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('changePassword', () => {
+    it('revokes all refresh tokens after password change', async () => {
+      const hashed = await bcrypt.hash('old', 10)
+      mockPrisma.user.findUniqueOrThrow.mockResolvedValue({ id: 1, password: hashed })
+      mockPrisma.$transaction.mockResolvedValue([undefined, undefined])
+
+      await service.changePassword(1, { currentPassword: 'old', newPassword: 'new-pass' })
+
+      expect(mockPrisma.$transaction).toHaveBeenCalled()
     })
   })
 })

@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ConflictException, NotFoundException } from '@nestjs/common'
+import { ConflictException, NotFoundException, BadRequestException } from '@nestjs/common'
 import * as bcrypt from 'bcryptjs'
 import { UsersService } from './users.service'
 import { PrismaService } from '../prisma/prisma.service'
+import { PermissionsService } from '../common/permissions/permissions.service'
 
 const now = new Date()
-const baseUser = { id: 1, username: 'admin', password: 'hashed', email: null, nickname: null, status: 1, createdAt: now, updatedAt: now }
+const baseUser = { id: 1, username: 'admin', password: 'hashed', email: null, nickname: null, avatar: null, status: 1, createdAt: now, updatedAt: now }
 
 const mockPrisma = {
   user: {
@@ -21,7 +22,19 @@ const mockPrisma = {
     createMany: jest.fn(),
     findMany: jest.fn(),
   },
+  refreshToken: {
+    deleteMany: jest.fn(),
+  },
+  role: {
+    findMany: jest.fn(),
+  },
   $transaction: jest.fn().mockResolvedValue([undefined, undefined]),
+}
+
+const mockPermissions = {
+  isSuperAdmin: jest.fn().mockResolvedValue(true),
+  userHasSuperAdmin: jest.fn().mockResolvedValue(false),
+  countActiveSuperAdmins: jest.fn().mockResolvedValue(2),
 }
 
 describe('UsersService', () => {
@@ -32,16 +45,20 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: PermissionsService, useValue: mockPermissions },
       ],
     }).compile()
 
     service = module.get(UsersService)
     jest.clearAllMocks()
+    mockPermissions.isSuperAdmin.mockResolvedValue(true)
+    mockPermissions.userHasSuperAdmin.mockResolvedValue(false)
+    mockPermissions.countActiveSuperAdmins.mockResolvedValue(2)
   })
 
   describe('findAll', () => {
     it('returns paginated result without passwords', async () => {
-      mockPrisma.user.findMany.mockResolvedValue([baseUser])
+      mockPrisma.user.findMany.mockResolvedValue([{ ...baseUser, userRoles: [] }])
       mockPrisma.user.count.mockResolvedValue(1)
 
       const result = await service.findAll({ page: 1, pageSize: 10 })
@@ -87,31 +104,43 @@ describe('UsersService', () => {
   describe('update', () => {
     it('throws NotFoundException when user does not exist', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null)
-      await expect(service.update(99, { nickname: 'X' })).rejects.toThrow(NotFoundException)
+      await expect(service.update(99, { nickname: 'X' }, 1)).rejects.toThrow(NotFoundException)
     })
 
     it('re-hashes password when updating it', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(baseUser)
       mockPrisma.user.update.mockResolvedValue(baseUser)
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
 
-      await service.update(1, { password: 'new-pass' })
+      await service.update(1, { password: 'new-pass' }, 2)
 
       const updateCall = mockPrisma.user.update.mock.calls[0][0]
       expect(updateCall.data.password).not.toBe('new-pass')
+      expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
+    })
+
+    it('rejects disabling self', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(baseUser)
+      await expect(service.update(1, { status: 0 }, 1)).rejects.toThrow(BadRequestException)
     })
   })
 
   describe('remove', () => {
     it('throws NotFoundException when user does not exist', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null)
-      await expect(service.remove(99)).rejects.toThrow(NotFoundException)
+      await expect(service.remove(99, 1)).rejects.toThrow(NotFoundException)
+    })
+
+    it('rejects deleting self', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(baseUser)
+      await expect(service.remove(1, 1)).rejects.toThrow(BadRequestException)
     })
 
     it('deletes user when found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(baseUser)
       mockPrisma.user.delete.mockResolvedValue(baseUser)
 
-      await service.remove(1)
+      await service.remove(1, 2)
 
       expect(mockPrisma.user.delete).toHaveBeenCalledWith({ where: { id: 1 } })
     })

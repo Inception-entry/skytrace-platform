@@ -76,6 +76,10 @@ export class AuthService {
     const tokenHash = hashToken(refreshToken)
     const stored = await this.prisma.refreshToken.findUnique({ where: { token: tokenHash } })
     if (!stored) throw new UnauthorizedException('令牌已撤销')
+    if (stored.expiresAt.getTime() <= Date.now()) {
+      await this.prisma.refreshToken.deleteMany({ where: { token: tokenHash } })
+      throw new UnauthorizedException('刷新令牌已过期')
+    }
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } })
     if (!user || user.status !== 1) throw new UnauthorizedException('账号不存在或已被禁用')
@@ -103,6 +107,10 @@ export class AuthService {
     await this.prisma.refreshToken.deleteMany({ where: { token: tokenHash } })
   }
 
+  async revokeAllSessions(userId: number) {
+    await this.prisma.refreshToken.deleteMany({ where: { userId } })
+  }
+
   async updateProfile(userId: number, dto: UpdateProfileDto) {
     const user = await this.prisma.user.update({
       where: { id: userId },
@@ -122,7 +130,10 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.currentPassword, user.password)
     if (!valid) throw new BadRequestException('当前密码不正确')
     const hashed = await bcrypt.hash(dto.newPassword, 10)
-    await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } })
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { password: hashed } }),
+      this.prisma.refreshToken.deleteMany({ where: { userId } }),
+    ])
   }
 
   async getMe(userId: number) {
@@ -130,6 +141,7 @@ export class AuthService {
       where: { id: userId },
       include: {
         userRoles: {
+          where: { role: { status: 1 } },
           include: {
             role: {
               include: {
@@ -151,7 +163,7 @@ export class AuthService {
     const uniqueMenus = [...new Map(allMenus.map(m => [m.id, m])).values()]
 
     const permissions = uniqueMenus.map(m => m.code)
-    const menus = buildMenuTree(uniqueMenus)
+    const menus = buildMenuTree(uniqueMenus.filter(m => m.type !== 3 && m.visible === 1))
 
     return {
       id: user.id,
