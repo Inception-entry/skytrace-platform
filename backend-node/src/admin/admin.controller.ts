@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { Roles } from '../auth/http-auth.decorators';
-import { JavaClientService } from '../shared/java-client.service';
+import { JavaClientService } from '../common/java-client/java-client.service';
 import { ListAuditLogDto } from './dto/list-audit-log.dto';
 
 @Controller('admin')

@@ -10,7 +10,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { JavaClientService } from '../shared/java-client.service';
+import { JavaClientService } from '../common/java-client/java-client.service';
 import { SearchKnowledgeDto } from './dto/search-knowledge.dto';
 import { Roles } from '../auth/http-auth.decorators';
 

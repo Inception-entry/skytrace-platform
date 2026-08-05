@@ -8,7 +8,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { JavaClientService } from '../shared/java-client.service';
+import { JavaClientService } from '../common/java-client/java-client.service';
 import { AlarmRealtimeGateway } from '../realtime/alarm-realtime.gateway';
 import { CreateAlarmDto } from './dto/create-alarm.dto';
 import { Roles } from '../auth/http-auth.decorators';

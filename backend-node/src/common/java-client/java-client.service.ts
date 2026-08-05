@@ -9,7 +9,7 @@ import { REQUEST } from '@nestjs/core';
 import { isAxiosError } from 'axios';
 import { Readable } from 'node:stream';
 import { firstValueFrom } from 'rxjs';
-import type { AuthenticatedHttpRequest } from '../auth/http-auth.types';
+import type { AuthenticatedHttpRequest } from '../../auth/http-auth.types';
 
 @Injectable({ scope: Scope.REQUEST })
 export class JavaClientService {

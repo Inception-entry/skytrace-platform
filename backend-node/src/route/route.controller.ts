@@ -8,7 +8,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { Roles } from '../auth/http-auth.decorators';
-import { JavaClientService } from '../shared/java-client.service';
+import { JavaClientService } from '../common/java-client/java-client.service';
 
 @Controller('routes')
 export class RouteController {

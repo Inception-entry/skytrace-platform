@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles } from '../auth/http-auth.decorators';
-import { JavaClientService } from '../shared/java-client.service';
+import { JavaClientService } from '../common/java-client/java-client.service';
 
 interface UploadedEvidenceFile {
   buffer: Buffer;
