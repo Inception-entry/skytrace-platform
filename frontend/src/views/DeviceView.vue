@@ -155,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
@@ -176,6 +176,8 @@ const editingDeviceCode = ref<string | null>(null)
 const errorMessage = ref('')
 const successMessage = ref('')
 
+let pollingId: number | undefined
+
 const form = reactive({
   deviceCode: '',
   deviceName: '',
@@ -188,8 +190,8 @@ const canOperate = computed(() =>
   ),
 )
 
-async function refresh() {
-  loading.value = true
+async function refresh(silent = false) {
+  if (!silent) loading.value = true
   errorMessage.value = ''
   try {
     devices.value = await getDevices()
@@ -197,7 +199,7 @@ async function refresh() {
     errorMessage.value =
       error instanceof Error ? error.message : t('devices.loadFailed')
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -290,6 +292,17 @@ async function removeDevice(deviceCode: string) {
 
 onMounted(() => {
   void refresh()
+  pollingId = window.setInterval(() => {
+    if (!document.hidden && !loading.value) {
+      void refresh(true)
+    }
+  }, 5_000)
+})
+
+onBeforeUnmount(() => {
+  if (pollingId !== undefined) {
+    window.clearInterval(pollingId)
+  }
 })
 </script>
 
