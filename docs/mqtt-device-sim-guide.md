@@ -1,151 +1,164 @@
-# MQTT 模拟接入自学计划（无真机）
+# MQTT 设备模拟接入：前端程序员开发指南
 
-> 指导你自己改代码，风格与「产品 1.1 阶段 A：设备删除」一致。  
-> **本文不是已实现功能说明**：仓库默认尚未接入 MQTT；按切片 M1→M3 落地后，把本节「目标」变成现实。
+> 这是一份“边做边验证”的开发教程，不是已完成功能说明。
+> 当前仓库还没有 Mosquitto、`device-sim` 和 Java MQTT 订阅代码；完成本文的
+> A → B → C 三个关卡后，设备页才会由模拟器自动驱动在线状态。
 
-## 目标（验收一句话）
+## 做完以后，你会看到什么
 
-Compose 起 Mosquitto + `device-sim`；Java 订阅心跳/状态后写入现有
-[`DevicePresenceService`](../backend-java/src/main/java/com/skytrace/backend/cache/DevicePresenceService.java)；
-`GET /api/devices` 能看到 `UAV-001` 变 `ONLINE`，停模拟器（或主动 offline）后变 `OFFLINE`。
-HTTP `POST /api/devices/{code}/heartbeat` 仍可用作调试。
+1. Docker 中多出 `skytrace-mqtt` 和 `skytrace-device-sim` 两个容器。
+2. 模拟器每 30 秒发布一次 `UAV-001`、`CAMERA-001` 的心跳。
+3. Java 服务收到心跳后，复用现有
+   [`DevicePresenceService`](../backend-java/src/main/java/com/skytrace/backend/cache/DevicePresenceService.java)
+   写入 Redis。
+4. 打开 `http://localhost:8888/devices`，刷新页面后设备从 `OFFLINE` 变成
+   `ONLINE`。
+5. 正常停止模拟器时设备立即离线；模拟器异常消失时，Redis key 最迟在
+   90 秒后过期，设备也会变回 `OFFLINE`。
 
-## 设计原则
-
-| 原则 | 说明 |
-| --- | --- |
-| 假设备 + 真协议 | 无真机，但用 MQTT 主题与载荷练总线 |
-| Presence 仍用 Redis | 列表 ONLINE/OFFLINE 继续靠 TTL key，MQTT 只是写入来源 |
-| 告警继续走 RabbitMQ | 设备遥测与告警检测总线分离 |
-| 前端不直连 Broker | 业务端仍走 `/api`（与可选 Socket.IO） |
-| 默认关闭 | `MQTT_ENABLED=false`，用 Compose overlay 再开 |
-
-## 与阶段 A（设备删除）的关系
-
-- **不冲突**：A 管删库 + `presence.clear`；MQTT 管「谁来续命 presence」。
-- **建议**：先做完阶段 A 再做本指南；若先做 MQTT，订阅时对「库中不存在的 `deviceCode`」直接忽略。
-- 删除后模拟器若仍对该 code 发心跳：Handler 忽略即可，避免脏 Redis key；列表读的是 DB，已删设备不会重新出现。
-
-## 总架构
+最终链路只有这一条：
 
 ```text
-device-sim ──publish──► Mosquitto ──subscribe──► backend-java
-                                                      │
-                                                      ├─ DevicePresenceService (TTL)
-                                                      └─ (可选) status Redis Hash
-                                                              │
-                                                      GET /api/devices
-                                                              │
-                                                            Vue
+device-sim                backend-java                    Vue
+   │                           │                           │
+   │ publish heartbeat         │                           │
+   ├────────► Mosquitto ──────►│                           │
+   │                           │ heartbeat(deviceCode)     │
+   │                           ├────────► Redis (TTL 90s)   │
+   │                           │                           │
+   │                           │◄──── GET /api/devices ────┤
+   │                           │──── ONLINE / OFFLINE ─────►│
 ```
 
+## 先把 MQTT 翻译成前端语言
+
+你不需要先系统学习物联网。第一版只要理解下面 6 个词：
+
+| MQTT 词汇 | 可以先这样理解 | 本项目中的例子 |
+| --- | --- | --- |
+| Broker | 消息中转服务器，类似只负责转发事件的服务端 | Mosquitto |
+| Topic | 事件名/频道名，类似 Socket.IO event name | `skytrace/local/device/UAV-001/heartbeat` |
+| Publish | 向某个事件名发送数据 | 模拟器发心跳 |
+| Subscribe | 监听某类事件 | Java 监听 `device/+/heartbeat` |
+| Payload | 事件携带的 JSON | `{"deviceCode":"UAV-001"}` |
+| QoS | 消息投递可靠程度 | 心跳用 0，状态用 1 |
+
+这里的 `+` 是单层通配符：
+
 ```text
-推荐顺序:  M1 Mosquitto → M2 device-sim → M3 Java 订阅 → M4 状态 Hash（可选）→ M5 sim HTTP（可选）
+订阅: skytrace/local/device/+/heartbeat
+匹配: skytrace/local/device/UAV-001/heartbeat
+匹配: skytrace/local/device/CAMERA-001/heartbeat
+不匹配: skytrace/prod/device/UAV-001/heartbeat
 ```
+
+一个容易混淆的点：MQTT 不取代现有 HTTP API。
+
+- 设备/模拟器用 MQTT 报到；
+- Java 把“最近报到过”写入 Redis；
+- 浏览器仍然通过 `/api/devices` 读取结果；
+- 浏览器不直连 Broker，也不保存 MQTT 用户名和密码。
+
+### 准备工作
+
+在 WSL 终端进入仓库的 Linux 路径（也就是 Windows 中
+`\\wsl.localhost\...\skytrace-platform` 对应的目录），确认：
+
+```bash
+docker compose version
+test -f deploy/.env
+```
+
+如果第二条没有成功，先按照项目 [README](../README.md) 从
+`deploy/.env.example` 创建 `deploy/.env` 并配置本地密码。本文假设原有完整栈至少已经
+成功启动过一次；MQTT 只是它上面的可选覆盖层。
+
+## 开发前先看懂仓库现状
+
+当前代码已经完成了后半段，缺的是 MQTT 输入端：
+
+- [`DeviceController`](../backend-java/src/main/java/com/skytrace/backend/device/DeviceController.java)
+  已有 `POST /devices/{deviceCode}/heartbeat`；
+- [`DeviceService`](../backend-java/src/main/java/com/skytrace/backend/device/service/DeviceService.java)
+  会确认设备存在，再调用 `DevicePresenceService.heartbeat`；
+- `DevicePresenceService` 会写入
+  `skytrace:device:online:{deviceCode}`，默认 TTL 是 90 秒；
+- [`DeviceView.vue`](../frontend/src/views/DeviceView.vue) 已经会把 API 返回的
+  `ONLINE` / `OFFLINE` 渲染成状态标签；
+- 数据库种子中已经有 `UAV-001` 和 `CAMERA-001`。
+
+因此，这次不要重写设备列表，也不要新增一套在线状态表。MQTT Handler 最终只需调用
+已经存在的 `heartbeat` 或 `clear`。
+
+### 先体验一次现有行为
+
+如果完整环境已经启动：
+
+1. 打开 `http://localhost:8888/devices`；
+2. 找到 `UAV-001`；
+3. 点击“心跳”；
+4. 页面会显示 `ONLINE`；
+5. 约 90 秒不再点击，刷新页面后又会显示 `OFFLINE`。
+
+MQTT 接入只是把“人点击心跳按钮”替换成“模拟器定时发消息”。先建立这个心智模型，
+后面的 Java 代码会容易很多。
+
+> 不建议用 `cd backend-java && mvn spring-boot:run` 作为本教程的联调入口。
+> 默认 `local` profile 明确关闭了 Redis 自动配置和 `app.cache`，即使 MQTT 收到消息，
+> 也没有 Presence 可写。端到端联调请走 Docker Compose。
+
+## 这次开发的范围
+
+按三个独立关卡推进。每一关都能单独验收，不要一次写完再一起排错。
+
+| 关卡 | 你要新增什么 | 看到什么才算过关 |
+| --- | --- | --- |
+| A：消息能走 | Mosquitto 配置、Compose overlay | 手动发布的消息能被订阅端看到 |
+| B：设备会说话 | Python `device-sim` | 每 30 秒看到两台设备的 heartbeat |
+| C：系统听得懂 | Java 配置、Handler、Subscriber、测试 | 设备页随模拟器变为 ONLINE/OFFLINE |
+| D：体验优化（可选） | Vue 静默轮询 | 页面无需手动刷新 |
+
+建议每过一关提交一次，出问题时容易回退和比较。
 
 ---
 
-## M1 — 起 Mosquitto
+## 先冻结消息协议
 
-### 改什么
+写代码前先确定前后端都能读懂的“接口契约”。它相当于 REST API 的 URL、method 和
+request body。
 
-1. 新建 `deploy/mqtt/mosquitto.conf`
-2. 新建 `deploy/docker-compose.mqtt.yml`（overlay）
-3. 在 `deploy/.env.example` 补充变量说明
-
-### 为什么
-
-独立 overlay，默认全栈不强制依赖 MQTT；演示时再挂上文件即可。
-
-### 配置示例
-
-`deploy/mqtt/mosquitto.conf`：
-
-```conf
-listener 1883
-allow_anonymous true
-persistence false
-```
-
-本地匿名即可；预发至少改为用户名密码。
-
-`deploy/docker-compose.mqtt.yml`（示意，需与现有 compose **同一 project / network**，按仓库实际 network 名调整）：
-
-```yaml
-services:
-  mqtt:
-    image: eclipse-mosquitto:2
-    container_name: skytrace-mqtt
-    ports:
-      - "127.0.0.1:${MQTT_HOST_PORT:-1883}:1883"
-    volumes:
-      - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-```
-
-`.env.example` 增加：
-
-```dotenv
-MQTT_ENABLED=false
-MQTT_BROKER_URL=tcp://mqtt:1883
-MQTT_ENV=local
-MQTT_HOST_PORT=1883
-```
-
-### 验收
-
-MQTTX（或同类客户端）连接 `127.0.0.1:1883`，订阅 `#`，能收发任意消息。
-
-### 好处
-
-Broker 与业务解耦；可先用 MQTTX 玩通再写 Java。
-
----
-
-## M2 — device-sim 只负责发消息
-
-### 改什么
-
-新建仓库根目录 `device-sim/`（Python + paho 示例；Node 同理）：
-
-```text
-device-sim/
-  requirements.txt    # paho-mqtt
-  sim.py
-  Dockerfile          # 可选，供 Compose build
-```
-
-### 为什么
-
-模拟器 = 「假无人机」。发布逻辑不要塞进 Java，职责清晰，也可单独重启。
-
-### Topic（冻结）
+### Topic
 
 ```text
 skytrace/{env}/device/{deviceCode}/heartbeat
 skytrace/{env}/device/{deviceCode}/status
 ```
 
-- `{env}` 默认 `local`
-- `{deviceCode}` 与种子一致：`UAV-001`、`CAMERA-001`
+第一版固定：
 
-### 载荷
+- `{env}`：本地为 `local`；
+- `{deviceCode}`：必须是数据库已存在的编号；
+- `heartbeat`：只表示“我还活着”；
+- `status`：主动上线、下线和运行状态变化。
 
-**Heartbeat**
+### Payload
+
+Heartbeat：
 
 ```json
 {
   "deviceCode": "UAV-001",
-  "ts": "2026-08-05T09:00:00Z",
+  "ts": "2026-08-06T10:00:00Z",
   "source": "sim"
 }
 ```
 
-**Status**
+Status：
 
 ```json
 {
   "deviceCode": "UAV-001",
-  "ts": "2026-08-05T09:00:00Z",
+  "ts": "2026-08-06T10:00:00Z",
   "online": true,
   "mode": "IDLE",
   "battery": 87,
@@ -153,161 +166,405 @@ skytrace/{env}/device/{deviceCode}/status
 }
 ```
 
-`mode` 建议枚举（先少后多）：`OFFLINE` | `IDLE` | `READY` | `FLYING` | `CHARGING` | `FAULT`。
+第一版的处理规则：
 
-### QoS 与 TTL
-
-| Topic | QoS |
+| 情况 | Java 应该做什么 |
 | --- | --- |
-| heartbeat | 0 或 1 |
-| status | 1 |
+| 已知设备的 heartbeat | 调用 `presence.heartbeat(code)` |
+| 已知设备的 `online: true` | 调用 `presence.heartbeat(code)` |
+| 已知设备的 `online: false` | 调用 `presence.clear(code)` |
+| 数据库中不存在的设备 | 忽略，不自动创建设备 |
+| Topic 编号与 JSON 编号不同 | 忽略并记 warning 日志 |
+| 非法 Topic / 非法 JSON | 忽略并记 warning 日志 |
 
-`HEARTBEAT_INTERVAL_SEC` 建议 `30`；现有
-`CACHE_DEVICE_PRESENCE_TTL_SECONDS` 默认 `90`。  
-须满足：**心跳间隔 &lt; Presence TTL / 2**，否则会假离线。
+### QoS、retain 与 TTL
 
-### `sim.py` 核心逻辑（可改着用）
+| 消息 | QoS | retained | 原因 |
+| --- | --- | --- | --- |
+| heartbeat | 0 | false | 高频、下一次很快再来，偶尔丢一条可接受 |
+| status | 1 | false | 上下线变化更重要，至少送达一次即可 |
+
+`HEARTBEAT_INTERVAL_SEC` 默认 30 秒，Presence TTL 默认 90 秒。保持：
+
+```text
+心跳间隔 < Presence TTL / 2
+```
+
+不要把 `online:true` 设置为 retained。否则 Java 重连时可能收到很久以前的“上线”消息，
+让实际已离线的设备短暂复活。设备在线的最终判定仍由 Redis TTL 兜底。
+
+---
+
+## 关卡 A：先让消息能走
+
+这一关不改 Java、不改 Vue，只启动一个最小 Broker。
+
+### A1. 新建 Mosquitto 配置
+
+新建 `deploy/mqtt/mosquitto.conf`：
+
+```conf
+listener 1883
+allow_anonymous true
+persistence false
+```
+
+这是仅用于本机开发的配置。`allow_anonymous true` 不允许带到预发或生产环境；真实环境
+至少需要用户名密码、ACL 和 TLS。
+
+### A2. 新建 Compose overlay
+
+新建 `deploy/docker-compose.mqtt.yml`：
+
+```yaml
+services:
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: skytrace-mqtt
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MQTT_HOST_PORT:-1883}:1883"
+    volumes:
+      - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - backend
+```
+
+它叫 overlay，是因为必须和主文件一起使用：
+
+```bash
+docker compose --env-file deploy/.env \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.mqtt.yml \
+  config
+```
+
+注意两件事：
+
+1. `deploy/docker-compose.yml` 必须放在前面；
+2. 不要单独运行 `docker-compose.mqtt.yml`，它引用了主文件中的 `backend` network。
+
+### A3. 补充环境变量说明
+
+在 `deploy/.env.example` 末尾加入：
+
+```dotenv
+# Local MQTT device simulation (disabled unless the overlay is used)
+MQTT_ENABLED=false
+MQTT_BROKER_URL=tcp://mqtt:1883
+MQTT_ENV=local
+MQTT_HOST_PORT=1883
+MQTT_CLIENT_ID=skytrace-backend-java
+```
+
+如果本机已经有程序占用 1883，只改宿主机端口即可：
+
+```dotenv
+MQTT_HOST_PORT=1884
+```
+
+容器之间仍然使用 `mqtt:1883`，不需要跟着改。
+
+### A4. 启动并做“回声测试”
+
+```bash
+docker compose --env-file deploy/.env \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.mqtt.yml \
+  up -d mqtt
+```
+
+终端 1 持续订阅：
+
+```bash
+docker exec skytrace-mqtt mosquitto_sub \
+  -h 127.0.0.1 \
+  -t 'skytrace/local/device/+/+' \
+  -v
+```
+
+终端 2 手动发布：
+
+```bash
+docker exec skytrace-mqtt mosquitto_pub \
+  -h 127.0.0.1 \
+  -t 'skytrace/local/device/UAV-001/heartbeat' \
+  -q 0 \
+  -m '{"deviceCode":"UAV-001","source":"manual"}'
+```
+
+终端 1 能立即看到 Topic 和 JSON，这一关就结束。此时设备页仍然不会变化，因为 Java
+还没有订阅消息，这是正常现象。
+
+---
+
+## 关卡 B：让模拟设备定时发消息
+
+模拟器是一台“假的无人机”，职责只有生成消息。不要把定时发布逻辑写进 Java 服务，
+否则无法单独判断问题在发送端还是消费端。
+
+### B1. 新建目录
+
+```text
+device-sim/
+├── Dockerfile
+├── requirements.txt
+└── sim.py
+```
+
+`requirements.txt`：
+
+```text
+paho-mqtt==2.1.0
+```
+
+`Dockerfile`：
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && useradd --create-home --uid 10001 app
+
+COPY sim.py .
+USER app
+
+CMD ["python", "sim.py"]
+```
+
+### B2. 编写 `sim.py`
+
+下面这个版本处理了 `docker stop` 的 SIGTERM，因此正常停止时能先发
+`online:false`；如果进程被强杀，Redis TTL 仍会负责最终离线。
 
 ```python
 import json
 import os
+import signal
+import threading
 import time
 from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 
-BROKER = os.getenv("MQTT_HOST", "127.0.0.1")
-PORT = int(os.getenv("MQTT_PORT", "1883"))
-ENV = os.getenv("MQTT_ENV", "local")
-CODES = [
-    c.strip()
-    for c in os.getenv("DEVICE_CODES", "UAV-001,CAMERA-001").split(",")
-    if c.strip()
+
+MQTT_HOST = os.getenv("MQTT_HOST", "127.0.0.1")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+MQTT_ENV = os.getenv("MQTT_ENV", "local")
+DEVICE_CODES = [
+    code.strip()
+    for code in os.getenv(
+        "DEVICE_CODES",
+        "UAV-001,CAMERA-001",
+    ).split(",")
+    if code.strip()
 ]
 INTERVAL = int(os.getenv("HEARTBEAT_INTERVAL_SEC", "30"))
 
-
-def topic(code: str, kind: str) -> str:
-    return f"skytrace/{ENV}/device/{code}/{kind}"
+stopping = threading.Event()
+connected = threading.Event()
 
 
 def now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="seconds")
+        .replace("+00:00", "Z")
+    )
+
+
+def topic(code: str, kind: str) -> str:
+    return f"skytrace/{MQTT_ENV}/device/{code}/{kind}"
+
+
+def payload(code: str, **extra: object) -> str:
+    return json.dumps(
+        {
+            "deviceCode": code,
+            "ts": now(),
+            "source": "sim",
+            **extra,
+        },
+        ensure_ascii=False,
+    )
+
+
+def on_connect(client, userdata, flags, reason_code, properties) -> None:
+    if reason_code == 0:
+        connected.set()
+        print(f"connected to mqtt://{MQTT_HOST}:{MQTT_PORT}", flush=True)
+    else:
+        print(f"MQTT connect failed: {reason_code}", flush=True)
+
+
+def request_stop(signum, frame) -> None:
+    stopping.set()
+
+
+def publish(client: mqtt.Client, code: str, kind: str, body: str, qos: int) -> None:
+    info = client.publish(topic(code, kind), body, qos=qos, retain=False)
+    if info.rc != mqtt.MQTT_ERR_SUCCESS:
+        print(f"publish failed: {code}/{kind}, rc={info.rc}", flush=True)
+
+
+def connect_with_retry(client: mqtt.Client) -> None:
+    for attempt in range(1, 31):
+        try:
+            client.connect(MQTT_HOST, MQTT_PORT, keepalive=60)
+            return
+        except OSError as error:
+            print(f"waiting for MQTT ({attempt}/30): {error}", flush=True)
+            time.sleep(1)
+    raise RuntimeError("MQTT was not ready within 30 seconds")
 
 
 def main() -> None:
+    signal.signal(signal.SIGINT, request_stop)
+    signal.signal(signal.SIGTERM, request_stop)
+
     client = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2,
-        client_id="skytrace-device-sim",
+        client_id=os.getenv("MQTT_CLIENT_ID", "skytrace-device-sim"),
     )
-    client.connect(BROKER, PORT, keepalive=60)
+    client.on_connect = on_connect
+    client.reconnect_delay_set(min_delay=1, max_delay=30)
+
+    connect_with_retry(client)
     client.loop_start()
 
-    for code in CODES:
-        client.publish(
-            topic(code, "status"),
-            json.dumps({
-                "deviceCode": code,
-                "online": True,
-                "mode": "IDLE",
-                "battery": 100,
-                "source": "sim",
-                "ts": now(),
-            }),
-            qos=1,
-        )
+    if not connected.wait(timeout=10):
+        client.loop_stop()
+        raise RuntimeError("MQTT connection acknowledgement timed out")
 
     try:
-        while True:
-            for code in CODES:
-                client.publish(
-                    topic(code, "heartbeat"),
-                    json.dumps({
-                        "deviceCode": code,
-                        "ts": now(),
-                        "source": "sim",
-                    }),
-                    qos=0,
-                )
-            time.sleep(INTERVAL)
-    except KeyboardInterrupt:
-        for code in CODES:
-            client.publish(
-                topic(code, "status"),
-                json.dumps({
-                    "deviceCode": code,
-                    "online": False,
-                    "mode": "OFFLINE",
-                    "source": "sim",
-                    "ts": now(),
-                }),
+        for code in DEVICE_CODES:
+            publish(
+                client,
+                code,
+                "status",
+                payload(code, online=True, mode="IDLE", battery=100),
                 qos=1,
             )
-        client.loop_stop()
+
+        while not stopping.is_set():
+            for code in DEVICE_CODES:
+                publish(client, code, "heartbeat", payload(code), qos=0)
+                print(f"heartbeat -> {code}", flush=True)
+            stopping.wait(INTERVAL)
+    finally:
+        for code in DEVICE_CODES:
+            info = client.publish(
+                topic(code, "status"),
+                payload(code, online=False, mode="OFFLINE"),
+                qos=1,
+                retain=False,
+            )
+            info.wait_for_publish(timeout=3)
         client.disconnect()
+        client.loop_stop()
 
 
 if __name__ == "__main__":
     main()
 ```
 
-**关于 LWT：** Paho 单 client 通常只有一个 will。一期更简单：正常退出时主动发 `online:false`（如上）。多设备可靠 LWT 可二期「每设备一个 client」。
+### B3. 把模拟器加入 overlay
 
-Compose 中 sim 示意（写入 `docker-compose.mqtt.yml`）：
+在 `deploy/docker-compose.mqtt.yml` 的 `services` 下追加：
 
 ```yaml
   device-sim:
-    build: ../device-sim
+    build:
+      context: ../device-sim
     container_name: skytrace-device-sim
+    restart: unless-stopped
     environment:
       MQTT_HOST: mqtt
       MQTT_PORT: "1883"
-      MQTT_ENV: local
+      MQTT_ENV: ${MQTT_ENV:-local}
+      MQTT_CLIENT_ID: skytrace-device-sim
       DEVICE_CODES: UAV-001,CAMERA-001
       HEARTBEAT_INTERVAL_SEC: "30"
     depends_on:
       - mqtt
+    networks:
+      - backend
 ```
 
-### 验收
+### B4. 验收模拟器
 
-MQTTX 订阅 `skytrace/local/device/+/+`，周期性看到 heartbeat，启动时有 status。
+保持 A4 的订阅终端打开，然后执行：
 
-### 好处
+```bash
+docker compose --env-file deploy/.env \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.mqtt.yml \
+  up -d --build device-sim
+```
 
-协议在进 Java 前就可视、可调；Java 挂了也能单独验证 Broker。
+查看模拟器日志：
+
+```bash
+docker logs -f skytrace-device-sim
+```
+
+通过标准：
+
+- 启动时每台设备各有一条 `status`；
+- 启动后立刻有 heartbeat；
+- 此后约每 30 秒一条 heartbeat；
+- `docker stop skytrace-device-sim` 时各有一条 `online:false`。
+
+到这里仍然不要求设备页变化。先确认生产者和 Broker 完全正常，再进入 Java。
 
 ---
 
-## M3 — Java 订阅 → Presence（核心）
+## 关卡 C：让 Java 听懂消息
 
-### 改什么
-
-建议新建：
+推荐新建下面这些文件：
 
 ```text
 backend-java/src/main/java/com/skytrace/backend/device/mqtt/
-  MqttProperties.java
-  DeviceMqttConfig.java
-  DeviceMqttSubscriber.java
-  DeviceMqttMessageHandler.java
-  DeviceMqttPayload.java          # 可选 record
+├── MqttProperties.java
+├── DeviceMqttConfig.java
+├── DeviceMqttMessageHandler.java
+└── DeviceMqttSubscriber.java
+
+backend-java/src/test/java/com/skytrace/backend/device/mqtt/
+└── DeviceMqttMessageHandlerTest.java
 ```
 
-[`backend-java/pom.xml`](../backend-java/pom.xml) 增加依赖，例如：
+把“解析并处理消息”和“连接 Broker”拆成两个类非常重要：Handler 可以像普通函数一样
+快速单测，测试时不需要启动 Docker。
+
+### C1. 加 Java MQTT 客户端
+
+在 [`backend-java/pom.xml`](../backend-java/pom.xml) 的 `dependencies` 中加入：
 
 ```xml
 <dependency>
-  <groupId>org.eclipse.paho</groupId>
-  <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
-  <version>1.2.5</version>
+    <groupId>org.eclipse.paho</groupId>
+    <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+    <version>1.2.5</version>
 </dependency>
 ```
 
-[`application.yml`](../backend-java/src/main/resources/application.yml) 增加：
+先确认依赖能解析：
+
+```bash
+cd backend-java
+mvn -DskipTests compile
+```
+
+### C2. 加配置，但默认关闭
+
+在
+[`application.yml`](../backend-java/src/main/resources/application.yml)
+的 `app` 下加入：
 
 ```yaml
-app:
   mqtt:
     enabled: ${MQTT_ENABLED:false}
     broker-url: ${MQTT_BROKER_URL:tcp://localhost:1883}
@@ -317,270 +574,465 @@ app:
     password: ${MQTT_PASSWORD:}
 ```
 
-mqtt overlay 中给 `backend-java`：
+`MqttProperties.java` 只负责把 YAML 映射成 Java 字段：
+
+```java
+@ConfigurationProperties(prefix = "app.mqtt")
+public class MqttProperties {
+    private boolean enabled = false;
+    private String brokerUrl = "tcp://localhost:1883";
+    private String env = "local";
+    private String clientId = "skytrace-backend-java";
+    private String username = "";
+    private String password = "";
+
+    // 用 IDE 生成标准 getter / setter。
+    // 写法可直接参考同仓库的 CacheProperties。
+}
+```
+
+`DeviceMqttConfig.java` 在开关打开时注册配置属性：
+
+```java
+@Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(MqttProperties.class)
+@ConditionalOnProperty(
+        name = "app.mqtt.enabled",
+        havingValue = "true"
+)
+public class DeviceMqttConfig {
+}
+```
+
+类所在包已经位于 `com.skytrace.backend` 下，不需要修改启动类的扫描范围。后面的
+`DeviceMqttSubscriber` 也要加相同的 `@ConditionalOnProperty`；这样开关关闭时不会创建
+MQTT client 或尝试连接 Broker。Handler 本身可以保持普通 `@Component`，便于单测和
+复用。
+
+### C3. 先写 Handler，不要急着连接 Broker
+
+`DeviceMqttMessageHandler` 的职责应限制在下面这条流水线：
+
+```text
+检查 Topic
+  → 解析 JSON
+  → Topic 中的 code 必须等于 payload.deviceCode
+  → 查询数据库确认设备存在
+  → heartbeat / clear Presence
+```
+
+核心结构可以写成：
+
+```java
+@Component
+public class DeviceMqttMessageHandler {
+    private static final Logger log = LoggerFactory.getLogger(
+            DeviceMqttMessageHandler.class
+    );
+
+    private final DeviceRepository deviceRepository;
+    private final ObjectProvider<DevicePresenceService> presenceProvider;
+    private final ObjectMapper objectMapper;
+
+    public DeviceMqttMessageHandler(
+            DeviceRepository deviceRepository,
+            ObjectProvider<DevicePresenceService> presenceProvider,
+            ObjectMapper objectMapper) {
+        this.deviceRepository = deviceRepository;
+        this.presenceProvider = presenceProvider;
+        this.objectMapper = objectMapper;
+    }
+
+    public void onMessage(String topic, String payloadJson) {
+        try {
+            String[] parts = topic.split("/", -1);
+            if (parts.length != 5
+                    || !"skytrace".equals(parts[0])
+                    || !"device".equals(parts[2])) {
+                log.warn("忽略非法 MQTT topic: {}", topic);
+                return;
+            }
+
+            String deviceCode = parts[3];
+            String kind = parts[4];
+            if (!"heartbeat".equals(kind) && !"status".equals(kind)) {
+                return;
+            }
+
+            JsonNode payload = objectMapper.readTree(payloadJson);
+            if (!deviceCode.equals(payload.path("deviceCode").asText())) {
+                log.warn("MQTT topic 与 payload 的 deviceCode 不一致: {}", topic);
+                return;
+            }
+
+            if (!deviceRepository.existsByDeviceCode(deviceCode)) {
+                log.warn("忽略未知设备的 MQTT 消息: {}", deviceCode);
+                return;
+            }
+
+            DevicePresenceService presence = presenceProvider.getIfAvailable();
+            if (presence == null) {
+                log.warn("Presence 未启用，忽略 MQTT 消息: {}", deviceCode);
+                return;
+            }
+
+            if ("heartbeat".equals(kind)) {
+                presence.heartbeat(deviceCode);
+                return;
+            }
+
+            JsonNode online = payload.get("online");
+            if (online == null || !online.isBoolean()) {
+                log.warn("status 消息缺少 boolean online: {}", deviceCode);
+                return;
+            }
+            if (online.booleanValue()) {
+                presence.heartbeat(deviceCode);
+            } else {
+                presence.clear(deviceCode);
+            }
+        } catch (Exception error) {
+            // MQTT 回调线程不能因为一条坏消息退出。
+            log.warn("处理 MQTT 设备消息失败: {}", error.getMessage());
+        }
+    }
+}
+```
+
+需要补齐的 imports 都来自现有依赖：Jackson、SLF4J、Spring `ObjectProvider` 和项目中的
+`DeviceRepository`、`DevicePresenceService`。
+
+这里故意不调用 `DeviceService.heartbeat`。那个方法会先查完整实体并生成 HTTP response；
+MQTT Handler 只需要“确认存在 + 更新 Presence”，保持消息回调足够轻。
+
+### C4. 先用单测证明 Handler 正确
+
+在 `DeviceMqttMessageHandlerTest` 至少覆盖 5 个行为：
+
+```text
+known heartbeat       → verify(presence).heartbeat("UAV-001")
+online status         → verify(presence).heartbeat("UAV-001")
+offline status        → verify(presence).clear("UAV-001")
+unknown device        → verifyNoInteractions(presence)
+topic/payload mismatch → verifyNoInteractions(presence)
+```
+
+测试用 Mockito mock `DeviceRepository`、`ObjectProvider<DevicePresenceService>` 和
+`DevicePresenceService`；`ObjectMapper` 可以直接 `new ObjectMapper()`。测试方法直接调用
+`handler.onMessage(...)`，不要启动 Spring，也不要连接真实 Broker。
+
+运行：
+
+```bash
+cd backend-java
+mvn -Dtest=DeviceMqttMessageHandlerTest test
+```
+
+Handler 测试全绿以后再写 Subscriber。否则 Broker、线程和 JSON 解析问题会混在一起。
+
+### C5. 编写 Subscriber
+
+`DeviceMqttSubscriber` 只负责生命周期，不放业务判断：
+
+```text
+Spring 启动
+  → 创建唯一 clientId
+  → 连接 tcp://mqtt:1883
+  → 订阅两个 Topic filter
+  → 每条消息交给 handler.onMessage
+Spring 停止
+  → disconnect
+  → close
+```
+
+实现时使用这些关键设置：
+
+```java
+MqttConnectOptions options = new MqttConnectOptions();
+options.setAutomaticReconnect(true);
+options.setCleanSession(true);
+options.setConnectionTimeout(10);
+options.setKeepAliveInterval(30);
+
+String clientId = properties.getClientId() + "-" + UUID.randomUUID();
+MqttClient client = new MqttClient(
+        properties.getBrokerUrl(),
+        clientId,
+        new MemoryPersistence()
+);
+```
+
+用户名非空时再设置凭证，避免把空字符串当真实账号：
+
+```java
+if (!properties.getUsername().isBlank()) {
+    options.setUserName(properties.getUsername());
+    options.setPassword(properties.getPassword().toCharArray());
+}
+```
+
+连接成功后订阅：
+
+```java
+String prefix = "skytrace/" + properties.getEnv() + "/device/+/";
+
+client.subscribe(prefix + "heartbeat", 0, (topic, message) ->
+        handler.onMessage(
+                topic,
+                new String(message.getPayload(), StandardCharsets.UTF_8)
+        )
+);
+
+client.subscribe(prefix + "status", 1, (topic, message) ->
+        handler.onMessage(
+                topic,
+                new String(message.getPayload(), StandardCharsets.UTF_8)
+        )
+);
+```
+
+还要补上四件容易漏的事：
+
+1. 类上添加与配置相同的 `@ConditionalOnProperty`；
+2. 初次连接失败时每秒重试，最多约 30 秒，处理 Compose 启动竞态；
+3. 使用 `MqttCallbackExtended.connectComplete` 在自动重连后重新订阅；
+4. `@PreDestroy` 中依次 `disconnect()` 和 `close()`，并吞掉关闭阶段的次要异常。
+
+> MQTT clientId 必须唯一。两个实例使用相同 ID 时，Broker 会不断把旧连接踢下线。
+> 随机后缀解决多实例冲突；同一个 `MqttClient` 自动重连时仍会复用这个 ID。
+
+启动日志至少打印“连接成功”和两个已订阅的 filter。排错时这两行非常有用，但不要打印
+用户名、密码或完整敏感 payload。
+
+### C6. 在 overlay 中打开 Java MQTT
+
+在 `deploy/docker-compose.mqtt.yml` 的 `services` 下再追加：
 
 ```yaml
   backend-java:
     environment:
       MQTT_ENABLED: "true"
       MQTT_BROKER_URL: tcp://mqtt:1883
-      MQTT_ENV: local
+      MQTT_ENV: ${MQTT_ENV:-local}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-skytrace-backend-java}
+    depends_on:
+      mqtt:
+        condition: service_started
 ```
 
-### 为什么
+Compose 会把这里的 environment 和主文件中已有的 MySQL、Redis 等 environment 合并，
+不是把它们全部覆盖。
 
-在线真相继续是 Redis TTL；MQTT 只是写入来源，列表/任务旁「是否在线」不用重写。
+### C7. 端到端启动
 
-### 先具备 `DevicePresenceService.clear`
+先检查合并后的配置：
 
-阶段 A 步骤 1 会加 `clear(deviceCode)`。若尚未做 A，M3 处理 offline 时需要先补上，例如：
-
-```java
-public void clear(String deviceCode) {
-    String code = normalize(deviceCode);
-    if (code.isEmpty()) {
-        return;
-    }
-    try {
-        redisTemplate.delete(KEY_PREFIX + code);
-    } catch (Exception ex) {
-        log.warn("清除设备在线状态失败: {}", ex.getMessage());
-    }
-}
+```bash
+docker compose --env-file deploy/.env \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.mqtt.yml \
+  config
 ```
 
-### Handler（抽成可单测类，推荐）
+再构建并启动完整环境：
 
-```java
-@Component
-public class DeviceMqttMessageHandler {
-    private final DeviceRepository deviceRepository;
-    private final ObjectProvider<DevicePresenceService> presenceService;
-    private final ObjectMapper objectMapper;
-
-    public void onMessage(String topic, String payloadJson) {
-        // topic: skytrace/{env}/device/{code}/heartbeat|status
-        String[] parts = topic.split("/");
-        if (parts.length < 5) {
-            return;
-        }
-        String deviceCode = parts[3];
-        String kind = parts[4];
-
-        if (!deviceRepository.existsByDeviceCode(deviceCode)) {
-            // 已删或不存在：忽略，避免脏 presence（衔接阶段 A）
-            return;
-        }
-
-        DevicePresenceService presence = presenceService.getIfAvailable();
-        if (presence == null) {
-            return;
-        }
-
-        try {
-            if ("heartbeat".equals(kind)) {
-                presence.heartbeat(deviceCode);
-                return;
-            }
-            if ("status".equals(kind)) {
-                JsonNode node = objectMapper.readTree(payloadJson);
-                boolean online = node.path("online").asBoolean(true);
-                if (online) {
-                    presence.heartbeat(deviceCode);
-                } else {
-                    presence.clear(deviceCode);
-                }
-            }
-        } catch (Exception ex) {
-            // 打日志，勿拖垮订阅线程
-        }
-    }
-}
+```bash
+docker compose --env-file deploy/.env \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.mqtt.yml \
+  up -d --build
 ```
 
-### Subscriber 启动骨架
+分别观察两端：
 
-使用 `@ConditionalOnProperty(name = "app.mqtt.enabled", havingValue = "true")`。
-
-```java
-@PostConstruct
-public void start() throws MqttException {
-    MqttConnectOptions opts = new MqttConnectOptions();
-    opts.setAutomaticReconnect(true);
-    opts.setCleanSession(true);
-    if (properties.getUsername() != null && !properties.getUsername().isBlank()) {
-        opts.setUserName(properties.getUsername());
-        opts.setPassword(properties.getPassword().toCharArray());
-    }
-
-    MqttClient client = new MqttClient(
-            properties.getBrokerUrl(),
-            properties.getClientId() + "-" + UUID.randomUUID()
-    );
-    client.connect(opts);
-
-    String env = properties.getEnv();
-    String filterHb = "skytrace/" + env + "/device/+/heartbeat";
-    String filterSt = "skytrace/" + env + "/device/+/status";
-
-    client.subscribe(filterHb, 0, (topic, msg) ->
-            handler.onMessage(topic, new String(msg.getPayload(), StandardCharsets.UTF_8)));
-    client.subscribe(filterSt, 1, (topic, msg) ->
-            handler.onMessage(topic, new String(msg.getPayload(), StandardCharsets.UTF_8)));
-}
-
-@PreDestroy
-public void stop() {
-    // disconnect / close，避免泄漏
-}
+```bash
+docker logs -f skytrace-device-sim
 ```
 
-`clientId` 加随机后缀，避免多实例冲突。生产代码补齐异常与日志。
-
-### 与 HTTP heartbeat 共存
-
-| 来源 | 行为 |
-| --- | --- |
-| MQTT | 主路径（演示/模拟） |
-| `POST .../heartbeat` | 同样调 `presence.heartbeat`，便于单测与 Postman |
-
-不要做成两套互斥的在线模型。
-
-### 单测示例（只测 Handler，不连 Broker）
-
-```java
-@Test
-void heartbeatForKnownDeviceTouchesPresence() {
-    when(deviceRepository.existsByDeviceCode("UAV-001")).thenReturn(true);
-    when(presenceProvider.getIfAvailable()).thenReturn(presence);
-
-    handler.onMessage(
-            "skytrace/local/device/UAV-001/heartbeat",
-            "{\"deviceCode\":\"UAV-001\",\"source\":\"sim\"}"
-    );
-
-    verify(presence).heartbeat("UAV-001");
-}
-
-@Test
-void unknownDeviceIsIgnored() {
-    when(deviceRepository.existsByDeviceCode("GONE")).thenReturn(false);
-
-    handler.onMessage("skytrace/local/device/GONE/heartbeat", "{}");
-
-    verifyNoInteractions(presence);
-}
-
-@Test
-void statusOfflineClearsPresence() {
-    when(deviceRepository.existsByDeviceCode("UAV-001")).thenReturn(true);
-    when(presenceProvider.getIfAvailable()).thenReturn(presence);
-
-    handler.onMessage(
-            "skytrace/local/device/UAV-001/status",
-            "{\"deviceCode\":\"UAV-001\",\"online\":false,\"mode\":\"OFFLINE\"}"
-    );
-
-    verify(presence).clear("UAV-001");
-}
+```bash
+docker logs -f skytrace-backend-java
 ```
 
-### 验收
+最后打开 `http://localhost:8888/devices` 并刷新。`UAV-001` 与 `CAMERA-001` 应显示
+`ONLINE`。
 
-1. `MQTT_ENABLED=true`，起 mqtt + sim + java  
-2. `GET /api/devices` → `UAV-001` 为 `ONLINE`  
-3. 停 `device-sim`（主动发 offline）→ 刷新列表为 `OFFLINE`  
-4. Redis：`EXISTS skytrace:device:online:UAV-001` 与列表一致  
-5. 若已做阶段 A：删无引用设备后，sim 仍发该 code 时列表无此行；Handler 不再写入该 code 的 presence
+### C8. 验证离线的两条路径
 
-### 好处
+正常停止：
 
-- 列表逻辑几乎不动  
-- 与 HTTP heartbeat、阶段 A `clear`、后续 DB 对账共用 Presence  
-- 未知设备忽略，与硬删策略兼容  
+```bash
+docker stop skytrace-device-sim
+```
+
+模拟器会先发 `online:false`。刷新设备页，应立即看到 `OFFLINE`。
+
+异常消失：重新启动模拟器，确认 ONLINE 后强制结束进程或断开网络，使它来不及发送
+offline。Redis key 会自然过期：
+
+```bash
+docker exec skytrace-redis redis-cli \
+  TTL skytrace:device:online:UAV-001
+```
+
+TTL 应从不超过 90 的正数逐渐减少，心跳到达时又回到约 90。超时后刷新页面，应显示
+`OFFLINE`。
 
 ---
 
-## M4 —（可选）状态进 Redis Hash + 详情返回
+## 关卡 D（可选）：让 Vue 自动刷新
 
-### 为什么
+MQTT 主链路完成时，前端可以一行代码都不改；当前页面只在首次进入和用户操作后请求
+设备列表，所以手动刷新即可看到变化。
 
-仅有 ONLINE/OFFLINE 不够演示 `IDLE` / `FLYING` / `battery`；先不要改 MySQL `device` 表。
+如果想让演示更自然，可以给
+[`DeviceView.vue`](../frontend/src/views/DeviceView.vue)
+增加 5 秒静默轮询。先把 `refresh` 改成支持 `silent`：
 
-### 做什么
-
-收到 `status` 且 `online=true` 时，例如：
-
-```text
-HSET skytrace:device:status:{code} mode IDLE battery 87 ts ...
-EXPIRE 与 presence TTL 同级或略长
+```ts
+async function refresh(silent = false) {
+  if (!silent) loading.value = true
+  errorMessage.value = ''
+  try {
+    devices.value = await getDevices()
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : t('devices.loadFailed')
+  } finally {
+    if (!silent) loading.value = false
+  }
+}
 ```
 
-`DeviceResponse` 增加可选字段 `mode`、`battery`（或单独 DTO）；详情/列表从 Hash 读取，没有则 `null`。
+然后引入 `onBeforeUnmount` 并管理 timer：
 
-### 好处
+```ts
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+} from 'vue'
 
-前端可展示舱态；DB 结构保持干净。
+let pollingId: number | undefined
 
----
+onMounted(() => {
+  void refresh()
+  pollingId = window.setInterval(() => {
+    if (!document.hidden && !loading.value) {
+      void refresh(true)
+    }
+  }, 5_000)
+})
 
-## M5 —（可选）sim 控制 HTTP
-
-```text
-POST /sim/devices/{code}/start
-POST /sim/devices/{code}/stop
-POST /sim/devices/{code}/mode   body: {"mode":"FLYING"}
-GET  /sim/devices
+onBeforeUnmount(() => {
+  if (pollingId !== undefined) {
+    window.clearInterval(pollingId)
+  }
+})
 ```
 
-绑定 `127.0.0.1:8095`，勿对公网暴露。演示用 curl 切模式，不必改 Java。
+先用轮询完成演示，不要在这一期让浏览器直连 MQTT。以后如果确实需要秒级状态更新，
+应由后端把设备状态转换为现有 Socket.IO 事件，再由 Vue 订阅。
 
 ---
 
-## 前端（一期最小）
+## 从外到内的排错方法
 
-- **不要**用 MQTT.js 直连 Broker  
-- DeviceView 继续 `GET /api/devices`；可加 5–10s 轮询或手动刷新以看到 ONLINE 变化  
-- 原「心跳」按钮可标为调试，或用环境变量控制是否显示  
+不要一上来读 Java 堆栈。按消息流方向逐层确认，第一处不符合预期的地方就是当前故障层。
 
-二期再考虑经现有 Socket.IO 推 `device.status`（非本指南必做）。
-
----
-
-## 环境与开关矩阵
-
-| 环境 | MQTT_ENABLED | device-sim | 说明 |
+| 检查点 | 怎么检查 | 正常结果 | 常见原因 |
 | --- | --- | --- | --- |
-| 默认 CI / 单测 | false | 不起 | Handler 单测 mock Presence |
-| 本地做业务 1.1 | false | 不起 | 免干扰 |
-| 演示设备在线 | true | true | 使用 mqtt overlay |
+| Broker 在运行 | `docker ps --filter name=skytrace-mqtt` | 状态为 Up | overlay 没有带上 |
+| Broker 收到消息 | `mosquitto_sub` 订阅 `device/+/+` | 每 30 秒有 heartbeat | sim 未连接、Topic 环境不一致 |
+| 模拟器正常 | `docker logs skytrace-device-sim` | 有 connected 和 heartbeat | 容器内误用了 localhost |
+| Java 已订阅 | `docker logs skytrace-backend-java` | 有 connected/subscribed | `MQTT_ENABLED` 仍是 false |
+| Java 接受设备 | 看 warning 日志 | 没有 unknown/mismatch | 数据库没有该 code、JSON 不一致 |
+| Redis 有 Presence | `redis-cli TTL ...` | 返回正数 | cache 未启用、Handler 未调用 heartbeat |
+| API 返回 ONLINE | 浏览器 Network 看 `/api/devices` | `status: "ONLINE"` | BFF/Java 未重建或 Redis 已过期 |
+| 页面显示 ONLINE | 看 Vue 状态标签 | 与 API 一致 | 页面没有刷新、前端缓存旧数据 |
+
+### 高频坑
+
+**容器里不能用 `localhost` 找另一个容器。**
+
+- 宿主机工具连接 Broker：`127.0.0.1:1883`；
+- `device-sim` 容器连接 Broker：`mqtt:1883`；
+- `backend-java` 容器连接 Broker：`tcp://mqtt:1883`。
+
+**Topic 的环境必须一致。**
+
+模拟器发布 `skytrace/local/...`，Java 却订阅 `skytrace/dev/...` 时，双方都不会报错，
+但永远收不到消息。检查两边的 `MQTT_ENV`。
+
+**只改代码但没有重建镜像。**
+
+Java `pom.xml`、Java 源码、`device-sim` 源码变化后，用 `up -d --build`，单纯 restart
+不会把新代码放入镜像。
+
+**设备编号不存在。**
+
+第一版不会自动创建设备。默认可用 `UAV-001`、`CAMERA-001`；如果改
+`DEVICE_CODES`，请先通过设备页创建同编号设备。
+
+**把在线状态写回 MySQL。**
+
+当前 API 的 `status` 是运行时合成字段：数据库存设备主数据，Redis TTL 表示在线状态。
+不要让 MQTT Handler 更新 `device.status`，否则会出现 DB 与 TTL 两个真相源。
 
 ---
 
-## 明确不做
+## 完成定义（Definition of Done）
 
-- 浏览器直连 MQTT  
-- 用 RabbitMQ 替代设备遥测（告警继续走 Rabbit）  
-- EMQX 集群、指令下行、真飞控协议  
-- 自动把未知 `deviceCode` 写入 MySQL  
+全部勾选后，这个功能才算完成：
 
----
+- [ ] 不带 MQTT overlay 时，原有完整栈仍可启动；
+- [ ] `MQTT_ENABLED` 默认是 `false`；
+- [ ] Broker 能通过手工 publish / subscribe 验证；
+- [ ] 模拟器定时发布两台已知设备的 heartbeat；
+- [ ] Handler 单测覆盖 heartbeat、上线、下线、未知设备和编号不一致；
+- [ ] 一条坏 JSON 不会让订阅线程退出；
+- [ ] Java 重连后会重新订阅；
+- [ ] `GET /api/devices` 能看到 ONLINE；
+- [ ] 正常停止模拟器会立即 OFFLINE；
+- [ ] 异常停止后会在 Presence TTL 内 OFFLINE；
+- [ ] 现有 HTTP heartbeat 仍然可用；
+- [ ] 浏览器没有直连 Broker；
+- [ ] `mvn test` 通过；
+- [ ] `docker compose ... config` 通过。
 
-## 建议提交（中文 message）
+## 建议提交顺序
 
-1. `chore(deploy): 增加 Mosquitto MQTT overlay`  
-2. `feat(device-sim): 无真机设备心跳与状态模拟器`  
-3. `feat(backend-java): 订阅 MQTT 并写入设备在线 Presence`  
+```text
+chore(deploy): 增加本地 Mosquitto MQTT overlay
+feat(device-sim): 增加无真机设备心跳模拟器
+feat(backend-java): 订阅 MQTT 并更新设备 Presence
+feat(frontend): 轮询刷新设备在线状态       # 可选
+```
 
----
+## 这一期先不要做
 
-## 推进清单
+- 浏览器通过 MQTT.js 直连 Broker；
+- EMQX 集群、TLS 证书和生产 ACL；
+- 用 RabbitMQ 代替设备接入协议（RabbitMQ 继续服务现有告警链路）；
+- 把未知 `deviceCode` 自动写入 MySQL；
+- 电量、飞行模式等状态落 MySQL；
+- 指令下行、真飞控协议、多设备独立 LWT；
+- 为了“实时”同时引入 MQTT、轮询和一套新 WebSocket。
 
-| 顺序 | 切片 | 完成标准 |
-| --- | --- | --- |
-| 1 | M1 | MQTTX 连上 `1883` |
-| 2 | M2 | 订阅看到 heartbeat / status |
-| 3 | M3 | 列表 ONLINE/OFFLINE 跟 sim 走；Handler 单测绿 |
-| 4 | M4 / M5 | 有余力再做 |
+先把 A → B → C 的单向心跳链路做稳，再决定是否需要状态 Hash、模拟器控制 API 或
+Socket.IO 推送。
 
-相关文档：[架构说明](architecture.md)、[v1.0.0 发版说明](releases/v1.0.0.md)（设备在线仍为 Redis presence 的已知限制语境）。
+## 官方资料
+
+- [Eclipse Paho Java `MqttClient` API](https://eclipse.dev/paho/files/javadoc/org/eclipse/paho/client/mqttv3/MqttClient.html)
+- [Eclipse Paho Java MQTT 包说明](https://eclipse.dev/paho/files/javadoc/org/eclipse/paho/client/mqttv3/package-summary.html)
+- [Maven Central：Paho Java 1.2.5](https://central.sonatype.com/artifact/org.eclipse.paho/org.eclipse.paho.client.mqttv3)
+- [Eclipse Paho Python Client](https://eclipse.dev/paho/files/paho.mqtt.python/html/index.html)
+- [Mosquitto 配置手册](https://mosquitto.org/man/mosquitto-conf-5.html)
+
+项目内相关资料：
+
+- [架构说明](architecture.md)
+- [运维速查](ops.md)
+- [设备 API 与 Redis Presence 实现](../backend-java/src/main/java/com/skytrace/backend/device/service/DeviceService.java)
