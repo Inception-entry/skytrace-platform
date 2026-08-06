@@ -86,3 +86,10 @@ export function heartbeatDevice(deviceCode: string) {
     { method: 'POST' },
   )
 }
+
+export function deleteDevice(deviceCode: string) {
+  return request<null>(
+    `/api/devices/${encodeURIComponent(deviceCode)}`,
+    { method: 'DELETE' },
+  )
+}

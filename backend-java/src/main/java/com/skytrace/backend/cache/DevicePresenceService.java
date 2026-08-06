@@ -77,6 +77,18 @@ public class DevicePresenceService {
         }
     }
 
+    public void clear(String deviceCode) {
+        String code = normalize(deviceCode);
+        if (code.isEmpty()) {
+            return;
+        }
+        try {
+            redisTemplate.delete(KEY_PREFIX + code);
+        } catch (Exception ex) {
+            log.warn("清除设备在线状态失败: {}", ex.getMessage());
+        }
+    }
+
     private static String normalize(String deviceCode) {
         return deviceCode == null ? "" : deviceCode.trim();
     }

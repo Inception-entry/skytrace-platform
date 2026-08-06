@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
+
 import java.util.List;
 import java.util.Map;
 
@@ -55,5 +57,11 @@ public class DeviceController {
     public ApiResponse<Map<String, Object>> heartbeat(
             @PathVariable String deviceCode) {
         return ApiResponse.ok(deviceService.heartbeat(deviceCode));
+    }
+
+    @DeleteMapping("/{deviceCode}")
+    public ApiResponse<Void> delete(@PathVariable String deviceCode) {
+        deviceService.delete(deviceCode);
+        return ApiResponse.ok(null);
     }
 }

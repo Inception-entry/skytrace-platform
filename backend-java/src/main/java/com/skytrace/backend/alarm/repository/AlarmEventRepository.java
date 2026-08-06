@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface AlarmEventRepository extends JpaRepository<AlarmEvent, Long> {
     List<AlarmEvent> findTop20ByOrderByEventTimeDesc();
+
+    boolean existsByDeviceCode(String deviceCode);
 }

@@ -175,6 +175,9 @@ export default {
     loadFailed: '加载设备失败',
     saveFailed: '保存设备失败',
     heartbeatFailed: 'Heartbeat 失败',
+    confirmDelete: '确认删除设备 {{code}}？若仍被任务或告警引用将无法删除。',
+    deleteSuccess: '设备已删除',
+    deleteFailed: '删除设备失败',
   },
   routes: {
     eyebrow: 'SKYTRACE ROUTES',

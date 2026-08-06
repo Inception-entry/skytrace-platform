@@ -35,6 +35,7 @@ test('frontend device client targets device API paths', () => {
     deviceSource,
     /\/api\/devices\/\$\{encodeURIComponent\(deviceCode\)\}\/heartbeat/,
   )
+  assert.match(deviceSource, /method:\s*['"]DELETE['"]/)
 })
 
 test('frontend evidence client supports list query', () => {

@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Delete,
 } from '@nestjs/common';
 import { Roles } from '../auth/http-auth.decorators';
 import { JavaClientService } from '../common/java-client/java-client.service';
@@ -15,6 +16,7 @@ export class DeviceController {
   constructor(private readonly javaClient: JavaClientService) {}
 
   @Get()
+
   list() {
     return this.javaClient.get('/devices');
   }
@@ -54,6 +56,13 @@ export class DeviceController {
       `/devices/${encodeURIComponent(deviceCode)}/heartbeat`,
       {},
     );
+  }
+
+  @Delete(':deviceCode')
+  @Roles('ADMIN', 'OPERATOR')
+  delete(@Param('deviceCode') deviceCode: string) {
+    this.requireDeviceCode(deviceCode);
+    return this.javaClient.delete(`/devices/${encodeURIComponent(deviceCode)}`);
   }
 
   private requireDeviceCode(deviceCode: string) {

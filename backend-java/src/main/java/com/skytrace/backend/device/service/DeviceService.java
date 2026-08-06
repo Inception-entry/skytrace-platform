@@ -7,6 +7,8 @@ import com.skytrace.backend.device.dto.CreateDeviceRequest;
 import com.skytrace.backend.device.dto.DeviceResponse;
 import com.skytrace.backend.device.dto.UpdateDeviceRequest;
 import com.skytrace.backend.device.repository.DeviceRepository;
+import com.skytrace.backend.alarm.repository.AlarmEventRepository;
+import com.skytrace.backend.task.repository.InspectionTaskRepository;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -23,12 +25,18 @@ public class DeviceService {
 
     private final DeviceRepository repository;
     private final ObjectProvider<DevicePresenceService> presenceService;
+    private final InspectionTaskRepository taskRepository;
+    private final AlarmEventRepository alarmRepository;
 
     public DeviceService(
             DeviceRepository repository,
-            ObjectProvider<DevicePresenceService> presenceService) {
+            ObjectProvider<DevicePresenceService> presenceService,
+            InspectionTaskRepository taskRepository,
+            AlarmEventRepository alarmRepository) {
         this.repository = repository;
         this.presenceService = presenceService;
+        this.taskRepository = taskRepository;
+        this.alarmRepository = alarmRepository;
     }
 
     public List<DeviceResponse> findAll() {
@@ -89,6 +97,25 @@ public class DeviceService {
                 "status", "ONLINE",
                 "presence", "ok"
         );
+    }
+
+    @Transactional
+    public void delete(String deviceCode) {
+        Device device = getRequiredDevice(deviceCode); // 已有：不存在 → NoSuchElementException → 404
+        String code = device.getDeviceCode();
+
+        if (taskRepository.existsByDeviceCode(code) || alarmRepository.existsByDeviceCode(code)) {
+             throw new ConflictException(
+                "设备仍被任务或告警引用，无法删除：" + code
+            );
+        }
+
+        repository.delete(device);
+        DevicePresenceService presence = presenceService.getIfAvailable();
+
+        if (presence != null) {
+            presence.clear(code);
+        }
     }
 
     private Device getRequiredDevice(String deviceCode) {

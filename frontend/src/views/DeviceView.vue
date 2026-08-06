@@ -136,6 +136,15 @@
                 >
                   {{ $t('devices.heartbeat') }}
                 </button>
+                <button
+                  v-if="canOperate"
+                  type="button"
+                  class="text-button"
+                  :disabled="loading"
+                  @click="removeDevice(device.deviceCode)"
+                >
+                  {{ $t('common.delete') }}
+                </button>
               </td>
             </tr>
           </tbody>
@@ -155,6 +164,7 @@ import {
   heartbeatDevice,
   updateDevice,
   type Device,
+  deleteDevice,
 } from '@/api/device'
 
 const { t } = useTranslation()
@@ -254,6 +264,25 @@ async function sendHeartbeat(deviceCode: string) {
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : t('devices.heartbeatFailed')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function removeDevice(deviceCode: string) {
+  if (!window.confirm(t('devices.confirmDelete', { code: deviceCode }))) {
+    return
+  }
+  loading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await deleteDevice(deviceCode)
+    successMessage.value = t('devices.deleteSuccess')
+    await refresh()
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : t('devices.deleteFailed')
   } finally {
     loading.value = false
   }

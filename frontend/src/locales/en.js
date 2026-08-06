@@ -175,6 +175,9 @@ export default {
     loadFailed: 'Failed to load devices',
     saveFailed: 'Failed to save device',
     heartbeatFailed: 'Heartbeat failed',
+    confirmDelete: 'Delete device {{code}}? It cannot be removed while referenced by tasks or alarms.',
+    deleteSuccess: 'Device deleted',
+    deleteFailed: 'Failed to delete device',
   },
   routes: {
     eyebrow: 'SKYTRACE ROUTES',

@@ -13,4 +13,6 @@ public interface InspectionTaskRepository
     boolean existsByTaskCode(String taskCode);
 
     long countByStatus(String status);
+
+    boolean existsByDeviceCode(String deviceCode);
 }

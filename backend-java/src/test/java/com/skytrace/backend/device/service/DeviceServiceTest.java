@@ -7,6 +7,9 @@ import com.skytrace.backend.device.dto.CreateDeviceRequest;
 import com.skytrace.backend.device.dto.DeviceResponse;
 import com.skytrace.backend.device.dto.UpdateDeviceRequest;
 import com.skytrace.backend.device.repository.DeviceRepository;
+import com.skytrace.backend.task.repository.InspectionTaskRepository;
+import com.skytrace.backend.alarm.repository.AlarmEventRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -22,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 class DeviceServiceTest {
 
@@ -34,10 +38,20 @@ class DeviceServiceTest {
             mock(DevicePresenceService.class);
     private DeviceService service;
 
+    private final InspectionTaskRepository taskRepository =
+        mock(InspectionTaskRepository.class);
+    private final AlarmEventRepository alarmRepository =
+        mock(AlarmEventRepository.class);
+
     @BeforeEach
     void setUp() {
         when(presenceProvider.getIfAvailable()).thenReturn(presence);
-        service = new DeviceService(repository, presenceProvider);
+        service = new DeviceService(
+            repository,
+            presenceProvider,
+            taskRepository,
+            alarmRepository
+        );
     }
 
     @Test
@@ -147,5 +161,42 @@ class DeviceServiceTest {
         assertThat(result.get("status")).isEqualTo("ONLINE");
         assertThat(result.get("presence")).isEqualTo("ok");
         verify(presence).heartbeat("UAV-001");
+    }
+
+    @Test
+    void shouldDeleteDeviceWhenUnreferenced() {
+        Device device = new Device(
+                "UAV-002",
+                "二号",
+                "UAV"
+        );
+        when(repository.findByDeviceCode("UAV-002"))
+                .thenReturn(Optional.of(device));
+        when(taskRepository.existsByDeviceCode("UAV-002")).thenReturn(false);
+        when(alarmRepository.existsByDeviceCode("UAV-002")).thenReturn(false);
+
+        service.delete("UAV-002");
+
+        verify(repository).delete(device);
+        verify(presence).clear("UAV-002");
+    }
+
+    @Test
+    void shouldRejectDeleteWhenTaskReferencesDevice() {
+        Device device = new Device(
+                "UAV-001",
+                "一号",
+                "UAV"
+        );
+        when(repository.findByDeviceCode("UAV-001"))
+                .thenReturn(Optional.of(device));
+        when(taskRepository.existsByDeviceCode("UAV-001")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete("UAV-001"))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("引用");
+
+        verify(repository, never()).delete(any());
+        verify(presence, never()).clear(any());
     }
 }
