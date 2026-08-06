@@ -1,11 +1,12 @@
 <template>
   <a-dropdown :trigger="['click']">
     <template #overlay>
-      <a-menu @click="onSwitch">
+      <a-menu>
         <a-menu-item
           v-for="key in themeKeys"
           :key="key"
           :class="{ active_theme: currentThemeKey === key }"
+          @click="themeStore.applyTheme(key)"
         >
           <BgColorsOutlined />
           {{ $t(`theme.${key}`) }}
@@ -27,8 +28,4 @@ import { themeKeys } from '@/theme/registry'
 
 const themeStore = useThemeStore()
 const currentThemeKey = computed(() => themeStore.getTheme)
-
-const onSwitch = (info: { key: string | number }) => {
-  themeStore.applyTheme(String(info.key))
-}
 </script>

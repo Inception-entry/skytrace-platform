@@ -114,3 +114,23 @@ body > .authentication-error {
   font-size: 18px;
   background: var(--st-bg-page);
 }
+
+/* Chrome drawers: override Ant Design cssinjs `background` shorthand */
+.menu-aside .ant-drawer-content {
+  background: var(--st-drawer-bg) !important;
+  color: var(--st-text);
+}
+
+.menu-aside .ant-drawer-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--st-border) !important;
+}
+
+.menu-aside .ant-drawer-title {
+  color: var(--st-text) !important;
+}
+
+.tool-header .ant-drawer-content {
+  background: var(--st-toolbar-bg) !important;
+  color: var(--st-text);
+}

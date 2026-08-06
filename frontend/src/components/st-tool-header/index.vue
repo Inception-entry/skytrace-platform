@@ -6,6 +6,7 @@
     title=""
     root-class-name="tool-header"
     :content-wrapper-style="contentWrapperStyle"
+    :drawer-style="drawerContentStyle"
     :force-render="true"
     :placement="placement"
     :open="open"
@@ -28,6 +29,8 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
 import { useLayoutStore } from '@/store/modules/layout'
+import { useThemeStore } from '@/store/modules/theme'
+import { themeRegistry } from '@/theme/registry'
 
 import type { DrawerProps } from 'ant-design-vue';
 import SwitchLayout from '@/components/st-tool-header/components/SwitchLayout.vue'
@@ -38,8 +41,16 @@ import StAuthToolbar from '@/components/st-auth-toolbar/index.vue'
 defineOptions({ name: 'st-tool-header' })
 
 const layoutStore = useLayoutStore();
+const themeStore = useThemeStore()
 const currentLayoutKey = computed(() => layoutStore.getLayout)
 const asideStatus = computed(() => layoutStore.getAsideStatus)
+const themeVars = computed(() => themeRegistry[themeStore.getTheme].cssVars)
+const drawerContentStyle = computed(() => ({
+  background: themeVars.value['--st-toolbar-bg'],
+  backgroundColor: themeVars.value['--st-toolbar-bg'],
+  borderBottom: `1px solid ${themeVars.value['--st-border']}`,
+  color: themeVars.value['--st-text'],
+}))
 
 
 const placement = ref<DrawerProps['placement']>('top');
@@ -165,8 +176,8 @@ const showDrawer = () => {
 
 // 覆盖 drawer 的样式（跟主题变量走，避免浅色主题下仍是深色顶栏）
 :global(.tool-header .ant-drawer-content) {
-  background-color: var(--st-toolbar-bg, rgba(0, 21, 41, 0.78)) !important;
-  border-bottom: 1px solid var(--st-border, rgba(255, 255, 255, 0.12));
+  background: var(--st-toolbar-bg) !important;
+  border-bottom: 1px solid var(--st-border) !important;
 }
 :global(.tool-header .ant-drawer-body) {
   display: grid;

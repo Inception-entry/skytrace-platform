@@ -8,6 +8,8 @@
     :title="$t('nav.brand')"
     root-class-name="menu-aside"
     :content-wrapper-style="contentWrapperStyle"
+    :drawer-style="drawerContentStyle"
+    :header-style="drawerHeaderStyle"
     :force-render="true"
     :placement="placement"
     :open="open"
@@ -33,6 +35,8 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
 import { useLayoutStore } from '@/store/modules/layout'
+import { useThemeStore } from '@/store/modules/theme'
+import { themeRegistry } from '@/theme/registry'
 import type { DrawerProps } from 'ant-design-vue'
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons-vue'
 import { authenticationState } from '@/auth/keycloak'
@@ -40,8 +44,19 @@ import { authenticationState } from '@/auth/keycloak'
 defineOptions({ name: 'st-menu-aside' })
 
 const layoutStore = useLayoutStore()
+const themeStore = useThemeStore()
 const currentLayoutKey = computed(() => layoutStore.getLayout)
 const headerStatus = computed(() => layoutStore.getHeaderStatus)
+const themeVars = computed(() => themeRegistry[themeStore.getTheme].cssVars)
+const drawerContentStyle = computed(() => ({
+  background: themeVars.value['--st-drawer-bg'],
+  backgroundColor: themeVars.value['--st-drawer-bg'],
+  color: themeVars.value['--st-text'],
+}))
+const drawerHeaderStyle = computed(() => ({
+  background: 'transparent',
+  borderBottom: `1px solid ${themeVars.value['--st-border']}`,
+}))
 
 const placement = ref<DrawerProps['placement']>('left')
 const open = ref(false)
@@ -145,16 +160,17 @@ const showDrawer = () => {
 }
 
 :global(.menu-aside .ant-drawer-content) {
-  background-color: var(--st-drawer-bg, rgba(0, 21, 41, 0.92)) !important;
-  border-inline-end: 1px solid var(--st-border, rgba(255, 255, 255, 0.12));
+  /* 用 background 简写覆盖 Ant Design cssinjs，避免只改 background-color 被盖住 */
+  background: var(--st-drawer-bg) !important;
+  border-inline-end: 1px solid var(--st-border) !important;
 }
 
 :global(.menu-aside .ant-drawer-header) {
-  background: transparent;
-  border-bottom: 1px solid var(--st-border, rgba(255, 255, 255, 0.12));
+  background: transparent !important;
+  border-bottom: 1px solid var(--st-border) !important;
 }
 
 :global(.menu-aside .ant-drawer-title) {
-  color: var(--st-text, #e8eef7);
+  color: var(--st-text) !important;
 }
 </style>
