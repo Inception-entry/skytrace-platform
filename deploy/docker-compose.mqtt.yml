@@ -26,3 +26,13 @@ services:
       - mqtt
     networks:
       - backend
+
+  backend-java:
+    environment:
+      MQTT_ENABLED: "true"
+      MQTT_BROKER_URL: tcp://mqtt:1883
+      MQTT_ENV: ${MQTT_ENV:-local}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-skytrace-backend-java}
+    depends_on:
+      mqtt:
+        condition: service_started

@@ -66,6 +66,13 @@ app:
     enabled: ${CACHE_ENABLED:true}
     alarm-ttl-seconds: ${CACHE_ALARM_TTL_SECONDS:30}
     device-presence-ttl-seconds: ${CACHE_DEVICE_PRESENCE_TTL_SECONDS:90}
+  mqtt:
+    enabled: ${MQTT_ENABLED:false}
+    broker-url: ${MQTT_BROKER_URL:tcp://localhost:1883}
+    env: ${MQTT_ENV:local}
+    client-id: ${MQTT_CLIENT_ID:skytrace-backend-java}
+    username: ${MQTT_USERNAME:}
+    password: ${MQTT_PASSWORD:}
 
 management:
   endpoints:
