@@ -9,3 +9,20 @@ services:
       - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     networks:
       - backend
+
+  device-sim:
+    build:
+      context: ../device-sim
+    container_name: skytrace-device-sim
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: mqtt
+      MQTT_PORT: "1883"
+      MQTT_ENV: ${MQTT_ENV:-local}
+      MQTT_CLIENT_ID: skytrace-device-sim
+      DEVICE_CODES: UAV-001,CAMERA-001,ST-001
+      HEARTBEAT_INTERVAL_SEC: "30"
+    depends_on:
+      - mqtt
+    networks:
+      - backend
