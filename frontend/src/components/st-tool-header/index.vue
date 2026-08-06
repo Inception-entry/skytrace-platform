@@ -85,7 +85,8 @@ const showDrawer = () => {
   display: inline-block;
   width: 40px;
   height: 20px;
-  background-color: rgba(255, 255, 255, 0.4);
+  color: var(--st-text, #e8eef7);
+  background-color: var(--st-bg-elevated, rgba(255, 255, 255, 0.4));
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
   margin: auto;
@@ -132,7 +133,7 @@ const showDrawer = () => {
 .left-control,
 .center-control,
 .right-control {
-  color: #fff;
+  color: var(--st-text, #e8eef7);
 }
 
 .left-control,
@@ -162,9 +163,10 @@ const showDrawer = () => {
   min-width: 0;
 }
 
-// 覆盖 drawer 的样式
+// 覆盖 drawer 的样式（跟主题变量走，避免浅色主题下仍是深色顶栏）
 :global(.tool-header .ant-drawer-content) {
-  background-color: rgba(0, 21, 41, 0.4);
+  background-color: var(--st-toolbar-bg, rgba(0, 21, 41, 0.78)) !important;
+  border-bottom: 1px solid var(--st-border, rgba(255, 255, 255, 0.12));
 }
 :global(.tool-header .ant-drawer-body) {
   display: grid;

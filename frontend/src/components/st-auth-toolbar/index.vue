@@ -54,7 +54,7 @@ const handleLogout = () => {
   min-width: 0;
   min-height: 38px;
   padding: 8px 10px;
-  color: var(--st-text-inverse, #fff);
+  color: var(--st-text, #e8eef7);
   background: var(--st-toolbar-bg, rgb(0 21 41 / 78%));
   border: 1px solid var(--st-border, rgb(255 255 255 / 20%));
   border-radius: 6px;
@@ -71,7 +71,7 @@ const handleLogout = () => {
 }
 
 .toolbar-user {
-  color: #fff;
+  color: var(--st-text, #e8eef7);
 }
 
 .authentication-toolbar--floating {
@@ -92,7 +92,7 @@ const handleLogout = () => {
 }
 
 .admin-link {
-  color: #fff;
+  color: var(--st-color-accent, #7eb6ff);
   text-decoration: none;
 }
 </style>

@@ -145,7 +145,13 @@ const showDrawer = () => {
 }
 
 :global(.menu-aside .ant-drawer-content) {
-  background-color: var(--st-drawer-bg, rgba(0, 21, 41, 0.4)) !important;
+  background-color: var(--st-drawer-bg, rgba(0, 21, 41, 0.92)) !important;
+  border-inline-end: 1px solid var(--st-border, rgba(255, 255, 255, 0.12));
+}
+
+:global(.menu-aside .ant-drawer-header) {
+  background: transparent;
+  border-bottom: 1px solid var(--st-border, rgba(255, 255, 255, 0.12));
 }
 
 :global(.menu-aside .ant-drawer-title) {
