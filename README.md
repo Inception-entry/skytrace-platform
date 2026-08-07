@@ -2,9 +2,9 @@
 
 SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台，中文产品名为“天巡智控”。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
-当前平台版本：**1.0.0**（发版说明见 [`docs/releases/v1.0.0.md`](docs/releases/v1.0.0.md)；历史见 [`v0.3.0.md`](docs/releases/v0.3.0.md)）。
+当前平台版本：**1.1.0**（发版说明见 `[docs/releases/v1.1.0.md](docs/releases/v1.1.0.md)`；历史见 `[v1.0.0.md](docs/releases/v1.0.0.md)`）。
 
-运维速查见 [`docs/ops.md`](docs/ops.md)。
+运维速查见 `[docs/ops.md](docs/ops.md)`。
 
 ## 技术架构
 
@@ -18,6 +18,7 @@ SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计�
 告警与证据：RabbitMQ 闭环 + MinIO 证据链
 可观测性覆盖层：Prometheus、Grafana、Loki、Promtail、Alertmanager
 ```
+
 - **业务端**：Vue 3、TypeScript、Cesium，提供三维巡检、告警、知识库、AI 对话和审计概览。
 - **网关与身份**：Nginx 统一入口；Spring Cloud Gateway 执行 Keycloak JWT 校验、角色策略、Redis 限流、请求追踪与指标采集。
 - **业务服务**：NestJS BFF 聚合 API、透传 SSE、推送 Socket.IO 事件；Spring Boot 负责任务、告警、知识库边界、审计与 Temporal 工作流。
@@ -25,7 +26,7 @@ SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计�
 - **独立后台**：React + Ant Design 管理端与 NestJS 管理服务，使用 PostgreSQL、Prisma 和 MinIO 管理用户、角色、菜单、操作日志及头像上传。
 - **部署与运维**：Docker Compose 提供本地、预发、生产与监控覆盖层；CI 包含各服务测试、依赖/镜像安全扫描、全栈与 Playwright 验收。
 
-服务职责、调用链和现阶段边界见 [`docs/architecture.md`](docs/architecture.md)；鉴权配置见 [`docs/gateway.md`](docs/gateway.md)。
+服务职责、调用链和现阶段边界见 `[docs/architecture.md](docs/architecture.md)`；鉴权配置见 `[docs/gateway.md](docs/gateway.md)`。
 
 ## 目录结构
 
@@ -58,7 +59,8 @@ skytrace-platform/
 │       ├── v0.2.2.md                    # 0.2.2 品牌统一说明
 │       ├── v0.2.3.md                    # 0.2.3 设备落库与证据查询
 │       ├── v0.3.0.md                    # 0.3.0 航线、视频抽帧与可观测性
-│       └── v1.0.0.md                    # 1.0.0 生产可值守首发
+│       ├── v1.0.0.md                    # 1.0.0 生产可值守首发
+│       └── v1.1.0.md                    # 1.1.0 设备删除、MQTT 模拟与体验修正
 ├── scripts/
 │   ├── skytrace.sh                      # 本地 Compose 管理和权限验收
 │   ├── mysql-backup.sh                  # MySQL 备份
@@ -82,6 +84,8 @@ skytrace-platform/
 - 前端推荐 Node.js 22+
 - Ollama，以及 `my-drone-expert` 和 `nomic-embed-text` 模型
 
+
+
 ## Docker 启动
 
 1. 准备环境变量：
@@ -90,11 +94,10 @@ skytrace-platform/
 cp deploy/.env.example deploy/.env
 ```
 
-2. 在 `deploy/.env` 中替换所有示例密码。至少应设置
-   `KEYCLOAK_ADMIN_PASSWORD`、`KEYCLOAK_SERVICE_CLIENT_SECRET`、
+1. 在 `deploy/.env` 中替换所有示例密码。至少应设置
+  `KEYCLOAK_ADMIN_PASSWORD`、`KEYCLOAK_SERVICE_CLIENT_SECRET`、
    `KEYCLOAK_DEV_USER_PASSWORD`、数据库密码和 `ADMIN_JWT_SECRET`。
-
-3. 首次运行或代码发生变化时，构建并启动全部服务：
+2. 首次运行或代码发生变化时，构建并启动全部服务：
 
 ```bash
 ./scripts/skytrace.sh rebuild
@@ -139,7 +142,7 @@ Compose 会启动业务端、系统管理后台、Gateway、Node BFF、Java、AI
 ollama pull nomic-embed-text
 ```
 
-启动后访问 `http://localhost:8888/knowledge` 上传和检索文档。详细说明见 [`docs/knowledge-base.md`](docs/knowledge-base.md)。
+启动后访问 `http://localhost:8888/knowledge` 上传和检索文档。详细说明见 `[docs/knowledge-base.md](docs/knowledge-base.md)`。
 
 ### YOLO26 视觉推理
 
@@ -168,11 +171,13 @@ export AI_VISION_BACKEND=yolo26 AI_VISION_MODEL=yolo26n.pt AI_VISION_DEVICE=cpu
 
 > Gateway、Node、Java 与基础设施的宿主机端口只绑定到
 > `127.0.0.1`。局域网/公网业务入口只有 Nginx。Vue 使用 Keycloak PKCE
-> 登录，具体配置见 [`docs/gateway.md`](docs/gateway.md)。
+> 登录，具体配置见 `[docs/gateway.md](docs/gateway.md)`。
 
 > `scripts/skytrace.sh` 可以从任意目录调用，默认使用项目中的 `deploy/.env`
 > 和 Compose 文件；CI 可以通过 `SKYTRACE_ENV_FILE` 指定一次性的隔离配置。
 > 运行 `./scripts/skytrace.sh help` 可以查看全部子命令。
+
+
 
 ### 可选覆盖层
 
@@ -193,6 +198,8 @@ docker compose --env-file deploy/.env \
   -f deploy/docker-compose.production.yml up -d --no-build
 ```
 
+
+
 ## 持续集成
 
 `.github/workflows/ci.yml` 会在每次 push 和 Pull Request 时并行执行：
@@ -210,12 +217,14 @@ docker compose --env-file deploy/.env \
 - 使用 Ollama Mock 完成 AI 服务依赖健康检查，不下载本地大模型；
 - 执行 `ADMIN`、`OPERATOR`、`VIEWER` 三角色鉴权验收；
 - 创建临时巡检任务并验证
-  `Gateway → Node BFF → Java → Temporal → MySQL` 状态闭环；
+`Gateway → Node BFF → Java → Temporal → MySQL` 状态闭环；
 - 失败时上传 Compose 状态、全量容器日志和镜像清单，并保留 7 天。
 
-`main` 分支在 Publish 成功后还会触发 `Deploy (test)`。**没有测试服务器时无需配置任何 Secret**，该工作流会自动跳过远程部署并保持成功；本地开发使用 `./scripts/skytrace.sh rebuild` 即可。将来若有 VPS，在服务器执行 `scripts/staging-init.sh`，并在 GitHub `Environments → test` 中配置 `TEST_SSH_*` 与 `STAGING_DOMAIN` 后，同一工作流才会真正 SSH 部署。
+`main` 分支在 Publish 成功后还会触发 `Deploy (test)`。**没有测试服务器时无需配置任何 Secret**，该工作流会自动跳过远程部署并保持成功；本地开发使用 `./scripts/skytrace.sh rebuild` 即可。将来若有 VPS，在服务器执行 `scripts/staging-init.sh`，并在 GitHub `Environments → test` 中配置 `TEST_SSH_`* 与 `STAGING_DOMAIN` 后，同一工作流才会真正 SSH 部署。
 
 ## 本地开发
+
+
 
 ### Java 核心服务
 
@@ -324,83 +333,93 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 
 ## 服务与端口
 
-| 服务 | 默认地址 | 说明 |
-| --- | --- | --- |
-| Frontend / Nginx | `http://localhost:8888` | 统一业务访问入口 |
-| HTTPS（预留） | `https://localhost:8443` | 使用 HTTPS 模板和证书后启用 |
-| 审计中心 | `http://localhost:8888/audit` | 业务端 Keycloak 审计概览（ADMIN） |
-| 系统管理后台 | `http://localhost:8889` | 独立用户、角色、菜单和日志管理端 |
-| Spring Cloud Gateway | `http://localhost:8082` | 鉴权、路由、限流和访问日志 |
-| Java API | `http://localhost:8081/api` | Docker 环境核心业务服务 |
-| Java API（本地） | `http://localhost:8081/api` | local profile + H2 |
-| Node API | `http://localhost:3000/api` | BFF 接口 |
-| Socket.IO | `http://localhost:3001` | 实时告警推送 |
-| Admin API | `http://localhost:3100/admin-api` | 独立后台 API |
-| Keycloak | `http://localhost:8180` | 业务端 OIDC 身份中心 |
-| AI API | `http://localhost:8000` | FastAPI 健康检查与 AI 调试入口 |
-| MySQL | `localhost:3307` | 宿主机映射端口 |
-| PostgreSQL | `localhost:5433` | 管理后台数据存储 |
-| Redis | `localhost:6380` | 缓存、聊天记忆和 Gateway 限流 |
-| Qdrant | `localhost:6333` | RAG 文档向量和元数据 |
-| RabbitMQ | `http://localhost:15672` | 管理控制台 |
-| MinIO API | `http://localhost:9011` | 对象存储 API |
-| MinIO Console | `http://localhost:9012` | 对象存储控制台 |
-| Temporal gRPC | `localhost:7233` | Temporal Server |
-| Temporal UI | `http://localhost:8088` | 工作流可视化控制台 |
-| Grafana（可选） | `http://localhost:3030` | 监控仪表盘 |
-| Prometheus（可选） | `http://localhost:9090` | 指标查询 |
+
+| 服务                   | 默认地址                              | 说明                       |
+| -------------------- | --------------------------------- | ------------------------ |
+| Frontend / Nginx     | `http://localhost:8888`           | 统一业务访问入口                 |
+| HTTPS（预留）            | `https://localhost:8443`          | 使用 HTTPS 模板和证书后启用        |
+| 审计中心                 | `http://localhost:8888/audit`     | 业务端 Keycloak 审计概览（ADMIN） |
+| 系统管理后台               | `http://localhost:8889`           | 独立用户、角色、菜单和日志管理端         |
+| Spring Cloud Gateway | `http://localhost:8082`           | 鉴权、路由、限流和访问日志            |
+| Java API             | `http://localhost:8081/api`       | Docker 环境核心业务服务          |
+| Java API（本地）         | `http://localhost:8081/api`       | local profile + H2       |
+| Node API             | `http://localhost:3000/api`       | BFF 接口                   |
+| Socket.IO            | `http://localhost:3001`           | 实时告警推送                   |
+| Admin API            | `http://localhost:3100/admin-api` | 独立后台 API                 |
+| Keycloak             | `http://localhost:8180`           | 业务端 OIDC 身份中心            |
+| AI API               | `http://localhost:8000`           | FastAPI 健康检查与 AI 调试入口    |
+| MySQL                | `localhost:3307`                  | 宿主机映射端口                  |
+| PostgreSQL           | `localhost:5433`                  | 管理后台数据存储                 |
+| Redis                | `localhost:6380`                  | 缓存、聊天记忆和 Gateway 限流      |
+| Qdrant               | `localhost:6333`                  | RAG 文档向量和元数据             |
+| RabbitMQ             | `http://localhost:15672`          | 管理控制台                    |
+| MinIO API            | `http://localhost:9011`           | 对象存储 API                 |
+| MinIO Console        | `http://localhost:9012`           | 对象存储控制台                  |
+| Temporal gRPC        | `localhost:7233`                  | Temporal Server          |
+| Temporal UI          | `http://localhost:8088`           | 工作流可视化控制台                |
+| Grafana（可选）          | `http://localhost:3030`           | 监控仪表盘                    |
+| Prometheus（可选）       | `http://localhost:9090`           | 指标查询                     |
+
 
 账号、密码和端口均以 `deploy/.env` 为准，请勿在生产环境继续使用示例密码。
 
 ## API 速查
 
+
+
 ### Java 服务
 
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| `GET` | `/api/health` | 健康检查 |
-| `GET` | `/api/devices` | 设备列表（DB + Redis 在线状态） |
-| `GET` | `/api/devices/{deviceCode}` | 设备详情 |
-| `POST` | `/api/devices` | 创建设备（ADMIN/OPERATOR） |
-| `PUT` | `/api/devices/{deviceCode}` | 更新设备名称/类型（ADMIN/OPERATOR） |
-| `POST` | `/api/devices/{deviceCode}/heartbeat` | 设备心跳，写入 Redis 在线状态 |
-| `GET` | `/api/inspection-tasks` | 巡检任务列表（含设备名与在线状态） |
-| `POST` | `/api/inspection-tasks` | 创建巡检任务（设备须已存在） |
-| `GET` | `/api/alarms/latest` | 最近 20 条告警 |
-| `POST` | `/api/alarms` | 创建告警并写入数据库 |
-| `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ（异步落库） |
-| `GET` | `/api/evidence?taskCode=` | 按任务/告警查询证据列表 |
-| `POST` | `/api/evidence` | 上传截图/视频证据到 MinIO，返回 object key |
-| `GET` | `/api/routes` | 航线列表 |
-| `POST` | `/api/routes` | 创建航线（ADMIN/OPERATOR） |
-| `POST` | `/api/alarms/analyze-video` | 视频抽帧后逐帧视觉分析（ADMIN/OPERATOR） |
-| `GET` | `/api/knowledge/documents` | 查询知识文档 |
-| `POST` | `/api/knowledge/documents` | 上传知识文档（ADMIN） |
-| `POST` | `/api/knowledge/search` | 语义检索知识片段 |
-| `DELETE` | `/api/knowledge/documents/{id}` | 删除知识文档（ADMIN） |
-| `POST` | `/api/inspection-workflows/{taskCode}` | 启动巡检工作流 |
-| `GET` | `/api/inspection-workflows/{taskCode}/status` | 查询巡检工作流状态 |
-| `POST` | `/api/inspection-workflows/{taskCode}/complete` | 完成巡检工作流 |
-| `POST` | `/api/inspection-workflows/{taskCode}/cancel` | 取消巡检工作流 |
-| `POST` | `/api/inspection-workflows/{taskCode}/analysis` | Temporal 可靠分析，返回完整结果 |
-| `POST` | `/api/inspection-workflows/{taskCode}/analysis/stream` | SSE 实时分析，逐段返回 Token |
-| `GET` | `/api/inspection-tasks/{taskCode}/analyses` | 查询任务的 AI 分析历史 |
+
+| 方法       | 路径                                                     | 说明                             |
+| -------- | ------------------------------------------------------ | ------------------------------ |
+| `GET`    | `/api/health`                                          | 健康检查                           |
+| `GET`    | `/api/devices`                                         | 设备列表（DB + Redis 在线状态）          |
+| `GET`    | `/api/devices/{deviceCode}`                            | 设备详情                           |
+| `POST`   | `/api/devices`                                         | 创建设备（ADMIN/OPERATOR）           |
+| `PUT`    | `/api/devices/{deviceCode}`                            | 更新设备名称/类型（ADMIN/OPERATOR）      |
+| `POST`   | `/api/devices/{deviceCode}/heartbeat`                  | 设备心跳，写入 Redis 在线状态             |
+| `GET`    | `/api/inspection-tasks`                                | 巡检任务列表（含设备名与在线状态）              |
+| `POST`   | `/api/inspection-tasks`                                | 创建巡检任务（设备须已存在）                 |
+| `GET`    | `/api/alarms/latest`                                   | 最近 20 条告警                      |
+| `POST`   | `/api/alarms`                                          | 创建告警并写入数据库                     |
+| `POST`   | `/api/alarms/detections`                               | 投递识别告警到 RabbitMQ（异步落库）         |
+| `GET`    | `/api/evidence?taskCode=`                              | 按任务/告警查询证据列表                   |
+| `POST`   | `/api/evidence`                                        | 上传截图/视频证据到 MinIO，返回 object key |
+| `GET`    | `/api/routes`                                          | 航线列表                           |
+| `POST`   | `/api/routes`                                          | 创建航线（ADMIN/OPERATOR）           |
+| `POST`   | `/api/alarms/analyze-video`                            | 视频抽帧后逐帧视觉分析（ADMIN/OPERATOR）    |
+| `GET`    | `/api/knowledge/documents`                             | 查询知识文档                         |
+| `POST`   | `/api/knowledge/documents`                             | 上传知识文档（ADMIN）                  |
+| `POST`   | `/api/knowledge/search`                                | 语义检索知识片段                       |
+| `DELETE` | `/api/knowledge/documents/{id}`                        | 删除知识文档（ADMIN）                  |
+| `POST`   | `/api/inspection-workflows/{taskCode}`                 | 启动巡检工作流                        |
+| `GET`    | `/api/inspection-workflows/{taskCode}/status`          | 查询巡检工作流状态                      |
+| `POST`   | `/api/inspection-workflows/{taskCode}/complete`        | 完成巡检工作流                        |
+| `POST`   | `/api/inspection-workflows/{taskCode}/cancel`          | 取消巡检工作流                        |
+| `POST`   | `/api/inspection-workflows/{taskCode}/analysis`        | Temporal 可靠分析，返回完整结果           |
+| `POST`   | `/api/inspection-workflows/{taskCode}/analysis/stream` | SSE 实时分析，逐段返回 Token            |
+| `GET`    | `/api/inspection-tasks/{taskCode}/analyses`            | 查询任务的 AI 分析历史                  |
+
+
+
 
 ### Node BFF
 
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| `GET` | `/api/health` | 健康检查 |
-| `GET` | `/api/alarms/latest` | 转发 Java 最近告警接口 |
-| `POST` | `/api/alarms` | 创建告警，并广播 `alarm.created` 事件 |
-| `POST` | `/api/alarms/detections` | 投递识别告警到 RabbitMQ |
-| `POST` | `/api/evidence` | 上传证据文件并转发 Java/MinIO |
-| `GET` | `/api/evidence` | 按 taskCode/alarmEventCode 查询证据 |
-| `GET` | `/api/routes` | 航线列表转发 |
-| `POST` | `/api/alarms/analyze-video` | 视频视觉分析转发 |
-| `POST` | `/api/inspection-tasks/{taskCode}/analysis/stream` | 透传 AI SSE 实时分析 |
-| `GET` | `/api/inspection-tasks/{taskCode}/analyses` | 查询 MySQL 中的 AI 分析历史 |
-| `GET` | `/api/inspection-tasks/{taskCode}/workflow-status` | 查询 Temporal 状态与最近告警 Signal |
+
+| 方法     | 路径                                                 | 说明                             |
+| ------ | -------------------------------------------------- | ------------------------------ |
+| `GET`  | `/api/health`                                      | 健康检查                           |
+| `GET`  | `/api/alarms/latest`                               | 转发 Java 最近告警接口                 |
+| `POST` | `/api/alarms`                                      | 创建告警，并广播 `alarm.created` 事件    |
+| `POST` | `/api/alarms/detections`                           | 投递识别告警到 RabbitMQ               |
+| `POST` | `/api/evidence`                                    | 上传证据文件并转发 Java/MinIO           |
+| `GET`  | `/api/evidence`                                    | 按 taskCode/alarmEventCode 查询证据 |
+| `GET`  | `/api/routes`                                      | 航线列表转发                         |
+| `POST` | `/api/alarms/analyze-video`                        | 视频视觉分析转发                       |
+| `POST` | `/api/inspection-tasks/{taskCode}/analysis/stream` | 透传 AI SSE 实时分析                 |
+| `GET`  | `/api/inspection-tasks/{taskCode}/analyses`        | 查询 MySQL 中的 AI 分析历史            |
+| `GET`  | `/api/inspection-tasks/{taskCode}/workflow-status` | 查询 Temporal 状态与最近告警 Signal     |
+
 
 创建告警示例：
 
@@ -422,12 +441,16 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 
 ## Socket.IO 事件
 
-| 事件 | 方向 | 说明 |
-| --- | --- | --- |
-| `connected` | 服务端 -> 客户端 | 鉴权成功后返回客户端 ID、用户名、角色和 Token 到期时间 |
-| `ping` | 客户端 -> 服务端 | 连通性测试 |
-| `pong` | 服务端 -> 客户端 | 返回 `ping` 携带的数据 |
-| `alarm.created` | 服务端 -> 客户端 | HTTP 创建或 RabbitMQ 实时事件触发后广播 |
+
+| 事件              | 方向         | 说明                               |
+| --------------- | ---------- | -------------------------------- |
+| `connected`     | 服务端 -> 客户端 | 鉴权成功后返回客户端 ID、用户名、角色和 Token 到期时间 |
+| `ping`          | 客户端 -> 服务端 | 连通性测试                            |
+| `pong`          | 服务端 -> 客户端 | 返回 `ping` 携带的数据                  |
+| `alarm.created` | 服务端 -> 客户端 | HTTP 创建或 RabbitMQ 实时事件触发后广播      |
+
+
+
 
 ## 当前实现边界
 
@@ -459,3 +482,4 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - 定制武器/缺陷数据集微调与航线地图可视化。
 - 飞控独立服务与完整任务领域数据权限。
 - 设备删除、证据分页与归档编排。
+

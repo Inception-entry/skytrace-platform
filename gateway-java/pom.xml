@@ -12,7 +12,7 @@
 
     <groupId>com.skytrace</groupId>
     <artifactId>skytrace-gateway-java</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>SkyTrace Gateway Java</name>
     <description>SkyTrace Spring Cloud Gateway</description>
 
