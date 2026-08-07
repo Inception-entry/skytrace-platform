@@ -16,7 +16,11 @@ jobs:
     name: Deploy to production
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment: production
+    env:
+      PROD_URL: https://${{ secrets.PROD_DOMAIN }}
+    environment:
+      name: production
+      url: ${{ env.PROD_URL }}
     steps:
       - uses: actions/checkout@v6
 
