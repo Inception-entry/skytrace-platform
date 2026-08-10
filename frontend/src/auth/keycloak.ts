@@ -33,6 +33,17 @@ export const authenticationState = readonly(
 )
 
 let refreshPromise: Promise<boolean> | null = null
+let recoveryPromise: Promise<unknown> | null = null
+
+export class AuthenticationRequiredError extends Error {
+  readonly cause?: unknown
+
+  constructor(message: string, cause?: unknown) {
+    super(message)
+    this.name = 'AuthenticationRequiredError'
+    this.cause = cause
+  }
+}
 
 function synchronizeAuthenticationState() {
   const token = keycloak.tokenParsed
@@ -89,16 +100,20 @@ export async function initializeAuthentication() {
 
 export async function getAccessToken(forceRefresh = false) {
   if (!keycloak.didInitialize) {
-    throw new Error('身份认证尚未初始化')
+    throw new AuthenticationRequiredError('身份认证尚未初始化')
   }
   if (!keycloak.authenticated) {
     await login()
-    throw new Error('用户尚未登录')
+    throw new AuthenticationRequiredError('用户尚未登录')
   }
 
-  await refreshToken(forceRefresh ? -1 : 30)
+  try {
+    await refreshToken(forceRefresh ? -1 : 30)
+  } catch (error: unknown) {
+    throw new AuthenticationRequiredError('访问令牌刷新失败', error)
+  }
   if (!keycloak.token) {
-    throw new Error('没有可用的访问令牌')
+    throw new AuthenticationRequiredError('没有可用的访问令牌')
   }
   return keycloak.token
 }
@@ -117,6 +132,26 @@ export function reauthenticate(redirectPath = '/') {
     redirectUri: redirectUrl.href,
     prompt: 'login',
   })
+}
+
+export function isAuthenticationRequiredError(error: unknown) {
+  return error instanceof AuthenticationRequiredError
+}
+
+export function beginAuthenticationRecovery(
+  redirectPath = [
+    window.location.pathname,
+    window.location.search,
+    window.location.hash,
+  ].join(''),
+) {
+  if (!recoveryPromise) {
+    recoveryPromise = reauthenticate(redirectPath)
+      .finally(() => {
+        recoveryPromise = null
+      })
+  }
+  return recoveryPromise
 }
 
 export function logout() {
