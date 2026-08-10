@@ -56,6 +56,15 @@
               <option value="VIDEO">{{ $t('evidence.typeVideo') }}</option>
             </select>
           </label>
+          <label>
+            <span>{{ $t('evidence.reviewStatus') }}</span>
+            <select v-model="filters.reviewStatus" :disabled="loading">
+              <option value="">{{ $t('evidence.allReviewStatuses') }}</option>
+              <option value="PENDING">{{ $t('evidence.review.PENDING') }}</option>
+              <option value="APPROVED">{{ $t('evidence.review.APPROVED') }}</option>
+              <option value="REJECTED">{{ $t('evidence.review.REJECTED') }}</option>
+            </select>
+          </label>
           <label class="checkbox-field">
             <span>{{ $t('evidence.options') }}</span>
             <span class="checkbox-row">
@@ -88,14 +97,73 @@
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <p v-if="loading" class="loading-text">{{ $t('evidence.loading') }}</p>
 
+      <div
+        v-if="selectedCodes.length > 0"
+        class="batch-bar st-panel"
+      >
+        <span class="batch-meta">
+          {{ $t('evidence.selectedCount', { count: selectedCodes.length }) }}
+        </span>
+        <div class="batch-actions">
+          <button
+            v-if="canOperate"
+            class="primary-button"
+            type="button"
+            :disabled="loading"
+            @click="batchReview('APPROVED')"
+          >
+            {{ $t('evidence.batchApprove') }}
+          </button>
+          <button
+            v-if="canOperate"
+            class="secondary-button"
+            type="button"
+            :disabled="loading"
+            @click="batchReview('REJECTED')"
+          >
+            {{ $t('evidence.batchReject') }}
+          </button>
+          <button
+            v-if="canOperate"
+            class="secondary-button"
+            type="button"
+            :disabled="loading || availableTags.length === 0"
+            @click="batchTag"
+          >
+            {{ $t('evidence.batchTag') }}
+          </button>
+          <button
+            class="text-button"
+            type="button"
+            :disabled="loading"
+            @click="clearSelection"
+          >
+            {{ $t('evidence.clearSelection') }}
+          </button>
+        </div>
+      </div>
+
       <div class="table-wrap st-panel">
         <div class="table-scroll">
           <table>
             <thead>
               <tr>
+                <th class="check-col">
+                  <input
+                    type="checkbox"
+                    :checked="allPageSelected"
+                    :indeterminate.prop="somePageSelected && !allPageSelected"
+                    :disabled="loading || rows.length === 0"
+                    :aria-label="$t('evidence.selectAll')"
+                    @change="onToggleSelectAll"
+                  />
+                </th>
+                <th>{{ $t('evidence.previewThumb') }}</th>
                 <th>{{ $t('evidence.code') }}</th>
                 <th>{{ $t('evidence.filename') }}</th>
                 <th>{{ $t('evidence.assetType') }}</th>
+                <th>{{ $t('evidence.reviewStatus') }}</th>
+                <th>{{ $t('evidence.tags') }}</th>
                 <th>{{ $t('evidence.sourceType') }}</th>
                 <th>{{ $t('evidence.taskCode') }}</th>
                 <th>{{ $t('evidence.alarmEventCode') }}</th>
@@ -107,13 +175,32 @@
             </thead>
             <tbody>
               <tr v-if="!loading && rows.length === 0">
-                <td colspan="10" class="empty">{{ $t('evidence.empty') }}</td>
+                <td colspan="14" class="empty">{{ $t('evidence.empty') }}</td>
               </tr>
               <tr
                 v-for="row in rows"
                 :key="row.evidenceCode"
                 :class="{ deleted: row.deleted }"
               >
+                <td class="check-col">
+                  <input
+                    type="checkbox"
+                    :checked="selectedSet.has(row.evidenceCode)"
+                    :disabled="loading"
+                    :aria-label="row.evidenceCode"
+                    @change="onToggleSelect(row.evidenceCode, $event)"
+                  />
+                </td>
+                <td>
+                  <div class="thumb">
+                    <img
+                      v-if="thumbUrl(row)"
+                      :src="thumbUrl(row)"
+                      :alt="row.originalFilename || row.evidenceCode"
+                    />
+                    <span v-else class="thumb-placeholder">{{ $t('evidence.noThumb') }}</span>
+                  </div>
+                </td>
                 <td class="mono">{{ row.evidenceCode }}</td>
                 <td>{{ row.originalFilename || '-' }}</td>
                 <td>
@@ -127,6 +214,27 @@
                         : $t('evidence.typeImage')
                     }}
                   </span>
+                </td>
+                <td>
+                  <span
+                    class="type-pill review"
+                    :class="reviewClass(row.reviewStatus)"
+                  >
+                    {{ reviewLabel(row.reviewStatus) }}
+                  </span>
+                </td>
+                <td>
+                  <div v-if="row.tags?.length" class="tag-list">
+                    <span
+                      v-for="tag in row.tags"
+                      :key="tag.id"
+                      class="tag-chip"
+                      :style="tagStyle(tag.color)"
+                    >
+                      {{ tag.name }}
+                    </span>
+                  </div>
+                  <span v-else class="muted">-</span>
                 </td>
                 <td>{{ sourceLabel(row.sourceType) }}</td>
                 <td class="mono">{{ row.taskCode || '-' }}</td>
@@ -259,6 +367,64 @@
         </div>
       </dl>
 
+      <div class="meta-form">
+        <label>
+          <span>{{ $t('evidence.remark') }}</span>
+          <textarea
+            v-model="metaForm.remark"
+            rows="3"
+            :disabled="loading || !canOperate || !!detail.deleted"
+          />
+        </label>
+        <label>
+          <span>{{ $t('evidence.reviewStatus') }}</span>
+          <select
+            v-model="metaForm.reviewStatus"
+            :disabled="loading || !canOperate || !!detail.deleted"
+          >
+            <option value="PENDING">{{ $t('evidence.review.PENDING') }}</option>
+            <option value="APPROVED">{{ $t('evidence.review.APPROVED') }}</option>
+            <option value="REJECTED">{{ $t('evidence.review.REJECTED') }}</option>
+          </select>
+        </label>
+        <label>
+          <span>{{ $t('evidence.reviewComment') }}</span>
+          <textarea
+            v-model="metaForm.reviewComment"
+            rows="2"
+            :disabled="loading || !canOperate || !!detail.deleted"
+          />
+        </label>
+        <fieldset class="tag-fieldset">
+          <legend>{{ $t('evidence.tags') }}</legend>
+          <div v-if="availableTags.length === 0" class="muted">
+            {{ $t('evidence.noTags') }}
+          </div>
+          <label
+            v-for="tag in availableTags"
+            :key="tag.id"
+            class="tag-check"
+          >
+            <input
+              v-model="metaForm.tagIds"
+              type="checkbox"
+              :value="tag.id"
+              :disabled="loading || !canOperate || !!detail.deleted"
+            />
+            <span class="tag-chip" :style="tagStyle(tag.color)">{{ tag.name }}</span>
+          </label>
+        </fieldset>
+        <button
+          v-if="canOperate && !detail.deleted"
+          class="primary-button"
+          type="button"
+          :disabled="loading"
+          @click="saveMetadata"
+        >
+          {{ $t('evidence.saveMetadata') }}
+        </button>
+      </div>
+
       <div class="drawer-actions">
         <button
           v-if="canOperate && !detail.deleted"
@@ -297,14 +463,20 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
+  batchReviewEvidence,
+  batchTagEvidence,
   createEvidenceDownloadUrl,
   createEvidencePreviewUrl,
   deleteEvidence,
   getEvidenceDetail,
+  listEvidenceTags,
   restoreEvidence,
   searchEvidence,
+  updateEvidenceMetadata,
   type EvidenceDetail,
+  type EvidenceReviewStatus,
   type EvidenceSummary,
+  type EvidenceTag,
 } from '@/api/evidence'
 
 const { t } = useTranslation()
@@ -317,6 +489,8 @@ const size = ref(20)
 const totalPages = ref(0)
 const detail = ref<EvidenceDetail | null>(null)
 const previewUrl = ref('')
+const availableTags = ref<EvidenceTag[]>([])
+const selectedCodes = ref<string[]>([])
 
 const filters = reactive({
   keyword: '',
@@ -324,7 +498,15 @@ const filters = reactive({
   alarmEventCode: '',
   deviceCode: '',
   assetType: '',
+  reviewStatus: '',
   includeDeleted: false,
+})
+
+const metaForm = reactive({
+  remark: '',
+  reviewStatus: 'PENDING' as EvidenceReviewStatus | string,
+  reviewComment: '',
+  tagIds: [] as number[],
 })
 
 const canOperate = computed(() =>
@@ -332,6 +514,34 @@ const canOperate = computed(() =>
     ['ADMIN', 'OPERATOR'].includes(role),
   ),
 )
+
+const selectedSet = computed(() => new Set(selectedCodes.value))
+
+const allPageSelected = computed(
+  () =>
+    rows.value.length > 0 &&
+    rows.value.every((row) => selectedSet.value.has(row.evidenceCode)),
+)
+
+const somePageSelected = computed(() =>
+  rows.value.some((row) => selectedSet.value.has(row.evidenceCode)),
+)
+
+function syncMetaForm(item: EvidenceDetail) {
+  metaForm.remark = item.remark || ''
+  metaForm.reviewStatus = item.reviewStatus || 'PENDING'
+  metaForm.reviewComment = item.reviewComment || ''
+  metaForm.tagIds = (item.tags || []).map((tag) => tag.id)
+}
+
+async function loadTags() {
+  try {
+    availableTags.value = await listEvidenceTags()
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : t('evidence.loadTagsFailed')
+  }
+}
 
 async function loadPage(nextPage: number) {
   loading.value = true
@@ -345,6 +555,7 @@ async function loadPage(nextPage: number) {
       alarmEventCode: filters.alarmEventCode || undefined,
       deviceCode: filters.deviceCode || undefined,
       assetType: filters.assetType || undefined,
+      reviewStatus: filters.reviewStatus || undefined,
       includeDeleted: filters.includeDeleted || undefined,
     })
     rows.value = result.content
@@ -364,8 +575,51 @@ function resetFilters() {
   filters.alarmEventCode = ''
   filters.deviceCode = ''
   filters.assetType = ''
+  filters.reviewStatus = ''
   filters.includeDeleted = false
+  clearSelection()
   loadPage(0)
+}
+
+function clearSelection() {
+  selectedCodes.value = []
+}
+
+function eventChecked(event: Event) {
+  return (event.target as HTMLInputElement).checked
+}
+
+function onToggleSelect(evidenceCode: string, event: Event) {
+  toggleSelect(evidenceCode, eventChecked(event))
+}
+
+function onToggleSelectAll(event: Event) {
+  toggleSelectAll(eventChecked(event))
+}
+
+function toggleSelect(evidenceCode: string, checked: boolean) {
+  if (checked) {
+    if (!selectedCodes.value.includes(evidenceCode)) {
+      selectedCodes.value = [...selectedCodes.value, evidenceCode]
+    }
+    return
+  }
+  selectedCodes.value = selectedCodes.value.filter(
+    (code) => code !== evidenceCode,
+  )
+}
+
+function toggleSelectAll(checked: boolean) {
+  if (!checked) {
+    const pageCodes = new Set(rows.value.map((row) => row.evidenceCode))
+    selectedCodes.value = selectedCodes.value.filter(
+      (code) => !pageCodes.has(code),
+    )
+    return
+  }
+  const merged = new Set(selectedCodes.value)
+  rows.value.forEach((row) => merged.add(row.evidenceCode))
+  selectedCodes.value = Array.from(merged)
 }
 
 function closeDetail() {
@@ -378,10 +632,86 @@ async function openDetail(evidenceCode: string) {
   errorMessage.value = ''
   try {
     detail.value = await getEvidenceDetail(evidenceCode)
+    syncMetaForm(detail.value)
     previewUrl.value = ''
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.loadFailed')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function saveMetadata() {
+  if (!detail.value) return
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    await updateEvidenceMetadata(detail.value.evidenceCode, {
+      remark: metaForm.remark,
+      reviewStatus: metaForm.reviewStatus,
+      reviewComment: metaForm.reviewComment,
+      tagIds: [...metaForm.tagIds],
+    })
+    detail.value = await getEvidenceDetail(detail.value.evidenceCode)
+    syncMetaForm(detail.value)
+    await loadPage(page.value)
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : t('evidence.saveMetadataFailed')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function batchReview(reviewStatus: EvidenceReviewStatus) {
+  if (selectedCodes.value.length === 0) return
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    await batchReviewEvidence({
+      evidenceCodes: [...selectedCodes.value],
+      reviewStatus,
+    })
+    clearSelection()
+    await loadPage(page.value)
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : t('evidence.batchFailed')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function batchTag() {
+  if (selectedCodes.value.length === 0 || availableTags.value.length === 0) {
+    return
+  }
+  const options = availableTags.value
+    .map((tag) => `${tag.id}:${tag.name}`)
+    .join(', ')
+  const raw = window.prompt(t('evidence.batchTagPrompt', { options }))
+  if (raw == null) return
+  const tagIds = raw
+    .split(/[\s,]+/)
+    .map((part) => Number(part.trim()))
+    .filter((id) => Number.isFinite(id) && id > 0)
+  if (tagIds.length === 0) {
+    errorMessage.value = t('evidence.batchTagInvalid')
+    return
+  }
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    await batchTagEvidence({
+      evidenceCodes: [...selectedCodes.value],
+      tagIds,
+    })
+    clearSelection()
+    await loadPage(page.value)
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : t('evidence.batchFailed')
   } finally {
     loading.value = false
   }
@@ -394,6 +724,7 @@ async function preview(evidenceCode: string) {
     const access = await createEvidencePreviewUrl(evidenceCode)
     if (!detail.value || detail.value.evidenceCode !== evidenceCode) {
       detail.value = await getEvidenceDetail(evidenceCode)
+      syncMetaForm(detail.value)
     }
     previewUrl.value = access.url
   } catch (error) {
@@ -429,6 +760,9 @@ async function remove(evidenceCode: string) {
     if (detail.value?.evidenceCode === evidenceCode) {
       closeDetail()
     }
+    selectedCodes.value = selectedCodes.value.filter(
+      (code) => code !== evidenceCode,
+    )
     await loadPage(page.value)
   } catch (error) {
     errorMessage.value =
@@ -452,6 +786,32 @@ async function restore(evidenceCode: string) {
   }
 }
 
+function thumbUrl(row: EvidenceSummary) {
+  return row.thumbnailUrl || row.posterUrl || ''
+}
+
+function tagStyle(color: string | null | undefined) {
+  if (!color) return undefined
+  return {
+    background: color,
+    color: '#fff',
+  }
+}
+
+function reviewClass(status?: string) {
+  const value = (status || 'PENDING').toUpperCase()
+  if (value === 'APPROVED') return 'approved'
+  if (value === 'REJECTED') return 'rejected'
+  return 'pending'
+}
+
+function reviewLabel(status?: string) {
+  const value = (status || 'PENDING').toUpperCase()
+  const key = `evidence.review.${value}`
+  const translated = t(key)
+  return translated === key ? value : translated
+}
+
 function sourceLabel(sourceType: string) {
   const key = `evidence.source.${sourceType}`
   const translated = t(key)
@@ -462,7 +822,10 @@ function formatTime(value: string) {
   return new Date(value).toLocaleString()
 }
 
-onMounted(() => loadPage(0))
+onMounted(async () => {
+  await loadTags()
+  await loadPage(0)
+})
 </script>
 
 <style scoped>
@@ -527,6 +890,7 @@ h1 {
 }
 
 .filter-form,
+.batch-bar,
 .table-wrap {
   margin-bottom: 20px;
   padding: 18px;
@@ -551,7 +915,8 @@ label > span,
 }
 
 input,
-select {
+select,
+textarea {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid var(--st-border);
@@ -559,6 +924,12 @@ select {
   color: var(--st-text);
   min-height: 40px;
   box-sizing: border-box;
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 72px;
 }
 
 .checkbox-row {
@@ -583,13 +954,32 @@ select {
   margin-top: 16px;
 }
 
+.batch-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.batch-meta {
+  color: var(--st-text-muted);
+  font-size: 14px;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .table-scroll {
   overflow-x: auto;
 }
 
 table {
   width: 100%;
-  min-width: 980px;
+  min-width: 1180px;
   border-collapse: collapse;
 }
 
@@ -606,6 +996,10 @@ th {
   color: var(--st-text-muted);
   font-weight: 600;
   white-space: nowrap;
+}
+
+.check-col {
+  width: 36px;
 }
 
 .mono {
@@ -629,6 +1023,44 @@ tr.deleted td {
   flex-wrap: wrap;
 }
 
+.thumb {
+  width: 56px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--st-border);
+  background: color-mix(in srgb, var(--st-bg-elevated) 70%, #000);
+  display: grid;
+  place-items: center;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-placeholder,
+.muted {
+  color: var(--st-text-muted);
+  font-size: 11px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--st-color-primary) 16%, transparent);
+  color: var(--st-color-accent);
+}
+
 .type-pill {
   display: inline-block;
   padding: 2px 8px;
@@ -644,6 +1076,21 @@ tr.deleted td {
 .type-pill.video {
   background: color-mix(in srgb, var(--st-success) 18%, transparent);
   color: var(--st-success);
+}
+
+.type-pill.review.pending {
+  background: color-mix(in srgb, var(--st-text-muted) 18%, transparent);
+  color: var(--st-text-muted);
+}
+
+.type-pill.review.approved {
+  background: color-mix(in srgb, var(--st-success) 18%, transparent);
+  color: var(--st-success);
+}
+
+.type-pill.review.rejected {
+  background: color-mix(in srgb, var(--st-danger) 18%, transparent);
+  color: var(--st-danger);
 }
 
 .pager {
@@ -715,6 +1162,33 @@ tr.deleted td {
 .detail-grid dd {
   margin: 0;
   font-size: 14px;
+}
+
+.meta-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tag-fieldset {
+  border: 1px solid var(--st-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.tag-fieldset legend {
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--st-text-muted);
+}
+
+.tag-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .drawer-actions {
