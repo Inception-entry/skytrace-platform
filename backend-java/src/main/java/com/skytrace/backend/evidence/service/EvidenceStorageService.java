@@ -2,24 +2,25 @@ package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.common.ConflictException;
 import com.skytrace.backend.evidence.MinioProperties;
-import com.skytrace.backend.evidence.domain.EvidenceAsset;
-import com.skytrace.backend.evidence.dto.EvidenceAssetResponse;
-import com.skytrace.backend.evidence.dto.EvidenceUploadResponse;
-import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
+import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import io.minio.BucketExistsArgs;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.SetBucketPolicyArgs;
+import io.minio.http.Method;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.util.List;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @ConditionalOnBean(MinioClient.class)
@@ -35,48 +36,27 @@ public class EvidenceStorageService {
 
     private final MinioClient minioClient;
     private final MinioProperties properties;
-    private final EvidenceAssetRepository repository;
 
     public EvidenceStorageService(
             MinioClient minioClient,
-            MinioProperties properties,
-            EvidenceAssetRepository repository) {
+            MinioProperties properties) {
         this.minioClient = minioClient;
         this.properties = properties;
-        this.repository = repository;
     }
 
-    public List<EvidenceAssetResponse> findEvidence(
-            String taskCode,
-            String alarmEventCode) {
-        String task = blankToNull(taskCode);
-        String alarm = blankToNull(alarmEventCode);
-        if (task == null && alarm == null) {
-            throw new IllegalArgumentException(
-                    "请至少提供 taskCode 或 alarmEventCode"
-            );
-        }
-
-        List<EvidenceAsset> assets;
-        if (task != null && alarm != null) {
-            assets = repository
-                    .findByTaskCodeAndAlarmEventCodeOrderByCreatedAtDesc(
-                            task,
-                            alarm
-                    );
-        } else if (task != null) {
-            assets = repository.findByTaskCodeOrderByCreatedAtDesc(task);
-        } else {
-            assets = repository.findByAlarmEventCodeOrderByCreatedAtDesc(alarm);
-        }
-        return assets.stream().map(this::toResponse).toList();
+    public record StoredObject(
+            String objectKey,
+            String bucket,
+            String contentType,
+            long sizeBytes,
+            String originalFilename,
+            EvidenceAssetType assetType
+    ) {
     }
 
-    @Transactional
-    public EvidenceUploadResponse upload(
+    public StoredObject store(
             MultipartFile file,
-            String taskCode,
-            String alarmEventCode) {
+            String taskCode) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("未上传证据文件");
         }
@@ -91,10 +71,13 @@ public class EvidenceStorageService {
 
         try {
             ensureBucket();
-            String extension = extensionFor(contentType, file.getOriginalFilename());
+            String extension = extensionFor(
+                    contentType,
+                    file.getOriginalFilename()
+            );
             String prefix = (taskCode == null || taskCode.isBlank())
                     ? "unassigned"
-                    : taskCode;
+                    : taskCode.trim();
             String objectKey = prefix + "/" + UUID.randomUUID() + extension;
 
             try (InputStream inputStream = file.getInputStream()) {
@@ -108,44 +91,65 @@ public class EvidenceStorageService {
                 );
             }
 
-            EvidenceAsset asset = new EvidenceAsset();
-            asset.setObjectKey(objectKey);
-            asset.setBucket(properties.getEvidenceBucket());
-            asset.setContentType(contentType);
-            asset.setOriginalFilename(file.getOriginalFilename());
-            asset.setSizeBytes(file.getSize());
-            asset.setTaskCode(blankToNull(taskCode));
-            asset.setAlarmEventCode(blankToNull(alarmEventCode));
-            repository.save(asset);
-
-            return new EvidenceUploadResponse(
+            return new StoredObject(
                     objectKey,
                     properties.getEvidenceBucket(),
                     contentType,
                     file.getSize(),
-                    asset.getTaskCode(),
-                    asset.getAlarmEventCode(),
-                    "/files/" + properties.getEvidenceBucket() + "/" + objectKey
+                    file.getOriginalFilename(),
+                    EvidenceAssetType.fromContentType(contentType)
             );
         } catch (IllegalArgumentException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new ConflictException("证据上传失败: " + exception.getMessage());
+            throw new ConflictException(
+                    "证据上传失败: " + exception.getMessage()
+            );
         }
     }
 
-    private EvidenceAssetResponse toResponse(EvidenceAsset asset) {
-        return new EvidenceAssetResponse(
-                asset.getObjectKey(),
-                asset.getBucket(),
-                asset.getContentType(),
-                asset.getSizeBytes(),
-                asset.getOriginalFilename(),
-                asset.getTaskCode(),
-                asset.getAlarmEventCode(),
-                "/files/" + asset.getBucket() + "/" + asset.getObjectKey(),
-                asset.getCreatedAt()
-        );
+    public String createPresignedGetUrl(
+            String bucket,
+            String objectKey,
+            int ttlSeconds,
+            String contentDisposition) {
+        try {
+            GetPresignedObjectUrlArgs.Builder builder =
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .expiry(ttlSeconds, TimeUnit.SECONDS);
+            if (contentDisposition != null && !contentDisposition.isBlank()) {
+                Map<String, String> extra = new LinkedHashMap<>();
+                extra.put(
+                        "response-content-disposition",
+                        contentDisposition
+                );
+                builder.extraQueryParams(extra);
+            }
+            return minioClient.getPresignedObjectUrl(builder.build());
+        } catch (Exception exception) {
+            throw new ConflictException(
+                    "生成证据访问地址失败: " + exception.getMessage()
+            );
+        }
+    }
+
+    public Instant expiresAt(int ttlSeconds) {
+        return Instant.now().plusSeconds(ttlSeconds);
+    }
+
+    public int previewTtlSeconds() {
+        return properties.getPresignPreviewTtlSeconds();
+    }
+
+    public int downloadTtlSeconds() {
+        return properties.getPresignDownloadTtlSeconds();
+    }
+
+    public String legacyPublicPath(String bucket, String objectKey) {
+        return "/files/" + bucket + "/" + objectKey;
     }
 
     private void ensureBucket() throws Exception {
@@ -157,6 +161,8 @@ public class EvidenceStorageService {
             minioClient.makeBucket(
                     MakeBucketArgs.builder().bucket(bucket).build()
             );
+        }
+        if (properties.isPublicReadEnabled()) {
             String policy = """
                     {
                       "Version": "2012-10-17",
@@ -188,9 +194,5 @@ public class EvidenceStorageService {
             case "video/webm" -> ".webm";
             default -> ".jpg";
         };
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value;
     }
 }
