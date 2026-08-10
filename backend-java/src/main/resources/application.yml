@@ -60,6 +60,9 @@ app:
     access-key: ${MINIO_ACCESS_KEY:minioadmin}
     secret-key: ${MINIO_SECRET_KEY:minioadmin123}
     evidence-bucket: ${MINIO_EVIDENCE_BUCKET:skytrace-evidence}
+    public-read-enabled: ${MINIO_PUBLIC_READ_ENABLED:false}
+    presign-preview-ttl-seconds: ${MINIO_PRESIGN_PREVIEW_TTL_SECONDS:300}
+    presign-download-ttl-seconds: ${MINIO_PRESIGN_DOWNLOAD_TTL_SECONDS:300}
   messaging:
     enabled: ${MESSAGING_ENABLED:true}
   cache:

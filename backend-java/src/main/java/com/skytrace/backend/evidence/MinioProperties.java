@@ -10,6 +10,9 @@ public class MinioProperties {
     private String accessKey = "minioadmin";
     private String secretKey = "minioadmin123";
     private String evidenceBucket = "skytrace-evidence";
+    private boolean publicReadEnabled = false;
+    private int presignPreviewTtlSeconds = 300;
+    private int presignDownloadTtlSeconds = 300;
 
     public boolean isEnabled() {
         return enabled;
@@ -49,5 +52,29 @@ public class MinioProperties {
 
     public void setEvidenceBucket(String evidenceBucket) {
         this.evidenceBucket = evidenceBucket;
+    }
+
+     public boolean isPublicReadEnabled() {
+        return publicReadEnabled;
+    }
+
+    public void setPublicReadEnabled(boolean publicReadEnabled) {
+        this.publicReadEnabled = publicReadEnabled;
+    }
+
+    public int getPresignPreviewTtlSeconds() {
+        return presignPreviewTtlSeconds;
+    }
+
+    public void setPresignPreviewTtlSeconds(int presignPreviewTtlSeconds) {
+        this.presignPreviewTtlSeconds = presignPreviewTtlSeconds;
+    }
+
+    public int getPresignDownloadTtlSeconds() {
+        return presignDownloadTtlSeconds;
+    }
+
+    public void setPresignDownloadTtlSeconds(int presignDownloadTtlSeconds) {
+        this.presignDownloadTtlSeconds = presignDownloadTtlSeconds;
     }
 }
