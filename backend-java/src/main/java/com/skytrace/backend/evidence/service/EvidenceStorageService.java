@@ -4,6 +4,7 @@ import com.skytrace.backend.common.ConflictException;
 import com.skytrace.backend.evidence.MinioProperties;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
@@ -14,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -150,6 +152,47 @@ public class EvidenceStorageService {
 
     public String legacyPublicPath(String bucket, String objectKey) {
         return "/files/" + bucket + "/" + objectKey;
+    }
+
+    public byte[] getObjectBytes(String bucket, String objectKey) {
+        try (InputStream stream = minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucket)
+                        .object(objectKey)
+                        .build()
+        )) {
+            return stream.readAllBytes();
+        } catch (Exception exception) {
+            throw new ConflictException(
+                    "读取证据对象失败: " + exception.getMessage()
+            );
+        }
+    }
+
+    public void putObject(
+            String bucket,
+            String objectKey,
+            byte[] bytes,
+            String contentType) {
+        try {
+            ensureBucket();
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .stream(
+                                    new ByteArrayInputStream(bytes),
+                                    bytes.length,
+                                    -1
+                            )
+                            .contentType(contentType)
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new ConflictException(
+                    "写入衍生对象失败: " + exception.getMessage()
+            );
+        }
     }
 
     private void ensureBucket() throws Exception {
