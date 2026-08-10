@@ -2,12 +2,14 @@ package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
+import com.skytrace.backend.evidence.domain.EvidenceReviewStatus;
 import com.skytrace.backend.evidence.domain.EvidenceSourceType;
 import com.skytrace.backend.evidence.dto.EvidenceAssetResponse;
 import com.skytrace.backend.evidence.dto.EvidenceDetailResponse;
 import com.skytrace.backend.evidence.dto.EvidencePageResponse;
 import com.skytrace.backend.evidence.dto.EvidenceSearchRequest;
 import com.skytrace.backend.evidence.dto.EvidenceSummaryResponse;
+import com.skytrace.backend.evidence.dto.EvidenceTagResponse;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
@@ -31,12 +33,15 @@ public class EvidenceQueryService {
 
     private final EvidenceAssetRepository repository;
     private final EvidenceStorageService storageService;
+    private final EvidenceTagService tagService;
 
     public EvidenceQueryService(
             EvidenceAssetRepository repository,
-            EvidenceStorageService storageService) {
+            EvidenceStorageService storageService,
+            EvidenceTagService tagService) {
         this.repository = repository;
         this.storageService = storageService;
+        this.tagService = tagService;
     }
 
     public List<EvidenceAssetResponse> findLegacy(
@@ -148,6 +153,11 @@ public class EvidenceQueryService {
             if (sourceType != null) {
                 predicates.add(cb.equal(root.get("sourceType"), sourceType));
             }
+            EvidenceReviewStatus reviewStatus =
+                    parseReviewStatus(request.reviewStatus());
+            if (reviewStatus != null) {
+                predicates.add(cb.equal(root.get("reviewStatus"), reviewStatus));
+            }
             if (request.startTime() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(
                         root.get("createdAt"),
@@ -194,6 +204,7 @@ public class EvidenceQueryService {
     }
 
     private EvidenceSummaryResponse toSummary(EvidenceAsset asset) {
+        List<EvidenceTagResponse> tags = tagService.tagsOf(asset.getId());
         return new EvidenceSummaryResponse(
                 asset.getEvidenceCode(),
                 asset.getOriginalFilename(),
@@ -205,11 +216,18 @@ public class EvidenceQueryService {
                 asset.getUploadedByName(),
                 asset.getSizeBytes(),
                 toInstant(asset.getCreatedAt()),
-                asset.isDeleted()
+                asset.isDeleted(),
+                asset.getReviewStatus() == null
+                        ? EvidenceReviewStatus.PENDING.name()
+                        : asset.getReviewStatus().name(),
+                tags,
+                derivativeUrl(asset.getBucket(), asset.getThumbnailObjectKey()),
+                derivativeUrl(asset.getBucket(), asset.getPosterObjectKey())
         );
     }
 
     private EvidenceDetailResponse toDetail(EvidenceAsset asset) {
+        List<EvidenceTagResponse> tags = tagService.tagsOf(asset.getId());
         return new EvidenceDetailResponse(
                 asset.getEvidenceCode(),
                 asset.getObjectKey(),
@@ -225,8 +243,42 @@ public class EvidenceQueryService {
                 asset.getUploadedBy(),
                 asset.getUploadedByName(),
                 toInstant(asset.getCreatedAt()),
-                asset.isDeleted()
+                asset.isDeleted(),
+                asset.getReviewStatus() == null
+                        ? EvidenceReviewStatus.PENDING.name()
+                        : asset.getReviewStatus().name(),
+                asset.getReviewComment(),
+                asset.getRemark(),
+                tags,
+                asset.getReviewedByName(),
+                asset.getReviewedAt() == null
+                        ? null
+                        : toInstant(asset.getReviewedAt()),
+                asset.getAnalysisId(),
+                asset.getDerivativeStatus() == null
+                        ? null
+                        : asset.getDerivativeStatus().name(),
+                asset.getThumbnailObjectKey(),
+                asset.getPosterObjectKey(),
+                derivativeUrl(asset.getBucket(), asset.getThumbnailObjectKey()),
+                derivativeUrl(asset.getBucket(), asset.getPosterObjectKey())
         );
+    }
+
+    private String derivativeUrl(String bucket, String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return null;
+        }
+        try {
+            return storageService.createPresignedGetUrl(
+                    bucket,
+                    objectKey,
+                    storageService.previewTtlSeconds(),
+                    null
+            );
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private static EvidenceAssetType parseAssetType(String value) {
@@ -243,6 +295,14 @@ public class EvidenceQueryService {
             return null;
         }
         return EvidenceSourceType.valueOf(normalized.toUpperCase(Locale.ROOT));
+    }
+
+    private static EvidenceReviewStatus parseReviewStatus(String value) {
+        String normalized = blankToNull(value);
+        if (normalized == null) {
+            return null;
+        }
+        return EvidenceReviewStatus.valueOf(normalized.toUpperCase(Locale.ROOT));
     }
 
     private static LocalDateTime toLocal(Instant instant) {

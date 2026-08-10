@@ -21,11 +21,12 @@ class EvidenceQueryServiceTest {
             mock(EvidenceAssetRepository.class);
     private final EvidenceStorageService storageService =
             mock(EvidenceStorageService.class);
+    private final EvidenceTagService tagService = mock(EvidenceTagService.class);
     private EvidenceQueryService service;
 
     @BeforeEach
     void setUp() {
-        service = new EvidenceQueryService(repository, storageService);
+        service = new EvidenceQueryService(repository, storageService, tagService);
         when(storageService.legacyPublicPath("evidence", "TASK-001/demo.jpg"))
                 .thenReturn("/files/evidence/TASK-001/demo.jpg");
     }
