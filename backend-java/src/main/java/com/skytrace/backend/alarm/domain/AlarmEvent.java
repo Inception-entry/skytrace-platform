@@ -37,6 +37,12 @@ public class AlarmEvent {
     @Column(name = "video_url", length = 512)
     private String videoUrl;
 
+    @Column(name = "primary_evidence_code", length = 64)
+    private String primaryEvidenceCode;
+
+    @Column(name = "primary_video_evidence_code", length = 64)
+    private String primaryVideoEvidenceCode;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private AlarmStatus status = AlarmStatus.PENDING;
@@ -137,6 +143,22 @@ public class AlarmEvent {
 
     public void setVideoUrl(String videoUrl) {
         this.videoUrl = videoUrl;
+    }
+
+    public String getPrimaryEvidenceCode() {
+        return primaryEvidenceCode;
+    }
+
+    public void setPrimaryEvidenceCode(String primaryEvidenceCode) {
+        this.primaryEvidenceCode = primaryEvidenceCode;
+    }
+
+    public String getPrimaryVideoEvidenceCode() {
+        return primaryVideoEvidenceCode;
+    }
+
+    public void setPrimaryVideoEvidenceCode(String primaryVideoEvidenceCode) {
+        this.primaryVideoEvidenceCode = primaryVideoEvidenceCode;
     }
 
     public AlarmStatus getStatus() {
