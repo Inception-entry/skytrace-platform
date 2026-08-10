@@ -82,7 +82,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Set up Node.js 20
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: npm
@@ -107,7 +107,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Set up Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -134,7 +134,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Set up Node.js 20
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: npm
@@ -161,7 +161,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Set up Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -323,7 +323,7 @@ jobs:
         run: scripts/ci/verify-alarm-evidence.sh
 
       - name: Setup Node.js for Playwright
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
 
