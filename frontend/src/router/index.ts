@@ -7,6 +7,7 @@ import ChatView from '../views/ChatView.vue'
 import KnowledgeView from '../views/KnowledgeView.vue'
 import AdminView from '../views/AdminView.vue'
 import AuthorizationErrorView from '../views/AuthorizationErrorView.vue'
+import EvidenceView from '../views/EvidenceView.vue'
 import { authenticationState } from '@/auth/keycloak'
 
 const routes = [
@@ -57,6 +58,11 @@ const routes = [
   {
     path: '/admin',
     redirect: '/audit',
+  },
+  {
+    path: '/evidence',
+    name: 'evidence',
+    component: EvidenceView,
   },
   {
     path: '/401',
