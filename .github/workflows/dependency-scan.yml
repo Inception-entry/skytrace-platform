@@ -31,7 +31,7 @@ jobs:
           - name: backend-ai
             path: backend-ai
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Scan ${{ matrix.name }} dependencies
         uses: aquasecurity/trivy-action@v0.36.0
         with:
