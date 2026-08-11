@@ -16,11 +16,42 @@ jobs:
     name: Deploy to production
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment: production
+    env:
+      PROD_URL: https://${{ secrets.PROD_DOMAIN }}
+    environment:
+      name: production
+      url: ${{ env.PROD_URL }}
     steps:
+      - name: Check whether production deployment is configured
+        id: config
+        env:
+          PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          PROD_DOMAIN: ${{ secrets.PROD_DOMAIN }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          missing=()
+          for name in PROD_SSH_HOST PROD_SSH_USER PROD_SSH_KEY PROD_DOMAIN GHCR_PAT; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Production deploy skipped::No production server configured (missing: ${missing[*]})."
+            echo "Local development: ./scripts/skytrace.sh rebuild"
+            echo "To enable remote deploy later: Settings → Environments → production → add the secrets above,"
+            echo "then prepare the host with scripts/deploy-production.sh prerequisites."
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v6
+        if: steps.config.outputs.enabled == 'true'
 
       - name: Deploy via SSH
+        if: steps.config.outputs.enabled == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
@@ -42,6 +73,7 @@ jobs:
           GHCR_USER: ${{ github.repository_owner }}
 
       - name: Tag release in git
+        if: steps.config.outputs.enabled == 'true'
         run: |
           tag="deploy-prod-$(date -u +%Y%m%dT%H%M%SZ)"
           git tag "$tag" -m "Production deploy: ${{ inputs.image_tag }}"

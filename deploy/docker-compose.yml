@@ -195,7 +195,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
-      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Shanghai
+      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Shanghai -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -224,7 +224,7 @@ services:
       AUTH_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/skytrace}
       AUTH_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-skytrace-web}
       AUTH_JWT_CLIENT_ID: ${GATEWAY_JWT_CLIENT_ID:-skytrace-web}
-      AI_BASE_URL: http://host.docker.internal:8000
+      AI_BASE_URL: http://host.docker.internal:${AI_SERVICE_PORT:-8000}
       AI_CONNECT_TIMEOUT: ${AI_CONNECT_TIMEOUT:-3s}
       AI_READ_TIMEOUT: ${AI_READ_TIMEOUT:-250s}
       AI_MAX_ATTEMPTS: ${AI_MAX_ATTEMPTS:-2}

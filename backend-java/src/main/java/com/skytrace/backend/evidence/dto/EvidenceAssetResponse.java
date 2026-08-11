@@ -3,6 +3,7 @@ package com.skytrace.backend.evidence.dto;
 import java.time.LocalDateTime;
 
 public record EvidenceAssetResponse(
+        String evidenceCode,
         String objectKey,
         String bucket,
         String contentType,

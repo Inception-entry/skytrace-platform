@@ -17,6 +17,12 @@ public class AuditActionResolver {
     );
     private static final Pattern KNOWLEDGE_DELETE =
             Pattern.compile("^/knowledge/documents/([^/]+)$");
+    private static final Pattern EVIDENCE_CODE = Pattern.compile(
+            "^/evidence/([^/]+)(?:/(preview-url|download-url|restore|metadata))?$"
+    );
+    private static final Pattern EVIDENCE_BATCH = Pattern.compile(
+            "^/evidence/batch/(review|tags)$"
+    );
 
     public boolean shouldAudit(HttpServletRequest request) {
         String method = request.getMethod();
@@ -83,6 +89,41 @@ public class AuditActionResolver {
                     "ALARM_CREATE",
                     "ALARM",
                     null
+            );
+        }
+
+        if ("/evidence".equals(path) && HttpMethod.POST.matches(method)) {
+            return new AuditDescriptor(
+                    "EVIDENCE_UPLOAD",
+                    "EVIDENCE",
+                    null
+            );
+        }
+
+        Matcher evidenceBatch = EVIDENCE_BATCH.matcher(path);
+        if (evidenceBatch.matches()) {
+            String action = "review".equals(evidenceBatch.group(1))
+                    ? "EVIDENCE_BATCH_REVIEW"
+                    : "EVIDENCE_BATCH_TAGS";
+            return new AuditDescriptor(action, "EVIDENCE", null);
+        }
+
+        Matcher evidence = EVIDENCE_CODE.matcher(path);
+        if (evidence.matches()) {
+            String operation = evidence.group(2);
+            String action = switch (operation == null ? "" : operation) {
+                case "preview-url" -> "EVIDENCE_PREVIEW_URL";
+                case "download-url" -> "EVIDENCE_DOWNLOAD_URL";
+                case "restore" -> "EVIDENCE_RESTORE";
+                case "metadata" -> "EVIDENCE_UPDATE_METADATA";
+                default -> HttpMethod.DELETE.matches(method)
+                        ? "EVIDENCE_DELETE"
+                        : "EVIDENCE_MUTATION";
+            };
+            return new AuditDescriptor(
+                    action,
+                    "EVIDENCE",
+                    evidence.group(1)
             );
         }
 

@@ -38,6 +38,9 @@ from app.detection_publisher import (
 from app.schemas import (
     ChatRequest,
     ChatResponse,
+    EvidenceDeriveImageRequest,
+    EvidenceDeriveResponse,
+    EvidenceDeriveVideoRequest,
     HealthResponse,
     KnowledgeDeleteResponse,
     KnowledgeDocumentResponse,
@@ -238,6 +241,38 @@ async def health() -> HealthResponse:
         model=model_status,
         embeddingModel=embedding_status,
         vision=vision_status,
+    )
+
+
+@app.post(
+    "/api/internal/evidence/derive-image",
+    response_model=EvidenceDeriveResponse,
+)
+async def derive_evidence_image(
+    payload: EvidenceDeriveImageRequest,
+) -> EvidenceDeriveResponse:
+    # Java Temporal activity currently generates thumbnails locally.
+    # This endpoint is reserved for heavier AI-side processing.
+    return EvidenceDeriveResponse(
+        evidenceCode=payload.evidence_code,
+        status="ACCEPTED",
+        thumbnailObjectKey=f"derivatives/{payload.evidence_code}/thumb.jpg",
+        message="derive-image accepted",
+    )
+
+
+@app.post(
+    "/api/internal/evidence/derive-video",
+    response_model=EvidenceDeriveResponse,
+)
+async def derive_evidence_video(
+    payload: EvidenceDeriveVideoRequest,
+) -> EvidenceDeriveResponse:
+    return EvidenceDeriveResponse(
+        evidenceCode=payload.evidence_code,
+        status="ACCEPTED",
+        posterObjectKey=f"derivatives/{payload.evidence_code}/poster.jpg",
+        message="derive-video accepted",
     )
 
 

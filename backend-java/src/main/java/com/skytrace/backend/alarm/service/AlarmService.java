@@ -62,6 +62,8 @@ public class AlarmService {
         event.setLongitude(request.longitude());
         event.setImageUrl(request.imageUrl());
         event.setVideoUrl(request.videoUrl());
+        event.setPrimaryEvidenceCode(request.primaryEvidenceCode());
+        event.setPrimaryVideoEvidenceCode(request.primaryVideoEvidenceCode());
         event.setEventTime(request.eventTime());
         AlarmResponse response = toResponse(alarmEventRepository.save(event));
         evictAlarmCacheAfterCommit();
@@ -133,6 +135,8 @@ public class AlarmService {
                 event.getLongitude(),
                 event.getImageUrl(),
                 event.getVideoUrl(),
+                event.getPrimaryEvidenceCode(),
+                event.getPrimaryVideoEvidenceCode(),
                 event.getStatus(),
                 event.getEventTime()
         );
