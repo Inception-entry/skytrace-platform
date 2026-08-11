@@ -5,11 +5,21 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${SKYTRACE_ENV_FILE:-$ROOT_DIR/deploy/.env}"
 COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.yml"
+MQTT_COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.mqtt.yml"
 
 compose() {
   docker compose \
     --env-file "$ENV_FILE" \
     -f "$COMPOSE_FILE" \
+    "$@"
+}
+
+# Mosquitto + device-sim 在 overlay 中；同时重建 backend-java 以启用 MQTT 订阅
+compose_mqtt() {
+  docker compose \
+    --env-file "$ENV_FILE" \
+    -f "$COMPOSE_FILE" \
+    -f "$MQTT_COMPOSE_FILE" \
     "$@"
 }
 
@@ -36,6 +46,9 @@ show_help() {
   skytrace.sh auth-users           同步 OPERATOR、VIEWER 测试账号
   skytrace.sh auth-verify          执行 ADMIN/OPERATOR/VIEWER 权限验收
   skytrace.sh auth-token           获取 skytrace-service 的 Bearer Token
+  skytrace.sh mqtt-start           启动 Mosquitto + device-sim，并启用 Java MQTT
+  skytrace.sh mqtt-stop            停止 Mosquitto + device-sim
+  skytrace.sh mqtt-logs            查看 MQTT / device-sim 日志
   skytrace.sh help                 显示帮助
 
 示例：
@@ -49,6 +62,8 @@ show_help() {
   skytrace.sh auth-users
   skytrace.sh auth-verify
   skytrace.sh auth-token
+  skytrace.sh mqtt-start
+  skytrace.sh mqtt-logs
   skytrace.sh logs backend-ai
   skytrace.sh logs backend-java
 EOF
@@ -191,6 +206,32 @@ if not token:
 print(token)
 ' <<<"$response")"
     printf 'Bearer %s\n' "$token"
+    ;;
+  mqtt-start)
+    if [[ ! -f "$MQTT_COMPOSE_FILE" ]]; then
+      echo "缺少 MQTT 叠加文件：$MQTT_COMPOSE_FILE"
+      exit 1
+    fi
+    # overlay 会给 backend-java 注入 MQTT_ENABLED=true，需 recreate 才生效
+    compose_mqtt up -d --build mqtt device-sim
+    compose_mqtt up -d --force-recreate --no-deps backend-java
+    echo "MQTT 已启动：skytrace-mqtt / skytrace-device-sim（backend-java 已启用 MQTT）"
+    ;;
+  mqtt-stop)
+    if [[ ! -f "$MQTT_COMPOSE_FILE" ]]; then
+      echo "缺少 MQTT 叠加文件：$MQTT_COMPOSE_FILE"
+      exit 1
+    fi
+    compose_mqtt stop device-sim mqtt
+    echo "MQTT 已停止：skytrace-mqtt / skytrace-device-sim"
+    echo "提示：backend-java 仍可能保持 MQTT_ENABLED；若要关闭订阅，执行 skytrace.sh restart backend-java"
+    ;;
+  mqtt-logs)
+    if [[ ! -f "$MQTT_COMPOSE_FILE" ]]; then
+      echo "缺少 MQTT 叠加文件：$MQTT_COMPOSE_FILE"
+      exit 1
+    fi
+    compose_mqtt logs -f mqtt device-sim
     ;;
   help | -h | --help)
     show_help
