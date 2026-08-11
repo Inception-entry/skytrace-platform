@@ -6,6 +6,14 @@ interface ApiResponse<T> {
   data: T
 }
 
+export type EvidenceReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface EvidenceTag {
+  id: number
+  name: string
+  color: string | null
+}
+
 export interface EvidenceSummary {
   evidenceCode: string
   originalFilename: string | null
@@ -18,6 +26,10 @@ export interface EvidenceSummary {
   sizeBytes: number
   createdAt: string
   deleted: boolean
+  reviewStatus?: EvidenceReviewStatus | string
+  tags?: EvidenceTag[]
+  thumbnailUrl?: string | null
+  posterUrl?: string | null
 }
 
 export interface EvidenceDetail extends EvidenceSummary {
@@ -25,6 +37,14 @@ export interface EvidenceDetail extends EvidenceSummary {
   bucket: string
   contentType: string
   uploadedBy: string | null
+  reviewComment?: string | null
+  remark?: string | null
+  reviewedByName?: string | null
+  reviewedAt?: string | null
+  analysisId?: string | null
+  derivativeStatus?: string | null
+  thumbnailObjectKey?: string | null
+  posterObjectKey?: string | null
 }
 
 export interface EvidencePage {
@@ -48,10 +68,18 @@ export interface EvidenceSearchParams {
   deviceCode?: string
   assetType?: string
   sourceType?: string
+  reviewStatus?: string
   startTime?: string
   endTime?: string
   keyword?: string
   includeDeleted?: boolean
+}
+
+export interface UpdateEvidenceMetadataPayload {
+  remark?: string
+  reviewStatus?: EvidenceReviewStatus | string
+  reviewComment?: string
+  tagIds?: number[]
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -70,6 +98,10 @@ export function searchEvidence(params: EvidenceSearchParams = {}) {
     query.set(key, String(value))
   })
   return request<EvidencePage>(`/api/evidence/search?${query.toString()}`)
+}
+
+export function listEvidenceTags() {
+  return request<EvidenceTag[]>('/api/evidence/tags')
 }
 
 export function getEvidenceDetail(evidenceCode: string) {
@@ -104,4 +136,42 @@ export function restoreEvidence(evidenceCode: string) {
     `/api/evidence/${encodeURIComponent(evidenceCode)}/restore`,
     { method: 'POST' },
   )
+}
+
+export function updateEvidenceMetadata(
+  evidenceCode: string,
+  payload: UpdateEvidenceMetadataPayload,
+) {
+  return request<null>(
+    `/api/evidence/${encodeURIComponent(evidenceCode)}/metadata`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export function batchReviewEvidence(payload: {
+  evidenceCodes: string[]
+  reviewStatus: EvidenceReviewStatus | string
+  reviewComment?: string
+}) {
+  return request<null>('/api/evidence/batch/review', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function batchTagEvidence(payload: {
+  evidenceCodes: string[]
+  tagIds: number[]
+  replace?: boolean
+}) {
+  return request<null>('/api/evidence/batch/tags', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
 }

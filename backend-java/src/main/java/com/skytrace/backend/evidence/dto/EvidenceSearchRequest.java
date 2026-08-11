@@ -10,6 +10,7 @@ public record EvidenceSearchRequest(
         String deviceCode,
         String assetType,
         String sourceType,
+        String reviewStatus,
         Instant startTime,
         Instant endTime,
         String keyword,

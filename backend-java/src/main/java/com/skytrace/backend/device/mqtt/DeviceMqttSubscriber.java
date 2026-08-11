@@ -42,7 +42,7 @@ public class DeviceMqttSubscriber {
     }
 
     @PostConstruct
-    public void start() throws Exception {
+    public void start() {
         MqttConnectOptions options = new MqttConnectOptions();
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
@@ -55,11 +55,21 @@ public class DeviceMqttSubscriber {
         }
 
         String clientId = properties.getClientId() + "-" + UUID.randomUUID();
-        MqttClient mqttClient = new MqttClient(
-                properties.getBrokerUrl(),
-                clientId,
-                new MemoryPersistence()
-        );
+        final MqttClient mqttClient;
+        try {
+            mqttClient = new MqttClient(
+                    properties.getBrokerUrl(),
+                    clientId,
+                    new MemoryPersistence()
+            );
+        } catch (MqttException error) {
+            log.warn(
+                    "MQTT 客户端创建失败: broker={} reason={}",
+                    properties.getBrokerUrl(),
+                    error.getMessage()
+            );
+            return;
+        }
         this.client = mqttClient;
 
         mqttClient.setCallback(new MqttCallbackExtended() {
@@ -91,9 +101,25 @@ public class DeviceMqttSubscriber {
             }
         });
 
-        connectWithRetry(mqttClient, options);
-        log.info("MQTT 已连接: broker={}, clientId={}",
-                properties.getBrokerUrl(), clientId);
+        // 异步连接：避免 broker 未就绪时阻塞 Spring / 拖垮 CI readiness
+        Thread connector = new Thread(
+                () -> {
+                    try {
+                        connectWithRetry(mqttClient, options);
+                        log.info("MQTT 已连接: broker={}, clientId={}",
+                                properties.getBrokerUrl(), clientId);
+                    } catch (Exception error) {
+                        log.warn(
+                                "MQTT 初始连接失败，将依赖后续重试/重建: broker={} reason={}",
+                                properties.getBrokerUrl(),
+                                error.getMessage()
+                        );
+                    }
+                },
+                "mqtt-connect"
+        );
+        connector.setDaemon(true);
+        connector.start();
     }
 
     @PreDestroy

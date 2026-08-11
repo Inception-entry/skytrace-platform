@@ -1,9 +1,12 @@
 package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
+import com.skytrace.backend.evidence.domain.EvidenceDerivativeStatus;
+import com.skytrace.backend.evidence.domain.EvidenceReviewStatus;
 import com.skytrace.backend.evidence.domain.EvidenceSourceType;
 import com.skytrace.backend.evidence.dto.EvidenceUploadResponse;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,10 +15,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
+@ConditionalOnProperty(name = "app.minio.enabled", havingValue = "true")
 public class EvidenceCommandService {
 
     private static final DateTimeFormatter DAY =
@@ -26,18 +29,21 @@ public class EvidenceCommandService {
     private final EvidenceActorContextService actorContextService;
     private final EvidenceAccessLogService accessLogService;
     private final EvidenceQueryService queryService;
+    private final EvidenceDerivativeJobService derivativeJobService;
 
     public EvidenceCommandService(
             EvidenceAssetRepository repository,
             EvidenceStorageService storageService,
             EvidenceActorContextService actorContextService,
             EvidenceAccessLogService accessLogService,
-            EvidenceQueryService queryService) {
+            EvidenceQueryService queryService,
+            EvidenceDerivativeJobService derivativeJobService) {
         this.repository = repository;
         this.storageService = storageService;
         this.actorContextService = actorContextService;
         this.accessLogService = accessLogService;
         this.queryService = queryService;
+        this.derivativeJobService = derivativeJobService;
     }
 
     @Transactional
@@ -56,6 +62,7 @@ public class EvidenceCommandService {
         asset.setBucket(stored.bucket());
         asset.setAssetType(stored.assetType());
         asset.setSourceType(EvidenceSourceType.MANUAL_UPLOAD);
+        asset.setReviewStatus(EvidenceReviewStatus.PENDING);
         asset.setContentType(stored.contentType());
         asset.setOriginalFilename(stored.originalFilename());
         asset.setSizeBytes(stored.sizeBytes());
@@ -64,8 +71,10 @@ public class EvidenceCommandService {
         asset.setDeviceCode(blankToNull(deviceCode));
         asset.setUploadedBy(actor.actorId());
         asset.setUploadedByName(actor.username());
+        asset.setDerivativeStatus(EvidenceDerivativeStatus.PENDING);
         repository.save(asset);
         accessLogService.recordUpload(asset);
+        derivativeJobService.start(asset.getEvidenceCode());
 
         return new EvidenceUploadResponse(
                 asset.getEvidenceCode(),

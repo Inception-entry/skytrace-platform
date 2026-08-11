@@ -13,6 +13,8 @@ public interface EvidenceAssetRepository
 
     Optional<EvidenceAsset> findByEvidenceCode(String evidenceCode);
 
+    Optional<EvidenceAsset> findByObjectKey(String objectKey);
+
     List<EvidenceAsset> findByTaskCodeAndDeletedFalseOrderByCreatedAtDesc(
             String taskCode
     );

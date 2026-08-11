@@ -20,8 +20,8 @@ services:
       MQTT_PORT: "1883"
       MQTT_ENV: ${MQTT_ENV:-local}
       MQTT_CLIENT_ID: skytrace-device-sim
-      DEVICE_CODES: UAV-001,CAMERA-001,ST-001
-      HEARTBEAT_INTERVAL_SEC: "30"
+      DEVICE_CODES: UAV-001,CAMERA-001
+      HEARTBEAT_INTERVAL_SEC: "15"
     depends_on:
       - mqtt
     networks:

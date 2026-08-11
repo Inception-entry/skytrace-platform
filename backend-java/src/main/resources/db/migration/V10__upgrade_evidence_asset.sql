@@ -1,22 +1,20 @@
-ALTER TABLE evidence_asset
-  ADD COLUMN evidence_code VARCHAR(64) NULL AFTER id,
-  ADD COLUMN asset_type VARCHAR(32) NOT NULL DEFAULT 'IMAGE' AFTER bucket,
-  ADD COLUMN source_type VARCHAR(32) NOT NULL DEFAULT 'MANUAL_UPLOAD' AFTER asset_type,
-  ADD COLUMN device_code VARCHAR(64) NULL AFTER alarm_event_code,
-  ADD COLUMN uploaded_by VARCHAR(128) NULL AFTER device_code,
-  ADD COLUMN uploaded_by_name VARCHAR(128) NULL AFTER uploaded_by,
-  ADD COLUMN deleted TINYINT(1) NOT NULL DEFAULT 0 AFTER uploaded_by_name,
-  ADD COLUMN deleted_at DATETIME NULL AFTER deleted,
-  ADD COLUMN deleted_by VARCHAR(128) NULL AFTER deleted_at,
-  ADD COLUMN deleted_by_name VARCHAR(128) NULL AFTER deleted_by;
+ALTER TABLE evidence_asset ADD COLUMN evidence_code VARCHAR(64) NULL;
+ALTER TABLE evidence_asset ADD COLUMN asset_type VARCHAR(32) NOT NULL DEFAULT 'IMAGE';
+ALTER TABLE evidence_asset ADD COLUMN source_type VARCHAR(32) NOT NULL DEFAULT 'MANUAL_UPLOAD';
+ALTER TABLE evidence_asset ADD COLUMN device_code VARCHAR(64) NULL;
+ALTER TABLE evidence_asset ADD COLUMN uploaded_by VARCHAR(128) NULL;
+ALTER TABLE evidence_asset ADD COLUMN uploaded_by_name VARCHAR(128) NULL;
+ALTER TABLE evidence_asset ADD COLUMN deleted TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE evidence_asset ADD COLUMN deleted_at DATETIME NULL;
+ALTER TABLE evidence_asset ADD COLUMN deleted_by VARCHAR(128) NULL;
+ALTER TABLE evidence_asset ADD COLUMN deleted_by_name VARCHAR(128) NULL;
 
 UPDATE evidence_asset
 SET evidence_code = CONCAT('EV-LEGACY-', LPAD(id, 8, '0'))
 WHERE evidence_code IS NULL;
 
-ALTER TABLE evidence_asset
-  MODIFY COLUMN evidence_code VARCHAR(64) NOT NULL,
-  ADD CONSTRAINT uk_evidence_asset_code UNIQUE (evidence_code);
+ALTER TABLE evidence_asset MODIFY COLUMN evidence_code VARCHAR(64) NOT NULL;
+ALTER TABLE evidence_asset ADD CONSTRAINT uk_evidence_asset_code UNIQUE (evidence_code);
 
 CREATE INDEX idx_evidence_created_at ON evidence_asset (created_at);
 CREATE INDEX idx_evidence_device_code ON evidence_asset (device_code);

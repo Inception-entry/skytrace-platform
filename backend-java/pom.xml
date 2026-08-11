@@ -18,7 +18,7 @@
         <temporal.version>1.35.0</temporal.version>
         <minio.version>8.6.0</minio.version>
         <!-- CVE-2025-14813: override MinIO's transitive 1.81 -->
-        <bouncycastle.version>1.81.1</bouncycastle.version>
+        <bouncycastle.version>1.85</bouncycastle.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -85,7 +85,7 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp-jvm</artifactId>
-            <version>5.1.0</version>
+            <version>5.4.0</version>
         </dependency>
         <dependency>
             <groupId>com.mysql</groupId>
