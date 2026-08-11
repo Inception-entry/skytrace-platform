@@ -16,6 +16,8 @@ public record EvidenceSummaryResponse(
         Instant createdAt,
         boolean deleted,
         String reviewStatus,
+        String contentHash,
+        String archiveStatus,
         List<EvidenceTagResponse> tags,
         String thumbnailUrl,
         String posterUrl

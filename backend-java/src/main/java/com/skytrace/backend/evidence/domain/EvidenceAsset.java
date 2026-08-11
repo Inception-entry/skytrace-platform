@@ -37,6 +37,9 @@ public class EvidenceAsset {
     @Column(name = "source_type", nullable = false, length = 32)
     private EvidenceSourceType sourceType = EvidenceSourceType.MANUAL_UPLOAD;
 
+    @Column(name = "content_hash", length = 128)
+    private String contentHash;
+
     @Column(name = "content_type", nullable = false, length = 128)
     private String contentType;
 
@@ -82,6 +85,16 @@ public class EvidenceAsset {
     @Enumerated(EnumType.STRING)
     @Column(name = "review_status", nullable = false, length = 32)
     private EvidenceReviewStatus reviewStatus = EvidenceReviewStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "archive_status", nullable = false, length = 32)
+    private EvidenceArchiveStatus archiveStatus = EvidenceArchiveStatus.ACTIVE;
+
+    @Column(name = "archive_batch_code", length = 64)
+    private String archiveBatchCode;
+
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
 
     @Column(name = "review_comment", length = 512)
     private String reviewComment;
@@ -162,6 +175,14 @@ public class EvidenceAsset {
 
     public void setSourceType(EvidenceSourceType sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public String getContentHash() {
+        return contentHash;
+    }
+
+    public void setContentHash(String contentHash) {
+        this.contentHash = contentHash;
     }
 
     public String getContentType() {
@@ -274,6 +295,30 @@ public class EvidenceAsset {
 
     public void setReviewStatus(EvidenceReviewStatus reviewStatus) {
         this.reviewStatus = reviewStatus;
+    }
+
+    public EvidenceArchiveStatus getArchiveStatus() {
+        return archiveStatus;
+    }
+
+    public void setArchiveStatus(EvidenceArchiveStatus archiveStatus) {
+        this.archiveStatus = archiveStatus;
+    }
+
+    public String getArchiveBatchCode() {
+        return archiveBatchCode;
+    }
+
+    public void setArchiveBatchCode(String archiveBatchCode) {
+        this.archiveBatchCode = archiveBatchCode;
+    }
+
+    public LocalDateTime getArchivedAt() {
+        return archivedAt;
+    }
+
+    public void setArchivedAt(LocalDateTime archivedAt) {
+        this.archivedAt = archivedAt;
     }
 
     public String getReviewComment() {

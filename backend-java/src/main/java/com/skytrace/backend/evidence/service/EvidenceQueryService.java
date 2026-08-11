@@ -2,6 +2,7 @@ package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
+import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
 import com.skytrace.backend.evidence.domain.EvidenceReviewStatus;
 import com.skytrace.backend.evidence.domain.EvidenceSourceType;
 import com.skytrace.backend.evidence.dto.EvidenceAssetResponse;
@@ -222,6 +223,8 @@ public class EvidenceQueryService {
                 asset.getReviewStatus() == null
                         ? EvidenceReviewStatus.PENDING.name()
                         : asset.getReviewStatus().name(),
+                asset.getContentHash(),
+                archiveStatusName(asset),
                 tags,
                 derivativeUrl(asset.getBucket(), asset.getThumbnailObjectKey()),
                 derivativeUrl(asset.getBucket(), asset.getPosterObjectKey())
@@ -249,6 +252,8 @@ public class EvidenceQueryService {
                 asset.getReviewStatus() == null
                         ? EvidenceReviewStatus.PENDING.name()
                         : asset.getReviewStatus().name(),
+                asset.getContentHash(),
+                archiveStatusName(asset),
                 asset.getReviewComment(),
                 asset.getRemark(),
                 tags,
@@ -305,6 +310,11 @@ public class EvidenceQueryService {
             return null;
         }
         return EvidenceReviewStatus.valueOf(normalized.toUpperCase(Locale.ROOT));
+    }
+
+    private static String archiveStatusName(EvidenceAsset asset) {
+        EvidenceArchiveStatus status = asset.getArchiveStatus();
+        return status == null ? EvidenceArchiveStatus.ACTIVE.name() : status.name();
     }
 
     private static LocalDateTime toLocal(Instant instant) {
