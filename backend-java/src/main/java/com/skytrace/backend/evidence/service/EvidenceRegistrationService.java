@@ -47,6 +47,32 @@ public class EvidenceRegistrationService {
 
     @Transactional
     public EvidenceAsset register(RegisterCommand command) {
+        // CI / 告警链会先手动上传再投递 detection：同一 objectKey 只登记一次
+        return repository.findByObjectKey(command.objectKey())
+                .map(existing -> enrichExisting(existing, command))
+                .orElseGet(() -> createNew(command));
+    }
+
+    private EvidenceAsset enrichExisting(
+            EvidenceAsset existing,
+            RegisterCommand command) {
+        if (blank(existing.getTaskCode()) && !blank(command.taskCode())) {
+            existing.setTaskCode(command.taskCode());
+        }
+        if (blank(existing.getAlarmEventCode())
+                && !blank(command.alarmEventCode())) {
+            existing.setAlarmEventCode(command.alarmEventCode());
+        }
+        if (blank(existing.getDeviceCode()) && !blank(command.deviceCode())) {
+            existing.setDeviceCode(command.deviceCode());
+        }
+        if (blank(existing.getAnalysisId()) && !blank(command.analysisId())) {
+            existing.setAnalysisId(command.analysisId());
+        }
+        return repository.save(existing);
+    }
+
+    private EvidenceAsset createNew(RegisterCommand command) {
         EvidenceAsset asset = new EvidenceAsset();
         asset.setEvidenceCode(nextEvidenceCode());
         asset.setObjectKey(command.objectKey());
@@ -73,6 +99,10 @@ public class EvidenceRegistrationService {
         repository.save(asset);
         derivativeJobService.start(asset.getEvidenceCode());
         return asset;
+    }
+
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 
     private String nextEvidenceCode() {

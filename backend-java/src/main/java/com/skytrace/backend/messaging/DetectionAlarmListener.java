@@ -55,43 +55,54 @@ public class DetectionAlarmListener {
         EvidenceRegistrationService registrar = registrationService.getIfAvailable();
         MinioProperties minio = minioProperties.getIfAvailable();
         if (registrar != null && minio != null) {
-            if (message.imageObjectKey() != null && !message.imageObjectKey().isBlank()) {
-                EvidenceAsset image = registrar.register(
-                        new EvidenceRegistrationService.RegisterCommand(
-                                message.imageObjectKey().trim(),
-                                minio.getEvidenceBucket(),
-                                "image/jpeg",
-                                message.imageObjectKey(),
-                                0L,
-                                EvidenceSourceType.AI_DETECTION,
-                                message.taskCode(),
-                                null,
-                                message.deviceCode(),
-                                null,
-                                "system",
-                                "ai-detection"
-                        )
+            try {
+                if (message.imageObjectKey() != null
+                        && !message.imageObjectKey().isBlank()) {
+                    EvidenceAsset image = registrar.register(
+                            new EvidenceRegistrationService.RegisterCommand(
+                                    message.imageObjectKey().trim(),
+                                    minio.getEvidenceBucket(),
+                                    "image/jpeg",
+                                    message.imageObjectKey(),
+                                    0L,
+                                    EvidenceSourceType.AI_DETECTION,
+                                    message.taskCode(),
+                                    null,
+                                    message.deviceCode(),
+                                    null,
+                                    "system",
+                                    "ai-detection"
+                            )
+                    );
+                    primaryEvidenceCode = image.getEvidenceCode();
+                }
+                if (message.videoObjectKey() != null
+                        && !message.videoObjectKey().isBlank()) {
+                    EvidenceAsset video = registrar.register(
+                            new EvidenceRegistrationService.RegisterCommand(
+                                    message.videoObjectKey().trim(),
+                                    minio.getEvidenceBucket(),
+                                    "video/mp4",
+                                    message.videoObjectKey(),
+                                    0L,
+                                    EvidenceSourceType.AI_DETECTION,
+                                    message.taskCode(),
+                                    null,
+                                    message.deviceCode(),
+                                    null,
+                                    "system",
+                                    "ai-detection"
+                            )
+                    );
+                    primaryVideoEvidenceCode = video.getEvidenceCode();
+                }
+            } catch (RuntimeException ex) {
+                // 证据登记失败不应阻断告警落库（CI：先上传再 detection）
+                log.warn(
+                        "event=detection_evidence_register_failed taskCode={} err={}",
+                        message.taskCode(),
+                        ex.toString()
                 );
-                primaryEvidenceCode = image.getEvidenceCode();
-            }
-            if (message.videoObjectKey() != null && !message.videoObjectKey().isBlank()) {
-                EvidenceAsset video = registrar.register(
-                        new EvidenceRegistrationService.RegisterCommand(
-                                message.videoObjectKey().trim(),
-                                minio.getEvidenceBucket(),
-                                "video/mp4",
-                                message.videoObjectKey(),
-                                0L,
-                                EvidenceSourceType.AI_DETECTION,
-                                message.taskCode(),
-                                null,
-                                message.deviceCode(),
-                                null,
-                                "system",
-                                "ai-detection"
-                        )
-                );
-                primaryVideoEvidenceCode = video.getEvidenceCode();
             }
         }
 
