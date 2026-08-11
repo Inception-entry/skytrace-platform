@@ -216,6 +216,10 @@ services:
       CACHE_ENABLED: "true"
       CACHE_ALARM_TTL_SECONDS: ${CACHE_ALARM_TTL_SECONDS:-30}
       CACHE_DEVICE_PRESENCE_TTL_SECONDS: ${CACHE_DEVICE_PRESENCE_TTL_SECONDS:-90}
+      MQTT_ENABLED: ${MQTT_ENABLED:-false}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL:-tcp://mqtt:1883}
+      MQTT_ENV: ${MQTT_ENV:-local}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-skytrace-backend-java}
       TEMPORAL_TARGET_ENDPOINT: temporal:7233
       TEMPORAL_NAMESPACE: default
       TEMPORAL_TASK_QUEUE: skytrace-inspection-task-queue
