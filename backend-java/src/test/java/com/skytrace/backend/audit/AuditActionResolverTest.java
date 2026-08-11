@@ -44,6 +44,34 @@ class AuditActionResolverTest {
         )).isTrue();
     }
 
+    @Test
+    void resolvesEvidenceArchiveActions() {
+        AuditActionResolver.AuditDescriptor create = resolver.resolve(
+                request("POST", "/api/evidence/archive-jobs")
+        );
+        AuditActionResolver.AuditDescriptor download = resolver.resolve(
+                request(
+                        "POST",
+                        "/api/evidence/archive-jobs/AR-20260811-ABC123/download-url"
+                )
+        );
+        AuditActionResolver.AuditDescriptor manifest = resolver.resolve(
+                request(
+                        "POST",
+                        "/api/evidence/archive-jobs/AR-20260811-ABC123/manifest-url"
+                )
+        );
+
+        assertThat(create.action()).isEqualTo("EVIDENCE_ARCHIVE_JOB_CREATE");
+        assertThat(create.resourceType()).isEqualTo("EVIDENCE_ARCHIVE_JOB");
+        assertThat(download.action())
+                .isEqualTo("EVIDENCE_ARCHIVE_DOWNLOAD_URL");
+        assertThat(download.resourceId())
+                .isEqualTo("AR-20260811-ABC123");
+        assertThat(manifest.action())
+                .isEqualTo("EVIDENCE_ARCHIVE_MANIFEST_URL");
+    }
+
     private MockHttpServletRequest request(
             String method,
             String uri) {
