@@ -299,24 +299,30 @@
 
         <p v-if="evidenceLoading" class="loading-text">{{ $t('tasks.evidenceLoading') }}</p>
         <ul v-else-if="evidenceList.length" class="evidence-list">
-          <li v-for="item in evidenceList" :key="item.objectKey">
+          <li
+            v-for="item in evidenceList"
+            :key="item.evidenceCode || item.objectKey"
+          >
             <div>
               <strong>{{ item.originalFilename || item.objectKey }}</strong>
               <small>
+                <template v-if="item.evidenceCode">
+                  {{ item.evidenceCode }} ·
+                </template>
                 {{ item.contentType }} · {{ formatBytes(item.sizeBytes) }}
                 <template v-if="item.createdAt">
                   · {{ formatDateTime(item.createdAt) }}
                 </template>
               </small>
             </div>
-            <a
+            <button
               class="evidence-link"
-              :href="item.publicPath"
-              target="_blank"
-              rel="noopener noreferrer"
+              type="button"
+              :disabled="evidenceOpeningCode === (item.evidenceCode || item.objectKey)"
+              @click="openEvidence(item)"
             >
               {{ $t('common.open') }}
-            </a>
+            </button>
           </li>
         </ul>
         <p v-else class="empty-evidence">{{ $t('tasks.evidenceEmpty') }}</p>
@@ -345,6 +351,7 @@ import {
   updateInspectionTask,
   type InspectionTask,
 } from '@/api/inspection-task'
+import { createEvidencePreviewUrl } from '@/api/evidence'
 
 interface TaskForm {
   taskCode: string
@@ -364,6 +371,7 @@ const evidenceList = ref<EvidenceAsset[]>([])
 const selectedTaskCode = ref('')
 const loading = ref(false)
 const evidenceLoading = ref(false)
+const evidenceOpeningCode = ref('')
 const formVisible = ref(false)
 const editingTaskCode = ref('')
 const errorMessage = ref('')
@@ -534,6 +542,25 @@ const saveTask = async () => {
   } catch (error) {
     errorMessage.value = errorText(error, t('tasks.saveFailed'))
     loading.value = false
+  }
+}
+
+async function openEvidence(item: EvidenceAsset) {
+  const openingKey = item.evidenceCode || item.objectKey
+  evidenceOpeningCode.value = openingKey
+  errorMessage.value = ''
+  try {
+    if (!item.evidenceCode) {
+      // 兼容历史数据：仍可临时走 publicPath
+      window.open(item.publicPath, '_blank', 'noopener')
+      return
+    }
+    const access = await createEvidencePreviewUrl(item.evidenceCode)
+    window.open(access.url, '_blank', 'noopener')
+  } catch (error) {
+    errorMessage.value = errorText(error, t('tasks.openEvidenceFailed'))
+  } finally {
+    evidenceOpeningCode.value = ''
   }
 }
 
@@ -913,6 +940,16 @@ td small {
   color: var(--st-color-accent);
   text-decoration: none;
   white-space: nowrap;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.evidence-link:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 @media (max-width: 760px) {

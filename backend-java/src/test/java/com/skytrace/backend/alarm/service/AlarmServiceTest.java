@@ -83,6 +83,8 @@ class AlarmServiceTest {
                 BigDecimal.TEN,
                 "task/a.jpg",
                 null,
+                null,
+                null,
                 LocalDateTime.of(2030, 1, 1, 8, 0)
         );
     }

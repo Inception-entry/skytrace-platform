@@ -10,6 +10,13 @@ uv sync
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
+如果本机 `8000` 已被其他进程占用，优先使用仓库根目录脚本，它会自动读取
+`deploy/.env` 并复用当前本地依赖配置：
+
+```bash
+./scripts/start-local-ai.sh
+```
+
 ## 验证
 
 ```bash
@@ -21,6 +28,9 @@ curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"无人机失联后应该如何处理？"}'
 ```
+
+如果通过 `./scripts/start-local-ai.sh` 启动，请把上面的 `8000` 替换成
+`deploy/.env` 中的 `AI_SERVICE_PORT`。当前项目本地配置使用 `8001`。
 
 ## Docker 启动
 
