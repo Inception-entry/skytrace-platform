@@ -2,6 +2,7 @@ package com.skytrace.backend.device.service;
 
 import com.skytrace.backend.cache.DevicePresenceService;
 import com.skytrace.backend.common.ConflictException;
+import com.skytrace.backend.common.TextEncodingFix;
 import com.skytrace.backend.device.domain.Device;
 import com.skytrace.backend.device.dto.CreateDeviceRequest;
 import com.skytrace.backend.device.dto.DeviceResponse;
@@ -142,7 +143,7 @@ public class DeviceService {
                 : "OFFLINE";
         return new DeviceResponse(
                 device.getDeviceCode(),
-                device.getDeviceName(),
+                TextEncodingFix.repairMojibake(device.getDeviceName()),
                 device.getDeviceType(),
                 runtimeStatus,
                 device.getCreatedAt(),
