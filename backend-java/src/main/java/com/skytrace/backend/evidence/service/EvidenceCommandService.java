@@ -6,6 +6,7 @@ import com.skytrace.backend.evidence.domain.EvidenceReviewStatus;
 import com.skytrace.backend.evidence.domain.EvidenceSourceType;
 import com.skytrace.backend.evidence.dto.EvidenceUploadResponse;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Service
+@ConditionalOnProperty(name = "app.minio.enabled", havingValue = "true")
 public class EvidenceCommandService {
 
     private static final DateTimeFormatter DAY =

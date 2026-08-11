@@ -6,6 +6,7 @@ import com.skytrace.backend.evidence.domain.EvidenceDerivativeStatus;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import com.skytrace.backend.evidence.service.EvidenceStorageService;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -25,8 +26,11 @@ class EvidenceDerivativeActivitiesImplTest {
     void shouldGenerateImageThumbnail() throws Exception {
         EvidenceAssetRepository repository = mock(EvidenceAssetRepository.class);
         EvidenceStorageService storageService = mock(EvidenceStorageService.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<EvidenceStorageService> storageProvider = mock(ObjectProvider.class);
+        when(storageProvider.getIfAvailable()).thenReturn(storageService);
         EvidenceDerivativeActivitiesImpl activities =
-                new EvidenceDerivativeActivitiesImpl(repository, storageService);
+                new EvidenceDerivativeActivitiesImpl(repository, storageProvider);
 
         EvidenceAsset asset = new EvidenceAsset();
         asset.setEvidenceCode("EV-1");

@@ -6,6 +6,7 @@ import com.skytrace.backend.evidence.dto.BatchReviewEvidenceRequest;
 import com.skytrace.backend.evidence.dto.BatchTagEvidenceRequest;
 import com.skytrace.backend.evidence.dto.UpdateEvidenceMetadataRequest;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 
 @Service
+@ConditionalOnProperty(name = "app.minio.enabled", havingValue = "true")
 public class EvidenceMetadataService {
 
     private final EvidenceQueryService queryService;

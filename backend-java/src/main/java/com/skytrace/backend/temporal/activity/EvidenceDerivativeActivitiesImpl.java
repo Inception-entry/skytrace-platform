@@ -5,7 +5,7 @@ import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import com.skytrace.backend.evidence.domain.EvidenceDerivativeStatus;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import com.skytrace.backend.evidence.service.EvidenceStorageService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
@@ -17,18 +17,17 @@ import java.io.ByteArrayOutputStream;
 import java.util.NoSuchElementException;
 
 @Component("evidenceDerivativeActivities")
-@ConditionalOnBean(EvidenceStorageService.class)
 public class EvidenceDerivativeActivitiesImpl
         implements EvidenceDerivativeActivities {
 
     private static final int THUMB_MAX = 320;
 
     private final EvidenceAssetRepository repository;
-    private final EvidenceStorageService storageService;
+    private final ObjectProvider<EvidenceStorageService> storageService;
 
     public EvidenceDerivativeActivitiesImpl(
             EvidenceAssetRepository repository,
-            EvidenceStorageService storageService) {
+            ObjectProvider<EvidenceStorageService> storageService) {
         this.repository = repository;
         this.storageService = storageService;
     }
@@ -37,15 +36,21 @@ public class EvidenceDerivativeActivitiesImpl
     public void generateDerivatives(String evidenceCode) {
         EvidenceAsset asset = repository.findByEvidenceCode(evidenceCode)
                 .orElseThrow(() -> new NoSuchElementException(evidenceCode));
+        EvidenceStorageService storage = storageService.getIfAvailable();
+        if (storage == null) {
+            asset.setDerivativeStatus(EvidenceDerivativeStatus.FAILED);
+            repository.save(asset);
+            throw new IllegalStateException("MinIO is disabled; cannot derive evidence");
+        }
         try {
             if (asset.getAssetType() == EvidenceAssetType.IMAGE) {
-                byte[] original = storageService.getObjectBytes(
+                byte[] original = storage.getObjectBytes(
                         asset.getBucket(),
                         asset.getObjectKey()
                 );
                 byte[] thumb = createThumbnail(original);
                 String thumbKey = "derivatives/" + evidenceCode + "/thumb.jpg";
-                storageService.putObject(
+                storage.putObject(
                         asset.getBucket(),
                         thumbKey,
                         thumb,
