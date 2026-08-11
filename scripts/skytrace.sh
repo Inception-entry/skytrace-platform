@@ -49,6 +49,7 @@ show_help() {
   skytrace.sh mqtt-start           启动 Mosquitto + device-sim，并启用 Java MQTT
   skytrace.sh mqtt-stop            停止 Mosquitto + device-sim
   skytrace.sh mqtt-logs            查看 MQTT / device-sim 日志
+  skytrace.sh cleanup              停栈并清理 orphan（端口 500 时先跑这个）
   skytrace.sh help                 显示帮助
 
 示例：
@@ -134,8 +135,19 @@ case "$ACTION" in
     if (($# > 0)); then
       compose stop "$@"
     else
-      compose down
+      compose down --remove-orphans
     fi
+    ;;
+  cleanup)
+    # WSL/Docker Desktop 常见：容器已停但端口转发僵尸，表现为 expose status 500
+    compose down --remove-orphans || true
+    if [[ -f "$MQTT_COMPOSE_FILE" ]]; then
+      compose_mqtt down --remove-orphans || true
+    fi
+    echo "已执行 compose down --remove-orphans"
+    echo "若 start 仍报 ports ... status 500："
+    echo "  1) Docker Desktop → Restart"
+    echo "  2) 或 Windows PowerShell: wsl --shutdown 后再开 Docker / 终端"
     ;;
   restart)
     compose restart "$@"
