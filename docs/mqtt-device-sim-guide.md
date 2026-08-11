@@ -1,8 +1,8 @@
 # MQTT 设备模拟接入：前端程序员开发指南
 
-> 这是一份“边做边验证”的开发教程，不是已完成功能说明。
-> 当前仓库还没有 Mosquitto、`device-sim` 和 Java MQTT 订阅代码；完成本文的
-> A → B → C 三个关卡后，设备页才会由模拟器自动驱动在线状态。
+> Mosquitto、`device-sim` 与 Java MQTT 订阅已在仓库中。
+> 本地验证：叠加 `docker-compose.mqtt.yml`，并保证 `MQTT_ENABLED=true`、
+> `CACHE_ENABLED=true`。设备页在线状态由 Redis presence（TTL ~90s）驱动。
 
 ## 做完以后，你会看到什么
 
