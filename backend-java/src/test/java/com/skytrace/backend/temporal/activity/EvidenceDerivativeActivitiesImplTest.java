@@ -4,6 +4,7 @@ import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import com.skytrace.backend.evidence.domain.EvidenceDerivativeStatus;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
+import com.skytrace.backend.evidence.service.EvidenceHashService;
 import com.skytrace.backend.evidence.service.EvidenceStorageService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -28,9 +29,17 @@ class EvidenceDerivativeActivitiesImplTest {
         EvidenceStorageService storageService = mock(EvidenceStorageService.class);
         @SuppressWarnings("unchecked")
         ObjectProvider<EvidenceStorageService> storageProvider = mock(ObjectProvider.class);
+        EvidenceHashService hashService = mock(EvidenceHashService.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<EvidenceHashService> hashProvider = mock(ObjectProvider.class);
         when(storageProvider.getIfAvailable()).thenReturn(storageService);
+        when(hashProvider.getIfAvailable()).thenReturn(hashService);
         EvidenceDerivativeActivitiesImpl activities =
-                new EvidenceDerivativeActivitiesImpl(repository, storageProvider);
+                new EvidenceDerivativeActivitiesImpl(
+                        repository,
+                        storageProvider,
+                        hashProvider
+                );
 
         EvidenceAsset asset = new EvidenceAsset();
         asset.setEvidenceCode("EV-1");
@@ -43,6 +52,7 @@ class EvidenceDerivativeActivitiesImplTest {
 
         activities.generateDerivatives("EV-1");
 
+        verify(hashService).ensureContentHash(asset);
         assertThat(asset.getDerivativeStatus())
                 .isEqualTo(EvidenceDerivativeStatus.READY);
         assertThat(asset.getThumbnailObjectKey())

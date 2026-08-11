@@ -20,6 +20,8 @@ public record EvidenceDetailResponse(
         Instant createdAt,
         boolean deleted,
         String reviewStatus,
+        String contentHash,
+        String archiveStatus,
         String reviewComment,
         String remark,
         List<EvidenceTagResponse> tags,
