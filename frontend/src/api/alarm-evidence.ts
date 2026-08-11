@@ -23,6 +23,7 @@ export interface AlarmEvent {
 }
 
 export interface EvidenceUpload {
+  evidenceCode?: string
   objectKey: string
   bucket: string
   contentType: string
@@ -35,6 +36,7 @@ export interface EvidenceUpload {
 }
 
 export interface EvidenceAsset extends EvidenceUpload {
+  evidenceCode?: string
   originalFilename: string | null
   createdAt: string
 }

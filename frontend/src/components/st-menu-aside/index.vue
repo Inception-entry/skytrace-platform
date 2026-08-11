@@ -71,6 +71,7 @@ watch(
 const navItems = [
   { to: '/drone', labelKey: 'nav.tasks', descKey: 'nav.tasksDesc', roles: [] as string[] },
   { to: '/devices', labelKey: 'nav.devices', descKey: 'nav.devicesDesc', roles: [] as string[] },
+  { to: '/evidence', labelKey: 'nav.evidence', descKey: 'nav.evidenceDesc', roles: [] as string[] },
   { to: '/routes', labelKey: 'nav.routes', descKey: 'nav.routesDesc', roles: [] as string[] },
   { to: '/knowledge', labelKey: 'nav.knowledge', descKey: 'nav.knowledgeDesc', roles: [] as string[] },
   { to: '/chat', labelKey: 'nav.chat', descKey: 'nav.chatDesc', roles: ['ADMIN', 'OPERATOR'] },

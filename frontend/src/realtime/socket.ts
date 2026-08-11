@@ -1,4 +1,7 @@
-import { getAccessToken } from '@/auth/keycloak'
+import {
+  beginAuthenticationRecovery,
+  getAccessToken,
+} from '@/auth/keycloak'
 import { redirectToAuthorizationPage } from '@/auth/authorization-navigation'
 
 interface RealtimeConnectionError extends Error {
@@ -56,7 +59,7 @@ export async function connectAlarmRealtime() {
         .then((token) => callback({ token }))
         .catch(() => {
           callback({ token: '' })
-          redirectToAuthorizationPage(401)
+          void beginAuthenticationRecovery()
         })
     },
   })
@@ -117,7 +120,7 @@ async function handleConnectionError(error: RealtimeConnectionError) {
     return
   }
   if (authenticationRetryUsed) {
-    redirectToAuthorizationPage(401)
+    void beginAuthenticationRecovery()
     return
   }
 
@@ -126,7 +129,7 @@ async function handleConnectionError(error: RealtimeConnectionError) {
     await getAccessToken(true)
     socket?.connect()
   } catch {
-    redirectToAuthorizationPage(401)
+    void beginAuthenticationRecovery()
   }
 }
 

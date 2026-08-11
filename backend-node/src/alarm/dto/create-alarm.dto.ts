@@ -48,6 +48,14 @@ export class CreateAlarmDto {
 
   @IsOptional()
   @IsString()
+  primaryEvidenceCode?: string;
+
+  @IsOptional()
+  @IsString()
+  primaryVideoEvidenceCode?: string;
+
+  @IsOptional()
+  @IsString()
   imageObjectKey?: string;
 
   @IsOptional()

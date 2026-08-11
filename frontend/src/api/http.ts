@@ -1,4 +1,8 @@
-import { getAccessToken } from '@/auth/keycloak'
+import {
+  beginAuthenticationRecovery,
+  getAccessToken,
+  isAuthenticationRequiredError,
+} from '@/auth/keycloak'
 import { redirectToAuthorizationPage } from '@/auth/authorization-navigation'
 
 export async function authorizedFetch(
@@ -10,16 +14,28 @@ export async function authorizedFetch(
 
   try {
     response = await sendAuthorizedRequest(request, false)
-    if (response.status === 401) {
-      response = await sendAuthorizedRequest(request, true)
-    }
   } catch (error) {
-    redirectToAuthorizationPage(401)
+    if (isAuthenticationRequiredError(error)) {
+      void beginAuthenticationRecovery()
+    }
     throw error
   }
 
-  if (response.status === 401 || response.status === 403) {
-    redirectToAuthorizationPage(response.status)
+  if (response.status === 401) {
+    try {
+      response = await sendAuthorizedRequest(request, true)
+    } catch (error) {
+      if (isAuthenticationRequiredError(error)) {
+        void beginAuthenticationRecovery()
+      }
+      throw error
+    }
+  }
+
+  if (response.status === 401) {
+    void beginAuthenticationRecovery()
+  } else if (response.status === 403) {
+    redirectToAuthorizationPage(403)
   }
   return response
 }

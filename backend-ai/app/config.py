@@ -47,6 +47,12 @@ class Settings(BaseSettings):
         ge=1024,
     )
     vision_default_max_alarms: int = Field(default=3, ge=1, le=20)
+    evidence_thumb_max_size: int = Field(default=320, ge=64, le=1024)
+    evidence_video_poster_second: float = Field(default=1.0, ge=0)
+    evidence_derive_max_upload_bytes: int = Field(
+        default=20 * 1024 * 1024,
+        ge=1024,
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="AI_",

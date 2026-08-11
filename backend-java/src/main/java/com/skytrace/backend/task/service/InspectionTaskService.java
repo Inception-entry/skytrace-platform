@@ -2,6 +2,7 @@ package com.skytrace.backend.task.service;
 
 import com.skytrace.backend.cache.DevicePresenceService;
 import com.skytrace.backend.common.ConflictException;
+import com.skytrace.backend.common.TextEncodingFix;
 import com.skytrace.backend.device.domain.Device;
 import com.skytrace.backend.device.repository.DeviceRepository;
 import com.skytrace.backend.route.domain.InspectionRoute;
@@ -190,7 +191,9 @@ public class InspectionTaskService {
         Optional<Device> device = deviceCode == null || deviceCode.isBlank()
                 ? Optional.empty()
                 : deviceRepository.findByDeviceCode(deviceCode);
-        String deviceName = device.map(Device::getDeviceName).orElse(null);
+        String deviceName = TextEncodingFix.repairMojibake(
+                device.map(Device::getDeviceName).orElse(null)
+        );
         String deviceStatus = device.isEmpty()
                 ? null
                 : (online.contains(deviceCode) ? "ONLINE" : "OFFLINE");
@@ -199,7 +202,9 @@ public class InspectionTaskService {
         Optional<InspectionRoute> route = routeCode == null || routeCode.isBlank()
                 ? Optional.empty()
                 : routeRepository.findByRouteCode(routeCode);
-        String routeName = route.map(InspectionRoute::getRouteName).orElse(null);
+        String routeName = TextEncodingFix.repairMojibake(
+                route.map(InspectionRoute::getRouteName).orElse(null)
+        );
 
         return new InspectionTaskResponse(
                 task.getTaskCode(),
