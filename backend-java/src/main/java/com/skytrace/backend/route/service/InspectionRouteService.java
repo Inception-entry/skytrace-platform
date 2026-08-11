@@ -1,6 +1,7 @@
 package com.skytrace.backend.route.service;
 
 import com.skytrace.backend.common.ConflictException;
+import com.skytrace.backend.common.TextEncodingFix;
 import com.skytrace.backend.route.domain.InspectionRoute;
 import com.skytrace.backend.route.dto.CreateRouteRequest;
 import com.skytrace.backend.route.dto.RouteResponse;
@@ -71,8 +72,8 @@ public class InspectionRouteService {
     private RouteResponse toResponse(InspectionRoute route) {
         return new RouteResponse(
                 route.getRouteCode(),
-                route.getRouteName(),
-                route.getDescription(),
+                TextEncodingFix.repairMojibake(route.getRouteName()),
+                TextEncodingFix.repairMojibake(route.getDescription()),
                 route.getWaypointsJson(),
                 route.getCreatedAt(),
                 route.getUpdatedAt()
