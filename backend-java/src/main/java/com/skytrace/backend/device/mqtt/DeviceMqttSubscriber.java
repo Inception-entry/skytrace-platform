@@ -55,11 +55,21 @@ public class DeviceMqttSubscriber {
         }
 
         String clientId = properties.getClientId() + "-" + UUID.randomUUID();
-        MqttClient mqttClient = new MqttClient(
-                properties.getBrokerUrl(),
-                clientId,
-                new MemoryPersistence()
-        );
+        final MqttClient mqttClient;
+        try {
+            mqttClient = new MqttClient(
+                    properties.getBrokerUrl(),
+                    clientId,
+                    new MemoryPersistence()
+            );
+        } catch (MqttException error) {
+            log.warn(
+                    "MQTT 客户端创建失败: broker={} reason={}",
+                    properties.getBrokerUrl(),
+                    error.getMessage()
+            );
+            return;
+        }
         this.client = mqttClient;
 
         mqttClient.setCallback(new MqttCallbackExtended() {
