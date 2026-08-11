@@ -155,13 +155,23 @@ public class EvidenceStorageService {
     }
 
     public byte[] getObjectBytes(String bucket, String objectKey) {
-        try (InputStream stream = minioClient.getObject(
-                GetObjectArgs.builder()
-                        .bucket(bucket)
-                        .object(objectKey)
-                        .build()
-        )) {
+        try (InputStream stream = getObjectStream(bucket, objectKey)) {
             return stream.readAllBytes();
+        } catch (Exception exception) {
+            throw new ConflictException(
+                    "读取证据对象失败: " + exception.getMessage()
+            );
+        }
+    }
+
+    public InputStream getObjectStream(String bucket, String objectKey) {
+        try {
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .build()
+            );
         } catch (Exception exception) {
             throw new ConflictException(
                     "读取证据对象失败: " + exception.getMessage()

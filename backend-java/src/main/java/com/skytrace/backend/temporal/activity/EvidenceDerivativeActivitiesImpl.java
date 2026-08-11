@@ -4,6 +4,7 @@ import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import com.skytrace.backend.evidence.domain.EvidenceDerivativeStatus;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
+import com.skytrace.backend.evidence.service.EvidenceHashService;
 import com.skytrace.backend.evidence.service.EvidenceStorageService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
@@ -24,12 +25,15 @@ public class EvidenceDerivativeActivitiesImpl
 
     private final EvidenceAssetRepository repository;
     private final ObjectProvider<EvidenceStorageService> storageService;
+    private final ObjectProvider<EvidenceHashService> hashService;
 
     public EvidenceDerivativeActivitiesImpl(
             EvidenceAssetRepository repository,
-            ObjectProvider<EvidenceStorageService> storageService) {
+            ObjectProvider<EvidenceStorageService> storageService,
+            ObjectProvider<EvidenceHashService> hashService) {
         this.repository = repository;
         this.storageService = storageService;
+        this.hashService = hashService;
     }
 
     @Override
@@ -43,6 +47,10 @@ public class EvidenceDerivativeActivitiesImpl
             throw new IllegalStateException("MinIO is disabled; cannot derive evidence");
         }
         try {
+            EvidenceHashService hashing = hashService.getIfAvailable();
+            if (hashing != null) {
+                hashing.ensureContentHash(asset);
+            }
             if (asset.getAssetType() == EvidenceAssetType.IMAGE) {
                 byte[] original = storage.getObjectBytes(
                         asset.getBucket(),

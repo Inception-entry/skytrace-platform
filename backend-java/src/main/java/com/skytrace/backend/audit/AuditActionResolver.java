@@ -23,6 +23,9 @@ public class AuditActionResolver {
     private static final Pattern EVIDENCE_BATCH = Pattern.compile(
             "^/evidence/batch/(review|tags)$"
     );
+    private static final Pattern EVIDENCE_ARCHIVE_JOB = Pattern.compile(
+            "^/evidence/archive-jobs(?:/([^/]+)(?:/(download-url|manifest-url))?)?$"
+    );
 
     public boolean shouldAudit(HttpServletRequest request) {
         String method = request.getMethod();
@@ -106,6 +109,21 @@ public class AuditActionResolver {
                     ? "EVIDENCE_BATCH_REVIEW"
                     : "EVIDENCE_BATCH_TAGS";
             return new AuditDescriptor(action, "EVIDENCE", null);
+        }
+
+        Matcher archiveJob = EVIDENCE_ARCHIVE_JOB.matcher(path);
+        if (archiveJob.matches()) {
+            String operation = archiveJob.group(2);
+            String action = switch (operation == null ? "" : operation) {
+                case "download-url" -> "EVIDENCE_ARCHIVE_DOWNLOAD_URL";
+                case "manifest-url" -> "EVIDENCE_ARCHIVE_MANIFEST_URL";
+                default -> "EVIDENCE_ARCHIVE_JOB_CREATE";
+            };
+            return new AuditDescriptor(
+                    action,
+                    "EVIDENCE_ARCHIVE_JOB",
+                    archiveJob.group(1)
+            );
         }
 
         Matcher evidence = EVIDENCE_CODE.matcher(path);

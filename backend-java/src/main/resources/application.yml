@@ -38,10 +38,12 @@ spring:
           - com.skytrace.backend.temporal.workflow.InspectionAnalysisWorkflowImpl
           - com.skytrace.backend.temporal.workflow.InspectionChatWorkflowImpl
           - com.skytrace.backend.temporal.workflow.EvidenceDerivativeWorkflowImpl
+          - com.skytrace.backend.temporal.workflow.EvidenceArchiveWorkflowImpl
         activity-beans:
           - inspectionTaskActivities
           - inspectionAnalysisActivities
           - evidenceDerivativeActivities
+          - evidenceArchiveActivities
 app:
   security:
     enabled: ${APP_SECURITY_ENABLED:true}
