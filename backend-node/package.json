@@ -19,7 +19,7 @@
     "@nestjs/platform-express": "11.1.28",
     "@nestjs/platform-socket.io": "11.1.28",
     "@nestjs/websockets": "11.1.28",
-    "amqplib": "^0.10.9",
+    "amqplib": "^2.0.1",
     "axios": "^1.7.7",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",

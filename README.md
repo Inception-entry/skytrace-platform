@@ -222,6 +222,8 @@ docker compose --env-file deploy/.env \
 
 `main` 分支在 Publish 成功后还会触发 `Deploy (test)`。**没有测试服务器时无需配置任何 Secret**，该工作流会自动跳过远程部署并保持成功；本地开发使用 `./scripts/skytrace.sh rebuild` 即可。将来若有 VPS，在服务器执行 `scripts/staging-init.sh`，并在 GitHub `Environments → test` 中配置 `TEST_SSH_`* 与 `STAGING_DOMAIN` 后，同一工作流才会真正 SSH 部署。
 
+生产环境对应 `.github/workflows/deploy-production.yml`，它已经声明了 `environment: production`，所以**只要该工作流成功运行过一次**，GitHub 仓库首页的 `Deployments` 区域就会出现 `production`。需要在 `Settings → Environments → production` 中配置 `PROD_SSH_HOST`、`PROD_SSH_USER`、`PROD_SSH_KEY`、`PROD_DOMAIN`、`GHCR_PAT`，然后在 `Actions → Deploy (production)` 里手动运行一次，并传入要发布的镜像 tag（建议 `main-<sha>`，不要用 `latest`）。
+
 ## 本地开发
 
 
@@ -482,4 +484,3 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - 定制武器/缺陷数据集微调与航线地图可视化。
 - 飞控独立服务与完整任务领域数据权限。
 - 设备删除、证据分页与归档编排。
-

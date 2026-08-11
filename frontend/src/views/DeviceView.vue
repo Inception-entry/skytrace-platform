@@ -261,7 +261,14 @@ async function sendHeartbeat(deviceCode: string) {
   successMessage.value = ''
   try {
     const result = await heartbeatDevice(deviceCode)
-    successMessage.value = `${result.deviceCode} → ${result.status}`
+    if (result.presence === 'disabled') {
+      successMessage.value = ''
+      errorMessage.value = t('devices.heartbeatDisabled')
+    } else {
+      successMessage.value = t('devices.heartbeatOk', {
+        code: result.deviceCode,
+      })
+    }
     await refresh()
   } catch (error) {
     errorMessage.value =

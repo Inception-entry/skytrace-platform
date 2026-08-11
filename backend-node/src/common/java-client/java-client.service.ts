@@ -112,6 +112,28 @@ export class JavaClientService {
     }
   }
 
+  async patch<T>(
+    path: string,
+    body: unknown,
+    timeout = 5000,
+  ): Promise<T> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.patch<T>(
+          `${this.baseUrl}/api${path}`,
+          body,
+          {
+            timeout,
+            headers: this.downstreamHeaders(),
+          },
+        ),
+      );
+      return response.data;
+    } catch (error) {
+      this.rethrowUpstreamError(error);
+    }
+  }
+
   async postMultipart<T>(
     path: string,
     file: {

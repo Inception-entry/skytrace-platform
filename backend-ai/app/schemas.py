@@ -156,3 +156,32 @@ class VisionVideoDetectResponse(BaseModel):
         default_factory=list,
         alias="publishedAlarms",
     )
+
+
+class EvidenceDeriveImageRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    evidence_code: str = Field(alias="evidenceCode", min_length=1, max_length=64)
+    object_key: str = Field(alias="objectKey", min_length=1, max_length=512)
+    bucket: str = Field(min_length=1, max_length=128)
+
+
+class EvidenceDeriveVideoRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    evidence_code: str = Field(alias="evidenceCode", min_length=1, max_length=64)
+    object_key: str = Field(alias="objectKey", min_length=1, max_length=512)
+    bucket: str = Field(min_length=1, max_length=128)
+
+
+class EvidenceDeriveResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    evidence_code: str = Field(alias="evidenceCode")
+    status: str
+    thumbnail_object_key: str | None = Field(
+        default=None,
+        alias="thumbnailObjectKey",
+    )
+    poster_object_key: str | None = Field(default=None, alias="posterObjectKey")
+    message: str | None = None

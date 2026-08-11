@@ -9,6 +9,10 @@ const alarmSource = readFileSync(
   join(root, 'src/api/alarm-evidence.ts'),
   'utf8',
 )
+const evidenceSource = readFileSync(
+  join(root, 'src/api/evidence.ts'),
+  'utf8',
+)
 const deviceSource = readFileSync(
   join(root, 'src/api/device.ts'),
   'utf8',
@@ -41,6 +45,14 @@ test('frontend device client targets device API paths', () => {
 test('frontend evidence client supports list query', () => {
   assert.match(alarmSource, /\/api\/evidence\?\$\{query\.toString\(\)\}/)
   assert.match(alarmSource, /export function getEvidence/)
+})
+
+test('frontend evidence center client targets search and access urls', () => {
+  assert.match(evidenceSource, /\/api\/evidence\/search\?/)
+  assert.match(evidenceSource, /preview-url/)
+  assert.match(evidenceSource, /download-url/)
+  assert.match(evidenceSource, /export function searchEvidence/)
+  assert.match(evidenceSource, /export function createEvidencePreviewUrl/)
 })
 
 test('frontend vision clients target analyze endpoints', () => {

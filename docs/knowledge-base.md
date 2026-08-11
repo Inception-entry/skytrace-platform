@@ -36,6 +36,7 @@ ollama pull nomic-embed-text
 AI_OLLAMA_MODEL=my-drone-expert
 AI_OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 QDRANT_HOST_PORT=6333
+AI_QDRANT_COLLECTION=skytrace_knowledge
 ```
 
 重新构建受影响服务：
@@ -70,7 +71,7 @@ QDRANT_HOST_PORT=6333
 检查 AI 依赖：
 
 ```bash
-curl http://localhost:8000/health
+curl "http://localhost:${AI_SERVICE_PORT:-8000}/health"
 ```
 
 当 `embeddingModel` 为 `missing` 时，执行 `ollama pull nomic-embed-text` 后重启 `backend-ai`。如果更换嵌入模型导致向量维度不一致，应新建 Qdrant collection；不要直接让不同维度的模型共用原 collection。
