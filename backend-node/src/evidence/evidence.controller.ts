@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -13,8 +14,11 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Roles } from '../auth/http-auth.decorators'
 import { JavaClientService } from '../common/java-client/java-client.service'
+import { BatchReviewEvidenceDto } from './dto/batch-review-evidence.dto'
+import { BatchTagEvidenceDto } from './dto/batch-tag-evidence.dto'
 import { EvidenceCodeParamDto } from './dto/evidence-code.dto'
 import { SearchEvidenceDto } from './dto/search-evidence.dto'
+import { UpdateEvidenceMetadataDto } from './dto/update-evidence-metadata.dto'
 
 interface UploadedEvidenceFile {
   buffer: Buffer
@@ -46,6 +50,11 @@ export class EvidenceController {
     return this.javaClient.get(`/evidence?${parameters.toString()}`)
   }
 
+  @Get('tags')
+  tags() {
+    return this.javaClient.get('/evidence/tags')
+  }
+
   @Get('search')
   search(@Query() query: SearchEvidenceDto) {
     const parameters = new URLSearchParams()
@@ -65,6 +74,9 @@ export class EvidenceController {
     }
     if (query.sourceType) {
       parameters.set('sourceType', query.sourceType)
+    }
+    if (query.reviewStatus) {
+      parameters.set('reviewStatus', query.reviewStatus)
     }
     if (query.startTime) {
       parameters.set('startTime', query.startTime)
@@ -109,6 +121,30 @@ export class EvidenceController {
       alarmEventCode,
       deviceCode,
     })
+  }
+
+  @Patch(':evidenceCode/metadata')
+  @Roles('ADMIN', 'OPERATOR')
+  updateMetadata(
+    @Param() params: EvidenceCodeParamDto,
+    @Body() body: UpdateEvidenceMetadataDto,
+  ) {
+    return this.javaClient.patch(
+      `/evidence/${encodeURIComponent(params.evidenceCode)}/metadata`,
+      body,
+    )
+  }
+
+  @Post('batch/review')
+  @Roles('ADMIN', 'OPERATOR')
+  batchReview(@Body() body: BatchReviewEvidenceDto) {
+    return this.javaClient.post('/evidence/batch/review', body)
+  }
+
+  @Post('batch/tags')
+  @Roles('ADMIN', 'OPERATOR')
+  batchTags(@Body() body: BatchTagEvidenceDto) {
+    return this.javaClient.post('/evidence/batch/tags', body)
   }
 
   @Post(':evidenceCode/preview-url')

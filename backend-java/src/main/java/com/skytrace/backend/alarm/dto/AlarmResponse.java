@@ -17,6 +17,8 @@ public record AlarmResponse(
         BigDecimal longitude,
         String imageUrl,
         String videoUrl,
+        String primaryEvidenceCode,
+        String primaryVideoEvidenceCode,
         AlarmStatus status,
         LocalDateTime eventTime
 ) {}

@@ -79,6 +79,38 @@ public class EvidenceAsset {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status", nullable = false, length = 32)
+    private EvidenceReviewStatus reviewStatus = EvidenceReviewStatus.PENDING;
+
+    @Column(name = "review_comment", length = 512)
+    private String reviewComment;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "reviewed_by", length = 128)
+    private String reviewedBy;
+
+    @Column(name = "reviewed_by_name", length = 128)
+    private String reviewedByName;
+
+    @Column(length = 512)
+    private String remark;
+
+    @Column(name = "analysis_id", length = 64)
+    private String analysisId;
+
+    @Column(name = "thumbnail_object_key", length = 512)
+    private String thumbnailObjectKey;
+
+    @Column(name = "poster_object_key", length = 512)
+    private String posterObjectKey;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "derivative_status", nullable = false, length = 32)
+    private EvidenceDerivativeStatus derivativeStatus = EvidenceDerivativeStatus.NONE;
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
@@ -86,6 +118,10 @@ public class EvidenceAsset {
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getEvidenceCode() {
@@ -230,5 +266,85 @@ public class EvidenceAsset {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public EvidenceReviewStatus getReviewStatus() {
+        return reviewStatus;
+    }
+
+    public void setReviewStatus(EvidenceReviewStatus reviewStatus) {
+        this.reviewStatus = reviewStatus;
+    }
+
+    public String getReviewComment() {
+        return reviewComment;
+    }
+
+    public void setReviewComment(String reviewComment) {
+        this.reviewComment = reviewComment;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public String getReviewedBy() {
+        return reviewedBy;
+    }
+
+    public void setReviewedBy(String reviewedBy) {
+        this.reviewedBy = reviewedBy;
+    }
+
+    public String getReviewedByName() {
+        return reviewedByName;
+    }
+
+    public void setReviewedByName(String reviewedByName) {
+        this.reviewedByName = reviewedByName;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public String getAnalysisId() {
+        return analysisId;
+    }
+
+    public void setAnalysisId(String analysisId) {
+        this.analysisId = analysisId;
+    }
+
+    public String getThumbnailObjectKey() {
+        return thumbnailObjectKey;
+    }
+
+    public void setThumbnailObjectKey(String thumbnailObjectKey) {
+        this.thumbnailObjectKey = thumbnailObjectKey;
+    }
+
+    public String getPosterObjectKey() {
+        return posterObjectKey;
+    }
+
+    public void setPosterObjectKey(String posterObjectKey) {
+        this.posterObjectKey = posterObjectKey;
+    }
+
+    public EvidenceDerivativeStatus getDerivativeStatus() {
+        return derivativeStatus;
+    }
+
+    public void setDerivativeStatus(EvidenceDerivativeStatus derivativeStatus) {
+        this.derivativeStatus = derivativeStatus;
     }
 }

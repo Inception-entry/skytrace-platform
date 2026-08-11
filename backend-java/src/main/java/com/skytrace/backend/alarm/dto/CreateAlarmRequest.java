@@ -16,5 +16,7 @@ public record CreateAlarmRequest(
         BigDecimal longitude,
         String imageUrl,
         String videoUrl,
+        String primaryEvidenceCode,
+        String primaryVideoEvidenceCode,
         @NotNull LocalDateTime eventTime
 ) {}

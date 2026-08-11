@@ -58,6 +58,10 @@ export class SearchEvidenceDto {
     | 'SYSTEM_GENERATED'
 
   @IsOptional()
+  @IsIn(['PENDING', 'APPROVED', 'REJECTED'])
+  reviewStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'
+
+  @IsOptional()
   @IsISO8601()
   startTime?: string
 
