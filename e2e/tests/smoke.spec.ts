@@ -66,22 +66,30 @@ test.describe('SkyTrace login + alarm/evidence loop', () => {
       page.getByRole('heading', { name: new RegExp(`任务证据 · ${taskCode}`) }),
     ).toBeVisible()
 
+    // 任务页证据改为预签名按钮后，不再有 a.evidence-link/href；从上传 API 取 objectKey
+    const uploadResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/evidence') &&
+        response.request().method() === 'POST' &&
+        response.ok(),
+    )
     await page.locator('.evidence-actions input[type="file"]').setInputFiles(
       fixtureImage,
     )
+    const uploadResponse = await uploadResponsePromise
+    const uploadBody = (await uploadResponse.json()) as {
+      data?: { objectKey?: string }
+    }
+    const objectKey = uploadBody.data?.objectKey || ''
+    expect(objectKey.length).toBeGreaterThan(3)
+    expect(objectKey).not.toContain('://')
+
     await expect(page.getByText('evidence.png')).toBeVisible({
       timeout: 30_000,
     })
-
-    const openLink = page.locator('.evidence-list a.evidence-link').first()
-    const href = await openLink.getAttribute('href')
-    expect(href).toBeTruthy()
-    // publicPath looks like /files/<bucket>/<objectKey>
-    const objectKey = decodeURIComponent(
-      (href || '').replace(/^\/files\/[^/]+\//, ''),
-    )
-    expect(objectKey.length).toBeGreaterThan(3)
-    expect(objectKey).not.toContain('://')
+    await expect(
+      page.locator('.evidence-list button.evidence-link').first(),
+    ).toBeVisible()
 
     const token = await fetchServiceAccessToken(request)
     await postDetection(request, token, {

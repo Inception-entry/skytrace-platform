@@ -1,6 +1,7 @@
 package com.skytrace.backend.evidence.dto;
 
 import java.time.Instant;
+import java.util.List;
 
 public record EvidenceSummaryResponse(
         String evidenceCode,
@@ -13,6 +14,10 @@ public record EvidenceSummaryResponse(
         String uploadedByName,
         long sizeBytes,
         Instant createdAt,
-        boolean deleted
+        boolean deleted,
+        String reviewStatus,
+        List<EvidenceTagResponse> tags,
+        String thumbnailUrl,
+        String posterUrl
 ) {
 }

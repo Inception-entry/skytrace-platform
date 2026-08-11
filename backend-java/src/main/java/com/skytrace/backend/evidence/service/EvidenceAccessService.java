@@ -2,10 +2,12 @@ package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.dto.EvidenceAccessUrlResponse;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@ConditionalOnProperty(name = "app.minio.enabled", havingValue = "true")
 public class EvidenceAccessService {
 
     private final EvidenceQueryService queryService;

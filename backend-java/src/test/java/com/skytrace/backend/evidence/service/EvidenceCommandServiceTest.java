@@ -23,6 +23,8 @@ class EvidenceCommandServiceTest {
             mock(EvidenceAccessLogService.class);
     private final EvidenceQueryService queryService =
             mock(EvidenceQueryService.class);
+    private final EvidenceDerivativeJobService derivativeJobService =
+            mock(EvidenceDerivativeJobService.class);
     private EvidenceCommandService service;
 
     @BeforeEach
@@ -32,7 +34,8 @@ class EvidenceCommandServiceTest {
                 storageService,
                 actorContextService,
                 accessLogService,
-                queryService
+                queryService,
+                derivativeJobService
         );
         when(actorContextService.current()).thenReturn(
                 new EvidenceActorContext(
