@@ -227,7 +227,8 @@ export default {
     eyebrow: 'SKYTRACE DEVICES',
     title: 'Devices',
     subtitle: 'Maintain inspection device master data and online status',
-    subtitleDetail: 'Device master data comes from the database; online status is written to Redis via heartbeat',
+    subtitleDetail:
+      'Master data is in MySQL; online status comes from Redis (MQTT heartbeat or the Heartbeat button, ~90s TTL)',
     create: 'New device',
     editTitle: 'Edit device',
     createTitle: 'Create device',
@@ -242,6 +243,8 @@ export default {
     name: 'Name',
     type: 'Type',
     heartbeat: 'Heartbeat',
+    heartbeatOk: '{{code}} marked online',
+    heartbeatDisabled: 'Presence disabled (requires CACHE_ENABLED=true)',
     online: 'Online',
     offline: 'Offline',
     empty: 'No devices yet',
