@@ -287,6 +287,7 @@ services:
       JAVA_BASE_URL: http://backend-java:8080
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      SOCKETIO_REDIS_ADAPTER: ${SOCKETIO_REDIS_ADAPTER:-true}
       AUTH_JWT_JWK_SET_URI: ${GATEWAY_JWT_JWK_SET_URI:-http://keycloak:8080/realms/skytrace/protocol/openid-connect/certs}
       AUTH_JWT_ISSUER_URI: ${GATEWAY_JWT_ISSUER_URI:-http://localhost:8180/realms/skytrace}
       AUTH_JWT_AUDIENCE: ${GATEWAY_JWT_AUDIENCE:-skytrace-web}

@@ -19,7 +19,8 @@ Spring Cloud Gateway 负责：
 Node BFF 负责：
 
 - 面向业务端的 API 聚合与 Java 服务调用
-- Socket.IO 告警推送和握手 JWT 校验
+- Socket.IO 告警 / 遥测推送和握手 JWT 校验
+- 默认经 Redis adapter 同步多实例 `emit`（`SOCKETIO_REDIS_ADAPTER`）
 - AI SSE 响应透传
 
 Spring Boot 负责：
@@ -76,6 +77,9 @@ SSE 链路流式返回。每个模型 Token 不写入 Temporal 历史；Java 会
 `ai_analysis_result` 表。Temporal 通道使用 Workflow ID 作为唯一
 `analysis_id`，SSE 通道使用独立 UUID；因此 Activity 重试不会产生
 重复记录，连接中断或模型失败也不会保存为成功结果。
+
+多副本部署边界（Socket.IO Redis adapter、Java MQTT 单订阅者、Temporal Worker）
+见 [horizontal-scaling.md](./horizontal-scaling.md)。
 
 业务端与后台认证是两套边界：业务端使用 Keycloak OIDC（含 `/audit` 审计中心）；
 系统管理后台（`:8889`）使用自身的 NestJS JWT 和 PostgreSQL RBAC，不经业务 Gateway。

@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { collectDefaultMetrics } from 'prom-client';
 import { AppModule } from './app.module';
+import { RedisIoAdapter } from './realtime/redis-io.adapter';
 
 async function bootstrap() {
   collectDefaultMetrics({ prefix: 'skytrace_node_' });
@@ -10,6 +11,10 @@ async function bootstrap() {
   app.setGlobalPrefix('api', { exclude: ['metrics'] });
   app.enableCors({ origin: true, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port, '0.0.0.0');
