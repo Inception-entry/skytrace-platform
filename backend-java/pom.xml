@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.skytrace</groupId>
     <artifactId>skytrace-backend-java</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <name>SkyTrace Backend Java</name>
     <properties>
         <java.version>21</java.version>

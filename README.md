@@ -2,9 +2,11 @@
 
 SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台，中文产品名为“天巡智控”。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
-当前平台版本：**1.1.0**（发版说明见 `[docs/releases/v1.1.0.md](docs/releases/v1.1.0.md)`；历史见 `[v1.0.0.md](docs/releases/v1.0.0.md)`）。
+当前平台版本：**1.2.0**（发版说明见 `[docs/releases/v1.2.0.md](docs/releases/v1.2.0.md)`；历史见 `[v1.1.0.md](docs/releases/v1.1.0.md)`、`[v1.0.0.md](docs/releases/v1.0.0.md)`）。
 
 运维速查见 `[docs/ops.md](docs/ops.md)`。
+数据治理（MySQL 备份、MinIO 生命周期、Qdrant 重建）见 `[docs/data-governance.md](docs/data-governance.md)`。
+测试分层与任务/航线/遥测覆盖见 `[docs/testing.md](docs/testing.md)`。
 
 ## 技术架构
 
@@ -49,6 +51,8 @@ skytrace-platform/
 │   └── .env.example                     # 环境变量模板
 ├── docs/
 │   ├── architecture.md                  # 当前服务职责、链路和边界
+│   ├── data-governance.md               # MySQL / MinIO / Qdrant 备份与重建
+│   ├── testing.md                       # 任务/航线/遥测与 E2E 测试地图
 │   ├── gateway.md                       # Keycloak、JWT 和网关策略
 │   ├── knowledge-base.md                # 知识库与 RAG 调用链
 │   ├── security-audit-admin.md          # 业务端权限与审计
@@ -60,11 +64,15 @@ skytrace-platform/
 │       ├── v0.2.3.md                    # 0.2.3 设备落库与证据查询
 │       ├── v0.3.0.md                    # 0.3.0 航线、视频抽帧与可观测性
 │       ├── v1.0.0.md                    # 1.0.0 生产可值守首发
-│       └── v1.1.0.md                    # 1.1.0 设备删除、MQTT 模拟与体验修正
+│       ├── v1.1.0.md                    # 1.1.0 设备删除、MQTT 模拟与体验修正
+│       └── v1.2.0.md                    # 1.2.0 实时飞行、航线编辑与轨迹回放
 ├── scripts/
 │   ├── skytrace.sh                      # 本地 Compose 管理和权限验收
 │   ├── mysql-backup.sh                  # MySQL 备份
-│   └── restore-backup.sh                # MySQL 恢复
+│   ├── restore-backup.sh                # MySQL 恢复
+│   ├── minio-lifecycle-apply.sh         # 备份桶 ILM + 证据桶版本控制
+│   ├── qdrant-rebuild.sh                # 知识库 collection 状态/清空
+│   └── telemetry-prune.sh               # 过期遥测点清理（默认 dry-run）
 └── README.md                            # 项目总览与运行说明
 ```
 

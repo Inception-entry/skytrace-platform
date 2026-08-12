@@ -102,6 +102,9 @@ export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform SKYTRACE_DO
 
 ## 6. 备份与恢复
 
+完整策略（MySQL 节奏、MinIO 生命周期、Qdrant 重建、演练清单）见
+**[data-governance.md](./data-governance.md)**。本节保留值班最短路径。
+
 ### MySQL 业务库
 
 ```bash
@@ -120,16 +123,31 @@ export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform SKYTRACE_DO
 - RPO 目标：≤ 24h（按保留天数 `BACKUP_RETAIN_DAYS` 调整）
 - 恢复后：重启 `backend-java`，检查 Flyway 历史与 `GET /api/devices`
 
+### MinIO / Qdrant
+
+```bash
+# 备份桶过期规则 + 证据桶版本控制（幂等）
+./scripts/minio-lifecycle-apply.sh
+
+# 知识库 collection 状态 / 清空后重建
+./scripts/qdrant-rebuild.sh status
+# ./scripts/qdrant-rebuild.sh wipe
+
+# 过期遥测点（默认 dry-run）
+./scripts/telemetry-prune.sh
+```
+
 ### 其他组件
 
 | 组件 | 建议 |
 | --- | --- |
 | Keycloak（MySQL `keycloak` 库） | 与业务库同实例时一并 dump，或单独备份 |
 | PostgreSQL（admin） | 使用 `pg_dump`；未内置脚本时按实例备份策略执行 |
-| MinIO 证据桶 | 开启版本控制或跨区域复制；证据不可仅依赖 DB |
+| MinIO 证据桶 | 开启版本控制；物理删除走证据保留策略，勿盲目 ILM 删对象 |
 | Temporal | 生产依赖 MySQL；备份同业务库策略 |
+| Qdrant | 可重建；换嵌入维度时换 collection 名后重传文档 |
 
-恢复演练：每季度至少一次在预发从 MinIO 拉备份恢复并验收登录 + 任务列表。
+恢复演练：每季度至少一次在预发从 MinIO 拉备份恢复并验收登录 + 任务列表（清单见 data-governance §5）。
 
 ## 7. 监控与告警值班
 
@@ -177,7 +195,9 @@ KEYCLOAK_CLIENT_SECRET=... \
 npm test
 ```
 
-覆盖：入口冒烟、Keycloak 登录、任务创建/启动、证据上传、告警落库闭环。CI 的 Docker full-stack job 会跑同一套。
+覆盖：入口冒烟、Keycloak 登录、任务创建/启动、证据上传、告警落库闭环；
+另有 `routes-and-replay.spec.ts` 覆盖航线页、任务绑航线/完成与轨迹回放入口。
+CI 的 Docker full-stack job 会跑同一套。
 
 ## 9. 本地开发
 

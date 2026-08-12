@@ -1,7 +1,7 @@
 {
   "name": "skytrace-e2e",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "scripts": {
     "test": "playwright test",
     "test:ui": "playwright test --ui"

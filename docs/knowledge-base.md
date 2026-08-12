@@ -75,3 +75,15 @@ curl "http://localhost:${AI_SERVICE_PORT:-8000}/health"
 ```
 
 当 `embeddingModel` 为 `missing` 时，执行 `ollama pull nomic-embed-text` 后重启 `backend-ai`。如果更换嵌入模型导致向量维度不一致，应新建 Qdrant collection；不要直接让不同维度的模型共用原 collection。
+
+## 重建知识库向量
+
+运维步骤（wipe collection → 确认嵌入模型 → 重传文档）见
+[data-governance.md §4](./data-governance.md)：
+
+```bash
+./scripts/qdrant-rebuild.sh status
+./scripts/qdrant-rebuild.sh wipe
+./scripts/skytrace.sh restart backend-ai
+# 然后在 /knowledge 重新上传
+```
