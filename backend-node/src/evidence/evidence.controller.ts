@@ -16,6 +16,7 @@ import { Roles } from '../auth/http-auth.decorators'
 import { JavaClientService } from '../common/java-client/java-client.service'
 import { BatchReviewEvidenceDto } from './dto/batch-review-evidence.dto'
 import { BatchTagEvidenceDto } from './dto/batch-tag-evidence.dto'
+import { CreateEvidenceArchiveJobDto } from './dto/create-evidence-archive-job.dto'
 import { EvidenceCodeParamDto } from './dto/evidence-code.dto'
 import { SearchEvidenceDto } from './dto/search-evidence.dto'
 import { UpdateEvidenceMetadataDto } from './dto/update-evidence-metadata.dto'
@@ -145,6 +146,42 @@ export class EvidenceController {
   @Roles('ADMIN', 'OPERATOR')
   batchTags(@Body() body: BatchTagEvidenceDto) {
     return this.javaClient.post('/evidence/batch/tags', body)
+  }
+
+  @Post('archive-jobs')
+  @Roles('ADMIN', 'OPERATOR')
+  createArchiveJob(@Body() body: CreateEvidenceArchiveJobDto) {
+    // Java 服务负责校验任务/告警是否存在并启动 Temporal Workflow。
+    return this.javaClient.post('/evidence/archive-jobs', {
+      scopeType: body.scopeType,
+      scopeValue: body.scopeValue.trim(),
+    })
+  }
+
+  @Get('archive-jobs/:jobCode')
+  archiveJob(@Param('jobCode') jobCode: string) {
+    // 状态查询保持 GET，页面轮询不会重复创建任何副作用。
+    return this.javaClient.get(
+      `/evidence/archive-jobs/${encodeURIComponent(jobCode)}`,
+    )
+  }
+
+  @Post('archive-jobs/:jobCode/download-url')
+  @Roles('ADMIN', 'OPERATOR')
+  archiveDownloadUrl(@Param('jobCode') jobCode: string) {
+    return this.javaClient.post(
+      `/evidence/archive-jobs/${encodeURIComponent(jobCode)}/download-url`,
+      {},
+    )
+  }
+
+  @Post('archive-jobs/:jobCode/manifest-url')
+  @Roles('ADMIN', 'OPERATOR')
+  archiveManifestUrl(@Param('jobCode') jobCode: string) {
+    return this.javaClient.post(
+      `/evidence/archive-jobs/${encodeURIComponent(jobCode)}/manifest-url`,
+      {},
+    )
   }
 
   @Post(':evidenceCode/preview-url')

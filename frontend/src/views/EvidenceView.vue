@@ -94,6 +94,131 @@
         </div>
       </form>
 
+      <section class="archive-console st-panel">
+        <header class="archive-header">
+          <div>
+            <p class="eyebrow">Archive Workflow</p>
+            <h2>{{ $t('evidence.archiveTitle') }}</h2>
+            <p>{{ $t('evidence.archiveSubtitle') }}</p>
+          </div>
+          <span
+            v-if="archiveJob"
+            class="archive-status"
+            :class="archiveStatusClass(archiveJob.status)"
+          >
+            {{ archiveStatusLabel(archiveJob.status) }}
+          </span>
+        </header>
+
+        <div class="archive-layout">
+          <form class="archive-form" @submit.prevent="startArchive">
+            <label>
+              <span>{{ $t('evidence.archiveScopeType') }}</span>
+              <select
+                v-model="archiveForm.scopeType"
+                :disabled="archiveLoading || !canOperate"
+              >
+                <option value="TASK">{{ $t('evidence.archiveScopeTask') }}</option>
+                <option value="ALARM">{{ $t('evidence.archiveScopeAlarm') }}</option>
+              </select>
+            </label>
+            <label class="archive-value-field">
+              <span>{{ $t('evidence.archiveScopeValue') }}</span>
+              <input
+                v-model.trim="archiveForm.scopeValue"
+                :placeholder="archiveScopePlaceholder"
+                :disabled="archiveLoading || !canOperate"
+              />
+            </label>
+            <button
+              v-if="canOperate"
+              class="primary-button archive-submit"
+              type="submit"
+              :disabled="archiveLoading || !archiveForm.scopeValue"
+            >
+              {{ $t('evidence.archiveCreate') }}
+            </button>
+          </form>
+
+          <form class="archive-lookup" @submit.prevent="lookupArchive">
+            <label>
+              <span>{{ $t('evidence.archiveJobCode') }}</span>
+              <input
+                v-model.trim="archiveLookupCode"
+                :placeholder="$t('evidence.archiveJobPlaceholder')"
+                :disabled="archiveLoading"
+              />
+            </label>
+            <button
+              class="secondary-button"
+              type="submit"
+              :disabled="archiveLoading || !archiveLookupCode"
+            >
+              {{ $t('evidence.archiveQuery') }}
+            </button>
+          </form>
+        </div>
+
+        <p v-if="archiveError" class="error-message archive-error">
+          {{ archiveError }}
+        </p>
+
+        <div v-if="archiveJob" class="archive-result">
+          <dl class="archive-metrics">
+            <div>
+              <dt>{{ $t('evidence.archiveJobCode') }}</dt>
+              <dd class="mono">{{ archiveJob.jobCode }}</dd>
+            </div>
+            <div>
+              <dt>{{ $t('evidence.archiveScope') }}</dt>
+              <dd class="mono">{{ archiveJob.scopeType }} / {{ archiveJob.scopeValue }}</dd>
+            </div>
+            <div>
+              <dt>{{ $t('evidence.archiveFiles') }}</dt>
+              <dd>{{ archiveJob.totalFiles }}</dd>
+            </div>
+            <div>
+              <dt>{{ $t('evidence.archiveBytes') }}</dt>
+              <dd>{{ formatBytes(archiveJob.totalBytes) }}</dd>
+            </div>
+          </dl>
+          <div v-if="archiveJob.packageContentHash" class="archive-hash">
+            <span>{{ $t('evidence.archivePackageHash') }}</span>
+            <code>{{ archiveJob.packageContentHash }}</code>
+          </div>
+          <p v-if="archiveJob.errorMessage" class="archive-job-error">
+            {{ archiveJob.errorMessage }}
+          </p>
+          <div
+            v-if="archiveJob.status === 'COMPLETED' && canOperate"
+            class="archive-downloads"
+          >
+            <button
+              class="primary-button"
+              type="button"
+              :disabled="archiveLoading"
+              @click="downloadArchive('package')"
+            >
+              {{ $t('evidence.archiveDownloadZip') }}
+            </button>
+            <button
+              class="secondary-button"
+              type="button"
+              :disabled="archiveLoading"
+              @click="downloadArchive('manifest')"
+            >
+              {{ $t('evidence.archiveDownloadManifest') }}
+            </button>
+          </div>
+          <p
+            v-else-if="['PENDING', 'RUNNING'].includes(archiveJob.status)"
+            class="archive-polling"
+          >
+            {{ $t('evidence.archivePolling') }}
+          </p>
+        </div>
+      </section>
+
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <p v-if="loading" class="loading-text">{{ $t('evidence.loading') }}</p>
 
@@ -163,6 +288,7 @@
                 <th>{{ $t('evidence.filename') }}</th>
                 <th>{{ $t('evidence.assetType') }}</th>
                 <th>{{ $t('evidence.reviewStatus') }}</th>
+                <th>{{ $t('evidence.archiveStatus') }}</th>
                 <th>{{ $t('evidence.tags') }}</th>
                 <th>{{ $t('evidence.sourceType') }}</th>
                 <th>{{ $t('evidence.taskCode') }}</th>
@@ -175,7 +301,7 @@
             </thead>
             <tbody>
               <tr v-if="!loading && rows.length === 0">
-                <td colspan="14" class="empty">{{ $t('evidence.empty') }}</td>
+                <td colspan="15" class="empty">{{ $t('evidence.empty') }}</td>
               </tr>
               <tr
                 v-for="row in rows"
@@ -213,6 +339,14 @@
                         ? $t('evidence.typeVideo')
                         : $t('evidence.typeImage')
                     }}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    class="type-pill archive-pill"
+                    :class="archiveStatusClass(row.archiveStatus || 'ACTIVE')"
+                  >
+                    {{ archiveStatusLabel(row.archiveStatus || 'ACTIVE') }}
                   </span>
                 </td>
                 <td>
@@ -279,7 +413,7 @@
                     {{ $t('evidence.delete') }}
                   </button>
                   <button
-                    v-if="canOperate && row.deleted"
+                    v-if="canOperate && row.deleted && !['PURGING', 'PURGED'].includes(row.archiveStatus || 'ACTIVE')"
                     type="button"
                     class="text-button"
                     :disabled="loading"
@@ -364,6 +498,14 @@
         <div>
           <dt>{{ $t('evidence.createdAt') }}</dt>
           <dd>{{ formatTime(detail.createdAt) }}</dd>
+        </div>
+        <div>
+          <dt>{{ $t('evidence.archiveStatus') }}</dt>
+          <dd>{{ archiveStatusLabel(detail.archiveStatus || 'ACTIVE') }}</dd>
+        </div>
+        <div class="detail-wide">
+          <dt>{{ $t('evidence.contentHash') }}</dt>
+          <dd class="mono hash-value">{{ detail.contentHash || $t('evidence.hashPending') }}</dd>
         </div>
       </dl>
 
@@ -459,21 +601,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
   batchReviewEvidence,
   batchTagEvidence,
+  createEvidenceArchiveDownloadUrl,
+  createEvidenceArchiveJob,
+  createEvidenceArchiveManifestUrl,
   createEvidenceDownloadUrl,
   createEvidencePreviewUrl,
   deleteEvidence,
   getEvidenceDetail,
+  getEvidenceArchiveJob,
   listEvidenceTags,
   restoreEvidence,
   searchEvidence,
   updateEvidenceMetadata,
   type EvidenceDetail,
+  type EvidenceArchiveJob,
   type EvidenceReviewStatus,
   type EvidenceSummary,
   type EvidenceTag,
@@ -491,6 +638,11 @@ const detail = ref<EvidenceDetail | null>(null)
 const previewUrl = ref('')
 const availableTags = ref<EvidenceTag[]>([])
 const selectedCodes = ref<string[]>([])
+const archiveLoading = ref(false)
+const archiveError = ref('')
+const archiveJob = ref<EvidenceArchiveJob | null>(null)
+const archiveLookupCode = ref('')
+let archivePollTimer: number | undefined
 
 const filters = reactive({
   keyword: '',
@@ -509,6 +661,11 @@ const metaForm = reactive({
   tagIds: [] as number[],
 })
 
+const archiveForm = reactive({
+  scopeType: 'TASK' as 'TASK' | 'ALARM',
+  scopeValue: '',
+})
+
 const canOperate = computed(() =>
   authenticationState.roles.some((role) =>
     ['ADMIN', 'OPERATOR'].includes(role),
@@ -516,6 +673,12 @@ const canOperate = computed(() =>
 )
 
 const selectedSet = computed(() => new Set(selectedCodes.value))
+
+const archiveScopePlaceholder = computed(() =>
+  archiveForm.scopeType === 'TASK'
+    ? t('evidence.taskCodePlaceholder')
+    : t('evidence.alarmPlaceholder'),
+)
 
 const allPageSelected = computed(
   () =>
@@ -566,6 +729,83 @@ async function loadPage(nextPage: number) {
       error instanceof Error ? error.message : t('evidence.loadFailed')
   } finally {
     loading.value = false
+  }
+}
+
+async function startArchive() {
+  const scopeValue = archiveForm.scopeValue.trim()
+  if (!scopeValue) return
+  stopArchivePolling()
+  archiveLoading.value = true
+  archiveError.value = ''
+  try {
+    archiveJob.value = await createEvidenceArchiveJob({
+      scopeType: archiveForm.scopeType,
+      scopeValue,
+    })
+    archiveLookupCode.value = archiveJob.value.jobCode
+    scheduleArchivePolling()
+  } catch (error) {
+    archiveError.value =
+      error instanceof Error ? error.message : t('evidence.archiveCreateFailed')
+  } finally {
+    archiveLoading.value = false
+  }
+}
+
+async function lookupArchive() {
+  stopArchivePolling()
+  await refreshArchiveJob(false)
+}
+
+async function refreshArchiveJob(silent: boolean) {
+  const jobCode = archiveLookupCode.value.trim()
+  if (!jobCode) return
+  if (!silent) archiveLoading.value = true
+  archiveError.value = ''
+  try {
+    archiveJob.value = await getEvidenceArchiveJob(jobCode)
+    scheduleArchivePolling()
+  } catch (error) {
+    archiveError.value =
+      error instanceof Error ? error.message : t('evidence.archiveQueryFailed')
+    stopArchivePolling()
+  } finally {
+    if (!silent) archiveLoading.value = false
+  }
+}
+
+function scheduleArchivePolling() {
+  stopArchivePolling()
+  if (!archiveJob.value || !['PENDING', 'RUNNING'].includes(archiveJob.value.status)) {
+    return
+  }
+  archivePollTimer = window.setTimeout(() => {
+    refreshArchiveJob(true)
+  }, 2000)
+}
+
+function stopArchivePolling() {
+  if (archivePollTimer !== undefined) {
+    window.clearTimeout(archivePollTimer)
+    archivePollTimer = undefined
+  }
+}
+
+async function downloadArchive(kind: 'package' | 'manifest') {
+  if (!archiveJob.value) return
+  archiveLoading.value = true
+  archiveError.value = ''
+  try {
+    const access = kind === 'package'
+      ? await createEvidenceArchiveDownloadUrl(archiveJob.value.jobCode)
+      : await createEvidenceArchiveManifestUrl(archiveJob.value.jobCode)
+    window.open(access.url, '_blank', 'noopener')
+  } catch (error) {
+    archiveError.value =
+      error instanceof Error ? error.message : t('evidence.archiveDownloadFailed')
+  } finally {
+    archiveLoading.value = false
   }
 }
 
@@ -812,6 +1052,16 @@ function reviewLabel(status?: string) {
   return translated === key ? value : translated
 }
 
+function archiveStatusClass(status: string) {
+  return status.toLowerCase()
+}
+
+function archiveStatusLabel(status: string) {
+  const key = `evidence.archiveStatuses.${status.toUpperCase()}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
+
 function sourceLabel(sourceType: string) {
   const key = `evidence.source.${sourceType}`
   const translated = t(key)
@@ -822,9 +1072,23 @@ function formatTime(value: string) {
   return new Date(value).toLocaleString()
 }
 
+function formatBytes(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return '0 B'
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
+  const index = Math.min(
+    Math.floor(Math.log(value) / Math.log(1024)),
+    units.length - 1,
+  )
+  return `${(value / 1024 ** index).toFixed(index === 0 ? 0 : 2)} ${units[index]}`
+}
+
 onMounted(async () => {
   await loadTags()
   await loadPage(0)
+})
+
+onBeforeUnmount(() => {
+  stopArchivePolling()
 })
 </script>
 
@@ -890,10 +1154,184 @@ h1 {
 }
 
 .filter-form,
+.archive-console,
 .batch-bar,
 .table-wrap {
   margin-bottom: 20px;
   padding: 18px;
+}
+
+.archive-console {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--st-color-primary) 38%, var(--st-border));
+  background:
+    linear-gradient(
+      125deg,
+      color-mix(in srgb, var(--st-color-primary) 10%, var(--st-bg-elevated)),
+      var(--st-bg-elevated) 52%
+    );
+}
+
+.archive-console::after {
+  content: '';
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  right: -72px;
+  top: -96px;
+  border-radius: 50%;
+  border: 28px solid color-mix(in srgb, var(--st-color-primary) 8%, transparent);
+  pointer-events: none;
+}
+
+.archive-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.archive-header h2 {
+  margin: 0 0 6px;
+  font-size: 21px;
+}
+
+.archive-header p:last-child {
+  margin: 0;
+  color: var(--st-text-muted);
+  line-height: 1.5;
+}
+
+.archive-status,
+.archive-pill {
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.archive-status.pending,
+.archive-status.running,
+.archive-pill.archived,
+.archive-pill.purging {
+  color: var(--st-color-accent);
+  background: color-mix(in srgb, var(--st-color-primary) 18%, transparent);
+}
+
+.archive-status.completed,
+.archive-pill.active {
+  color: var(--st-success);
+  background: color-mix(in srgb, var(--st-success) 18%, transparent);
+}
+
+.archive-status.failed,
+.archive-pill.purged {
+  color: var(--st-danger);
+  background: color-mix(in srgb, var(--st-danger) 16%, transparent);
+}
+
+.archive-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  gap: 14px;
+}
+
+.archive-form {
+  display: grid;
+  grid-template-columns: 150px minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.archive-submit,
+.archive-lookup .secondary-button {
+  min-height: 40px;
+}
+
+.archive-lookup {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.archive-error {
+  position: relative;
+  z-index: 1;
+  margin: 14px 0 0;
+}
+
+.archive-result {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--st-border);
+}
+
+.archive-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.archive-metrics div {
+  min-width: 0;
+}
+
+.archive-metrics dt,
+.archive-hash > span {
+  margin-bottom: 4px;
+  color: var(--st-text-muted);
+  font-size: 12px;
+}
+
+.archive-metrics dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.archive-hash {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.archive-hash code {
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--st-bg-page) 72%, transparent);
+  color: var(--st-text-muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.archive-downloads {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.archive-polling,
+.archive-job-error {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.archive-polling {
+  color: var(--st-color-accent);
+}
+
+.archive-job-error {
+  color: var(--st-danger);
 }
 
 .form-grid {
@@ -1164,6 +1602,14 @@ tr.deleted td {
   font-size: 14px;
 }
 
+.detail-wide {
+  grid-column: 1 / -1;
+}
+
+.hash-value {
+  overflow-wrap: anywhere;
+}
+
 .meta-form {
   display: grid;
   gap: 12px;
@@ -1212,6 +1658,21 @@ tr.deleted td {
   }
 
   .panel-header {
+    flex-direction: column;
+  }
+
+  .archive-header {
+    flex-direction: column;
+  }
+
+  .archive-layout,
+  .archive-form,
+  .archive-lookup,
+  .archive-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .archive-downloads {
     flex-direction: column;
   }
 
