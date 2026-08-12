@@ -17,11 +17,12 @@ SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计�
                                                                         │                 └─ FastAPI AI ──> Ollama / Qdrant / Redis
 后台用户 ──> React 管理端 ─────────────────────────────────────────────> NestJS Admin ──> PostgreSQL / MinIO
 
+设备遥测：设备/模拟器 ──MQTT──> Mosquitto ──> Spring Boot ──> Redis / MySQL / RabbitMQ ──> Socket.IO ──> Cesium
 告警与证据：RabbitMQ 闭环 + MinIO 证据链
 可观测性覆盖层：Prometheus、Grafana、Loki、Promtail、Alertmanager
 ```
 
-- **业务端**：Vue 3、TypeScript、Cesium，提供三维巡检、告警、知识库、AI 对话和审计概览。
+- **业务端**：Vue 3、TypeScript、Cesium，提供三维巡检、实时飞行航迹、地图航点编辑、飞行回放、告警、知识库、AI 对话和审计概览。
 - **网关与身份**：Nginx 统一入口；Spring Cloud Gateway 执行 Keycloak JWT 校验、角色策略、Redis 限流、请求追踪与指标采集。
 - **业务服务**：NestJS BFF 聚合 API、透传 SSE、推送 Socket.IO 事件；Spring Boot 负责任务、告警、知识库边界、审计与 Temporal 工作流。
 - **AI 服务**：FastAPI、LangChain、Ollama 和 Qdrant 提供 RAG 知识库、流式问答与巡检分析；Redis 保存会话上下文；YOLO26 视觉推理（本地/CI mock，预发/生产默认真实权重）。
@@ -41,11 +42,17 @@ skytrace-platform/
 ├── backend-ai/                          # FastAPI：LangChain、Ollama、Qdrant RAG
 ├── admin-frontend/                      # React + Ant Design 独立管理端
 ├── admin-service/                       # NestJS + Prisma 管理 API
+├── device-sim/                          # Python MQTT 设备模拟器（心跳与遥测）
+├── e2e/                                 # Playwright 端到端用例
 ├── deploy/
 │   ├── docker-compose.yml               # 本地完整运行环境
 │   ├── docker-compose.staging.yml       # 镜像化预发覆盖层与 Caddy HTTPS
 │   ├── docker-compose.production.yml    # 生产资源限制与 Keycloak 配置
 │   ├── docker-compose.monitoring.yml    # Prometheus、Grafana、Loki 等监控栈
+│   ├── docker-compose.vision.yml        # YOLO26 真实权重视觉推理覆盖层
+│   ├── docker-compose.mqtt.yml          # Mosquitto + 设备模拟器覆盖层
+│   ├── docker-compose.mqtt-tls.yml      # MQTT over TLS 覆盖层
+│   ├── mqtt/                            # Mosquitto 配置、ACL 与账号初始化脚本
 │   ├── keycloak/                        # Realm 与本地测试用户配置
 │   ├── mysql/                           # MySQL 初始化与迁移前置脚本
 │   └── .env.example                     # 环境变量模板
@@ -53,9 +60,13 @@ skytrace-platform/
 │   ├── architecture.md                  # 当前服务职责、链路和边界
 │   ├── data-governance.md               # MySQL / MinIO / Qdrant 备份与重建
 │   ├── testing.md                       # 任务/航线/遥测与 E2E 测试地图
+│   ├── horizontal-scaling.md            # Socket.IO Redis 适配器与多实例扩容
+│   ├── mqtt-device-sim-guide.md         # MQTT 接入、认证/ACL/TLS 与模拟器
 │   ├── gateway.md                       # Keycloak、JWT 和网关策略
 │   ├── knowledge-base.md                # 知识库与 RAG 调用链
+│   ├── ops.md                           # 运维速查与告警处置
 │   ├── security-audit-admin.md          # 业务端权限与审计
+│   ├── evidence-center-productization.md # 取证中心产品化设计
 │   ├── temporal-integration.md          # Temporal 当前实现与演进方向
 │   └── releases/
 │       ├── v0.2.0.md                    # 0.2.0 发版说明
@@ -72,6 +83,7 @@ skytrace-platform/
 │   ├── restore-backup.sh                # MySQL 恢复
 │   ├── minio-lifecycle-apply.sh         # 备份桶 ILM + 证据桶版本控制
 │   ├── qdrant-rebuild.sh                # 知识库 collection 状态/清空
+│   ├── mqtt-gen-certs.sh                # 生成 MQTT 自签 TLS 证书
 │   └── telemetry-prune.sh               # 过期遥测点清理（默认 dry-run）
 └── README.md                            # 项目总览与运行说明
 ```
@@ -196,6 +208,18 @@ docker compose --env-file deploy/.env \
   -f deploy/docker-compose.yml \
   -f deploy/docker-compose.monitoring.yml up -d
 ```
+
+MQTT 实时遥测链路同样是可选覆盖层，启动后 Mosquitto 与设备模拟器会持续产生心跳和遥测，
+业务端 `/map` 页面即可看到无人机实时移动：
+
+```bash
+./scripts/skytrace.sh mqtt-start        # 明文 1883
+./scripts/skytrace.sh mqtt-tls-start    # 自签证书的 mqtts 8883
+./scripts/skytrace.sh mqtt-logs
+./scripts/skytrace.sh mqtt-stop
+```
+
+主题划分、账号 ACL 与 TLS 证书生成见 `[docs/mqtt-device-sim-guide.md](docs/mqtt-device-sim-guide.md)`。
 
 预发和生产环境使用预构建镜像与 Caddy HTTPS 入口。生产部署还应叠加资源限制和生产模式 Keycloak：
 
@@ -363,6 +387,7 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | Redis                | `localhost:6380`                  | 缓存、聊天记忆和 Gateway 限流      |
 | Qdrant               | `localhost:6333`                  | RAG 文档向量和元数据             |
 | RabbitMQ             | `http://localhost:15672`          | 管理控制台                    |
+| MQTT（可选）            | `localhost:1883` / `8883`         | Mosquitto 明文 / TLS 端口     |
 | MinIO API            | `http://localhost:9011`           | 对象存储 API                 |
 | MinIO Console        | `http://localhost:9012`           | 对象存储控制台                  |
 | Temporal gRPC        | `localhost:7233`                  | Temporal Server          |
@@ -390,6 +415,7 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | `POST`   | `/api/devices/{deviceCode}/heartbeat`                  | 设备心跳，写入 Redis 在线状态             |
 | `GET`    | `/api/inspection-tasks`                                | 巡检任务列表（含设备名与在线状态）              |
 | `POST`   | `/api/inspection-tasks`                                | 创建巡检任务（设备须已存在）                 |
+| `GET`    | `/api/inspection-tasks/{taskCode}/telemetry`           | 任务历史遥测轨迹（飞行回放数据源）              |
 | `GET`    | `/api/alarms/latest`                                   | 最近 20 条告警                      |
 | `POST`   | `/api/alarms`                                          | 创建告警并写入数据库                     |
 | `POST`   | `/api/alarms/detections`                               | 投递识别告警到 RabbitMQ（异步落库）         |
@@ -428,6 +454,7 @@ Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起�
 | `POST` | `/api/alarms/analyze-video`                        | 视频视觉分析转发                       |
 | `POST` | `/api/inspection-tasks/{taskCode}/analysis/stream` | 透传 AI SSE 实时分析                 |
 | `GET`  | `/api/inspection-tasks/{taskCode}/analyses`        | 查询 MySQL 中的 AI 分析历史            |
+| `GET`  | `/api/inspection-tasks/{taskCode}/telemetry`       | 转发任务历史遥测轨迹                     |
 | `GET`  | `/api/inspection-tasks/{taskCode}/workflow-status` | 查询 Temporal 状态与最近告警 Signal     |
 
 
@@ -458,7 +485,11 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 | `ping`          | 客户端 -> 服务端 | 连通性测试                            |
 | `pong`          | 服务端 -> 客户端 | 返回 `ping` 携带的数据                  |
 | `alarm.created` | 服务端 -> 客户端 | HTTP 创建或 RabbitMQ 实时事件触发后广播      |
+| `device.telemetry` | 服务端 -> 客户端 | 设备 MQTT 遥测经 RabbitMQ 转发后广播，驱动地图实时航迹 |
 
+
+多实例部署时 Node BFF 通过 Redis 适配器同步 Socket.IO 事件，由 `SOCKETIO_REDIS_ADAPTER`
+控制（默认开启）。扩容注意事项见 `[docs/horizontal-scaling.md](docs/horizontal-scaling.md)`。
 
 
 
@@ -470,9 +501,14 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 - RabbitMQ 识别告警队列：AI/API 投递 → Java 落库 → Temporal `alarmDetected` Signal → Node Socket.IO 广播。
 - MinIO 巡检证据上传：截图/视频只持久化 object key，经 `/files/` 反代访问。
 - Flyway 管理 AI 分析结果表与证据资产表，持久化同步与 SSE 分析并支持历史查询。
-- 设备主数据持久化（`device`）与 CRUD；列表在线状态由 Redis heartbeat 覆盖。
+- 设备主数据持久化（`device`）与 CRUD（含删除）；列表在线状态由 Redis heartbeat 覆盖。
 - 巡检任务绑定真实设备（创建/更新校验设备存在），响应带设备名与在线状态；可选绑定航线。
-- 航线主数据 CRUD（`inspection_route`）与业务端 `/routes` 页面。
+- 航线主数据 CRUD（`inspection_route`）、业务端 `/routes` 页面与地图取点式航点编辑。
+- MQTT 实时遥测链路：设备 → Mosquitto → Java 落库/写 Redis → RabbitMQ → Socket.IO → Cesium 实时航迹；
+  Mosquitto 支持账号密码认证、按主题 ACL 与可选 TLS，见 `docs/mqtt-device-sim-guide.md`。
+- 任务历史遥测轨迹查询与业务端飞行回放面板，任务列表内联航线缩略图。
+- Socket.IO Redis 适配器，支持 Node BFF 多实例水平扩容。
+- 数据治理：MySQL 备份/恢复、MinIO 生命周期与证据桶版本控制、Qdrant 重建、遥测点过期清理。
 - 证据按任务/告警查询；任务页可选设备、查看与上传关联证据。
 - 视频抽帧视觉流水线（`/api/alarms/analyze-video`）；预发/生产强制真实 YOLO，本地/CI 可 mock。
 - 可观测性：Grafana 预置仪表盘、Alertmanager Webhook；运维手册见 `docs/ops.md`。
@@ -489,6 +525,7 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 预留或待完善：
 
 - Temporal Nexus 跨服务能力。
-- 定制武器/缺陷数据集微调与航线地图可视化。
+- 定制武器/缺陷数据集微调。
 - 飞控独立服务与完整任务领域数据权限。
-- 设备删除、证据分页与归档编排。
+- 证据分页与归档编排。
+- 遥测轨迹的降采样与长周期归档（当前仅提供按保留期清理）。
