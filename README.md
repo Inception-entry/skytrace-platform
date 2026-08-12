@@ -6,6 +6,9 @@ SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计�
 
 运维速查见 `[docs/ops.md](docs/ops.md)`。
 
+数据治理（MySQL 备份、MinIO 生命周期、Qdrant 重建）见 `[docs/data-governance.md](docs/data-governance.md)`。
+测试分层与任务/航线/遥测覆盖见 `[docs/testing.md](docs/testing.md)`。
+
 ## 技术架构
 
 ```text
@@ -49,6 +52,8 @@ skytrace-platform/
 │   └── .env.example                     # 环境变量模板
 ├── docs/
 │   ├── architecture.md                  # 当前服务职责、链路和边界
+│   ├── data-governance.md               # MySQL / MinIO / Qdrant 备份与重建
+│   ├── testing.md                       # 任务/航线/遥测与 E2E 测试地图
 │   ├── gateway.md                       # Keycloak、JWT 和网关策略
 │   ├── knowledge-base.md                # 知识库与 RAG 调用链
 │   ├── security-audit-admin.md          # 业务端权限与审计
@@ -64,7 +69,10 @@ skytrace-platform/
 ├── scripts/
 │   ├── skytrace.sh                      # 本地 Compose 管理和权限验收
 │   ├── mysql-backup.sh                  # MySQL 备份
-│   └── restore-backup.sh                # MySQL 恢复
+│   ├── restore-backup.sh                # MySQL 恢复
+│   ├── minio-lifecycle-apply.sh         # 备份桶 ILM + 证据桶版本控制
+│   ├── qdrant-rebuild.sh                # 知识库 collection 状态/清空
+│   └── telemetry-prune.sh               # 过期遥测点清理（默认 dry-run）
 └── README.md                            # 项目总览与运行说明
 ```
 
