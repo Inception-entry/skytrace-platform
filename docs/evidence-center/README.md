@@ -1,9 +1,8 @@
 # 证据中心技术设计：分阶段开发指南
 
-> 这是一组“边设计边落地”的技术文档，不是已完成功能说明。
-> 当前仓库只有任务页中的轻量证据面板与 MinIO 上传能力；完成本文档对应的
-> Phase 1 → Phase 2 → Phase 3 后，SkyTrace 才会拥有可检索、可审计、可处置、
-> 可归档的产品级证据中心。
+> 这组文档记录从最小上传能力演进到产品级证据中心的设计过程。
+> 截至 2026-08-11，Phase 1 → Phase 3 主链路已经落地；早期“当前现状”段落用于解释
+> 当时为何选择兼容旧接口、私有桶、软删除和分阶段实施，不代表现在仍缺少这些能力。
 
 关联产品方案见：
 
@@ -39,9 +38,9 @@ Vue Evidence Center            Node BFF                  Spring Boot            
         │──────────── browser fetch object from MinIO ──────────────────────────────────────────►│
 ```
 
-## 先看懂当前仓库现状
+## 先看懂 Phase 1 开始前的仓库基线
 
-当前证据能力已经有最小闭环，但离产品化还有明显距离：
+Phase 1 开始前，证据能力只有最小闭环：
 
 - Java 证据入口在
   [backend-java/src/main/java/com/skytrace/backend/evidence/EvidenceController.java](../../backend-java/src/main/java/com/skytrace/backend/evidence/EvidenceController.java)
@@ -56,7 +55,7 @@ Vue Evidence Center            Node BFF                  Spring Boot            
 - 前端当前只在任务页中使用：
   [frontend/src/views/DroneView.vue](../../frontend/src/views/DroneView.vue)
 
-现状的几个关键事实：
+当时的几个关键事实：
 
 1. `GET /api/evidence` 返回数组，没有分页。
 2. 证据对象默认通过 `/files/{bucket}/{objectKey}` 暴露。
@@ -164,6 +163,12 @@ Vue Evidence Center            Node BFF                  Spring Boot            
 - [Phase 3：归档、导出与合规扩展](./phase-3-archive-compliance.md)
 - [Phase 3：逐文件改动清单](./phase-3-file-checklist.md)
 - [Phase 3：代码级实现参考（可粘贴）](./phase-3-implementation-code.md)
+- [证据哈希回填、归档清理与压测 Runbook](./evidence-maintenance-runbook.md)
+- [Phase 3 上线前闭环清单](./go-live-checklist.md)
+- [归档后清理策略](./retention-policy.md)
+- [真实环境联调与验收清单](./integration-acceptance-checklist.md)
+- [联调当天操作单](./integration-day-playbook.md)
+- [上线开关与回滚方案](./release-switch-and-rollback.md)
 
 ### 文档怎么用
 
@@ -171,9 +176,11 @@ Vue Evidence Center            Node BFF                  Spring Boot            
 | --- | --- | --- |
 | foundation / review / archive | 为什么做、契约、关卡顺序 | 完整源码 |
 | file-checklist | 改哪些文件、检查点 | 完整源码 |
-| **implementation-code** | **可粘贴的完整/核心代码** | 产品叙事 |
+| **implementation-code** | **核心代码结构与教学节选** | 生产运维步骤 |
+| **runbook** | **当前生效策略、上线顺序、审计与压测** | Java 基础教学 |
 
-落地时建议顺序：先读 foundation → 对照 checklist → **按 implementation-code 粘贴/实现** → 用 foundation 的 DoD 验收。
+学习时建议顺序：先读 foundation → 对照 checklist → 阅读真实源码和测试 → 用 Runbook 做
+验收。实现已经继续演进时，不要用教学节选覆盖真实源码。
 
 ## 会改到哪些代码区域
 
@@ -217,13 +224,14 @@ Vue Evidence Center            Node BFF                  Spring Boot            
 
 全部阶段完成后，证据中心才算真正交付：
 
-- [ ] 证据可通过独立页面分页检索
-- [ ] 图片/视频访问使用短时效地址，不再长期公开
-- [ ] 查看、下载、删除、恢复、导出可审计
-- [ ] 证据能关联任务、告警、设备、上传人和分析记录
-- [ ] 支持审核状态、标签、批量处置
-- [ ] 支持归档任务、导出包与清单校验
-- [ ] 旧任务页不因证据中心升级而中断
+- [x] 证据可通过独立页面分页检索
+- [x] 图片/视频访问使用短时效地址，不再长期公开
+- [x] 查看、下载、删除、恢复、导出和物理清理可审计
+- [x] 证据能关联任务、告警、设备、上传人和分析记录
+- [x] 支持审核状态、标签、批量处置
+- [x] 支持归档任务、导出包、清单与包级哈希校验
+- [x] 支持历史哈希回填、清理预览、保留期和受保护物理清理
+- [x] 旧任务页不因证据中心升级而中断
 
 ## 建议提交顺序
 

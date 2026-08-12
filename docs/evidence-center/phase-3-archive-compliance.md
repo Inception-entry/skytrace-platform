@@ -7,10 +7,14 @@
 
 - [Phase 3：逐文件改动清单](./phase-3-file-checklist.md)
 - [Phase 3：代码级实现参考（可粘贴）](./phase-3-implementation-code.md)
+- [证据哈希回填、归档清理与压测 Runbook](./evidence-maintenance-runbook.md)
+
+> 2026-08-11 实现状态：归档、历史哈希回填、受保护的物理清理、前端归档台和真实压测
+> 已落地。本文保留设计原理；具体上线开关和操作顺序以 Runbook 为准。
 
 ## 做完以后，你会看到什么
 
-1. 可以按任务、告警或案件创建证据归档任务。
+1. 可以按任务或告警创建证据归档任务；`CASE` 暂时只保留契约。
 2. 系统异步生成 zip 包与清单文件。
 3. 清单内包含证据元数据、SHA-256 哈希和导出时间。
 4. 证据可标记为 `ACTIVE` / `ARCHIVED`，并为冷热分层预留字段。
@@ -85,11 +89,11 @@ Phase 3 要设计：
 - 已归档证据如何处理
 - 哪类证据禁止物理删
 
-### 5. 归档范围先支持 3 种
+### 5. 归档范围先支持 2 种
 
 - `TASK`
 - `ALARM`
-- `CASE`
+- `CASE` 仅保留枚举，当前接口明确拒绝
 
 不要一开始支持任意复杂条件组合导出。
 
@@ -110,7 +114,7 @@ backend-java/src/main/resources/db/migration/V16__add_evidence_archive_fields.sq
 backend-java/src/main/resources/db/migration/V17__create_evidence_archive_job.sql
 ```
 
-`V14`：
+`V16`：
 
 ```sql
 ALTER TABLE evidence_asset
@@ -123,7 +127,7 @@ CREATE INDEX idx_evidence_archive_status_created_at
   ON evidence_asset (archive_status, created_at);
 ```
 
-`V15`：
+`V17`：
 
 ```sql
 CREATE TABLE evidence_archive_job (
@@ -150,8 +154,8 @@ CREATE TABLE evidence_archive_job (
 
 哈希来源建议分两步：
 
-1. 新上传对象：上传后立即异步计算并回写
-2. 历史对象：后台补偿任务回填
+1. 新上传对象：衍生 Temporal Activity 异步计算并回写
+2. 历史对象：`EvidenceHashBackfillService` 小批量补偿并记录失败原因
 
 第一版不要求上传接口同步算哈希，否则大文件会拖慢主流程。
 
@@ -189,6 +193,19 @@ backend-java/src/main/java/com/skytrace/backend/evidence/service/EvidenceArchive
 5. 把 zip 和 manifest 回写 MinIO
 6. 更新 `evidence_archive_job`
 7. 回写参与归档的 `archiveStatus`
+
+### B2.1 大文件打包的内存边界
+
+当前实现不在 `ByteArrayOutputStream` 中聚合完整 ZIP，而是采用以下生命周期：
+
+1. 在 `app.minio.archive-temp-dir` 下创建任务级唯一临时文件
+2. 用固定 64 KiB 缓冲区把 MinIO 原始对象逐段写入 `ZipOutputStream`
+3. 关闭 ZIP，确保中央目录完整写入磁盘
+4. 使用 MinIO `uploadObject` 直接从文件路径上传
+5. 在 `finally` 中删除临时文件，上传失败时同样执行
+
+因此单个大证据文件或大 ZIP 不会被完整加载到 JVM 堆中。运维侧仍需监控临时目录
+容量，并清理进程被强制终止时来不及进入 `finally` 的残留文件。
 
 ### B3. Job 状态枚举
 
@@ -258,32 +275,33 @@ EV-ARCHIVE-20260810-000001.zip
 
 ## 关卡 D：定义清理与生命周期
 
-### D1. 软删除后的物理清理策略
+### D1. 当前已经落地的物理清理策略
 
-建议第一版只定义规则，不立即自动执行：
+默认保留 90 天且自动清理关闭。只有软删除、已归档、哈希存在、归档和删除时间都超过
+保留期，并且归档 ZIP 重新计算 SHA-256 通过、独立 manifest 与包内 manifest 一致、
+当前证据编号/哈希/大小/归档路径逐项匹配的证据才可清理。正式认领会在原子 UPDATE 中
+复核候选条件，`PURGING` 期间禁止并发恢复。
 
-- `deleted=true` 且未归档：保留 30 天后允许清理
-- `deleted=true` 且已归档：归档包完成后可清理
-- `archiveStatus=ARCHIVED`：主对象可转冷存储，是否清理由策略决定
+### D2. 安全执行顺序
 
-### D2. 为什么先定义不立刻自动化
+1. 先回填历史 `contentHash`
+2. 先完成归档并验证包哈希
+3. 先用 `cleanup-preview` 或 `dryRun=true` 观察候选
+4. 再由 ADMIN 提供固定确认串做小批量物理清理
+5. 每条删除保留 STARTED/SUCCESS/FAILURE 审计和数据库墓碑
 
-因为一旦清理策略写错，恢复成本很高。更稳妥的顺序是：
-
-1. 先有归档任务
-2. 先有人审核归档结果
-3. 再引入定时清理
-
-### D3. 定时清理实现建议
-
-可在后续新增：
+### D3. 真实执行类
 
 ```text
-EvidenceRetentionService
-EvidenceCleanupJob
+EvidenceHashBackfillService
+EvidenceArchiveIntegrityService
+EvidenceCleanupService
+EvidenceMaintenanceScheduler
+EvidenceMaintenanceController
 ```
 
-但不应在 Phase 3 的第一刀就和归档工作流一起上。
+完整候选条件、配置和恢复流程见
+[evidence-maintenance-runbook.md](./evidence-maintenance-runbook.md)。
 
 ---
 
@@ -308,22 +326,22 @@ EvidenceCleanupJob
 
 没有清单的归档包后期很难审计。
 
-**不要在 Phase 3 第一版就物理清理对象。**
+**不要部署后立即打开正式物理清理。**
 
-先归档、先验收、再清理。
+实现已经存在，但默认关闭且 dry-run；必须先归档、先验收、再小批量启用。
 
 ---
 
 ## 完成定义（Definition of Done）
 
-- [ ] `evidence_asset` 支持 `contentHash` 与 `archiveStatus`
-- [ ] 新增 `evidence_archive_job`
-- [ ] 支持创建归档任务
-- [ ] Temporal 中可追踪归档工作流
-- [ ] 归档产物包含 zip、manifest、checksums
-- [ ] 可按任务 / 告警 / 案件创建归档
-- [ ] 归档完成后可下载产物
-- [ ] 生命周期与清理策略文档化
+- [x] `evidence_asset` 支持 `contentHash` 与 `archiveStatus`
+- [x] 新增 `evidence_archive_job`
+- [x] 支持按任务 / 告警创建归档任务
+- [x] Temporal 中可追踪归档工作流、Heartbeat 和有限指数退避
+- [x] 归档产物包含 zip、manifest、checksums 和包级 SHA-256
+- [x] 归档完成后可在前端查询并下载产物
+- [x] 历史哈希回填、清理预览、物理清理和审计链路落地
+- [x] 生命周期、清理策略与压测步骤文档化
 
 ## 建议提交顺序
 
@@ -331,7 +349,9 @@ EvidenceCleanupJob
 feat(evidence): add archive schema and hash fields
 feat(evidence): add archive job api and workflow
 feat(evidence): generate manifest and zip output
-docs(evidence): document retention and cleanup policy
+feat(evidence): add hash backfill and retention cleanup
+feat(frontend): integrate evidence archive console
+test(evidence): add archive load and recovery verification
 ```
 
 ## 这一阶段先不要做
@@ -339,6 +359,6 @@ docs(evidence): document retention and cleanup policy
 - 一步到位引入对象锁
 - 接第三方签章平台
 - 全量 OCR / ASR
-- 归档完成即自动物理删除源对象
+- 归档完成即绕过保留期自动物理删除源对象
 
 先把归档任务做稳，再处理合规强化。
