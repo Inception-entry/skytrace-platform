@@ -688,14 +688,36 @@ const runTaskAction = async (
   loading.value = true
   resetMessages()
 
+  const previousStatus = tasks.value.find(
+    (task) => task.taskCode === taskCode,
+  )?.status
+
   try {
     await action()
-    await delay(500)
     successMessage.value = t('tasks.actionDone', { code: taskCode, action: successText })
-    await loadTasks()
+    await waitForStatusChange(taskCode, previousStatus)
   } catch (error) {
     errorMessage.value = errorText(error, failureText)
     loading.value = false
+  }
+}
+
+// 启动/完成/取消都由 Temporal 在后台异步落库，接口返回不代表状态已更新；
+// 轮询任务列表直到该任务状态发生变化，避免页面停留在旧状态。
+const waitForStatusChange = async (
+  taskCode: string,
+  previousStatus: string | undefined,
+) => {
+  const maxAttempts = 20
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await delay(attempt === 0 ? 500 : 1_000)
+    await loadTasks()
+    const currentStatus = tasks.value.find(
+      (task) => task.taskCode === taskCode,
+    )?.status
+    if (currentStatus !== previousStatus) {
+      return
+    }
   }
 }
 
