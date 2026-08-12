@@ -9,6 +9,7 @@ public record EvidenceArchiveJobResponse(
         String status,
         String outputObjectKey,
         String manifestObjectKey,
+        String packageContentHash,
         int totalFiles,
         long totalBytes,
         Instant createdAt,

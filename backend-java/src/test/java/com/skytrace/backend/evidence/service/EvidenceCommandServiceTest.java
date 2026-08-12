@@ -1,11 +1,13 @@
 package com.skytrace.backend.evidence.service;
 
+import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -74,5 +76,35 @@ class EvidenceCommandServiceTest {
         assertThat(asset.isDeleted()).isFalse();
         assertThat(asset.getDeletedAt()).isNull();
         verify(accessLogService).recordRestore(asset);
+    }
+
+    @Test
+    void shouldRejectRestoreAfterPhysicalPurge() {
+        // PURGED 记录只剩审计元数据，MinIO 内容已经不存在。
+        EvidenceAsset asset = new EvidenceAsset();
+        asset.setEvidenceCode("EV-PURGED");
+        asset.setDeleted(true);
+        asset.setArchiveStatus(EvidenceArchiveStatus.PURGED);
+        when(queryService.requireAny("EV-PURGED")).thenReturn(asset);
+
+        // 恢复这种记录会制造一个无法预览或下载的“幽灵证据”。
+        assertThatThrownBy(() -> service.restore("EV-PURGED"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("证据内容已物理清理，不能恢复");
+    }
+
+    @Test
+    void shouldRejectRestoreWhilePhysicalPurgeIsRunning() {
+        // PURGING 表示清理任务已赢得原子认领，原件可能正在被逐个删除。
+        EvidenceAsset asset = new EvidenceAsset();
+        asset.setEvidenceCode("EV-PURGING");
+        asset.setDeleted(true);
+        asset.setArchiveStatus(EvidenceArchiveStatus.PURGING);
+        when(queryService.requireAny("EV-PURGING")).thenReturn(asset);
+
+        // 此时恢复会与 MinIO 删除并发，必须等任务成功或失败释放状态。
+        assertThatThrownBy(() -> service.restore("EV-PURGING"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("证据正在物理清理，暂时不能恢复");
     }
 }

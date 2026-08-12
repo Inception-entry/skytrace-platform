@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -85,14 +87,16 @@ class EvidenceArchiveActivitiesImplTest {
         when(manifestService.buildChecksums(files))
                 .thenReturn("checksums".getBytes());
         when(archivePackageService.buildAndStore(
-                job,
-                files,
-                "manifest".getBytes(),
-                "checksums".getBytes()
+                eq(job),
+                eq(files),
+                eq("manifest".getBytes()),
+                eq("checksums".getBytes()),
+                any(EvidenceArchivePackageService.ArchiveProgressListener.class)
         )).thenReturn(new EvidenceArchivePackageService.ArchivePackageResult(
                 "skytrace-evidence",
                 "archives/AR-20260811-ABC123/AR-20260811-ABC123.zip",
                 "archives/AR-20260811-ABC123/manifest.json",
+                "sha256:package",
                 1,
                 128L
         ));
@@ -107,6 +111,7 @@ class EvidenceArchiveActivitiesImplTest {
         assertThat(asset.getArchivedAt()).isNotNull();
         assertThat(job.getStatus()).isEqualTo(EvidenceArchiveJobStatus.COMPLETED);
         assertThat(job.getOutputBucket()).isEqualTo("skytrace-evidence");
+        assertThat(job.getPackageContentHash()).isEqualTo("sha256:package");
         assertThat(job.getTotalFiles()).isEqualTo(1);
         assertThat(job.getTotalBytes()).isEqualTo(128L);
         assertThat(job.getCompletedAt()).isNotNull();

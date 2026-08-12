@@ -40,6 +40,12 @@ public class EvidenceAsset {
     @Column(name = "content_hash", length = 128)
     private String contentHash;
 
+    @Column(name = "hash_backfill_attempted_at")
+    private LocalDateTime hashBackfillAttemptedAt;
+
+    @Column(name = "hash_backfill_error", length = 512)
+    private String hashBackfillError;
+
     @Column(name = "content_type", nullable = false, length = 128)
     private String contentType;
 
@@ -95,6 +101,15 @@ public class EvidenceAsset {
 
     @Column(name = "archived_at")
     private LocalDateTime archivedAt;
+
+    @Column(name = "purge_started_at")
+    private LocalDateTime purgeStartedAt;
+
+    @Column(name = "purged_at")
+    private LocalDateTime purgedAt;
+
+    @Column(name = "purge_error", length = 512)
+    private String purgeError;
 
     @Column(name = "review_comment", length = 512)
     private String reviewComment;
@@ -183,6 +198,23 @@ public class EvidenceAsset {
 
     public void setContentHash(String contentHash) {
         this.contentHash = contentHash;
+    }
+
+    public LocalDateTime getHashBackfillAttemptedAt() {
+        return hashBackfillAttemptedAt;
+    }
+
+    public void setHashBackfillAttemptedAt(
+            LocalDateTime hashBackfillAttemptedAt) {
+        this.hashBackfillAttemptedAt = hashBackfillAttemptedAt;
+    }
+
+    public String getHashBackfillError() {
+        return hashBackfillError;
+    }
+
+    public void setHashBackfillError(String hashBackfillError) {
+        this.hashBackfillError = hashBackfillError;
     }
 
     public String getContentType() {
@@ -319,6 +351,30 @@ public class EvidenceAsset {
 
     public void setArchivedAt(LocalDateTime archivedAt) {
         this.archivedAt = archivedAt;
+    }
+
+    public LocalDateTime getPurgeStartedAt() {
+        return purgeStartedAt;
+    }
+
+    public void setPurgeStartedAt(LocalDateTime purgeStartedAt) {
+        this.purgeStartedAt = purgeStartedAt;
+    }
+
+    public LocalDateTime getPurgedAt() {
+        return purgedAt;
+    }
+
+    public void setPurgedAt(LocalDateTime purgedAt) {
+        this.purgedAt = purgedAt;
+    }
+
+    public String getPurgeError() {
+        return purgeError;
+    }
+
+    public void setPurgeError(String purgeError) {
+        this.purgeError = purgeError;
     }
 
     public String getReviewComment() {

@@ -180,6 +180,7 @@ public class EvidenceArchiveService {
                 job.getStatus().name(),
                 job.getOutputObjectKey(),
                 job.getManifestObjectKey(),
+                job.getPackageContentHash(),
                 job.getTotalFiles(),
                 job.getTotalBytes(),
                 toInstant(job.getCreatedAt()),
