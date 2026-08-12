@@ -15,4 +15,7 @@ public interface InspectionTaskRepository
     long countByStatus(String status);
 
     boolean existsByDeviceCode(String deviceCode);
+
+    Optional<InspectionTask> findFirstByDeviceCodeAndStatusOrderByUpdatedAtDesc(
+            String deviceCode, String status);
 }

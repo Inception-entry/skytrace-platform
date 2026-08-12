@@ -5,6 +5,8 @@ import com.skytrace.backend.task.dto.CreateInspectionTaskRequest;
 import com.skytrace.backend.task.dto.InspectionTaskResponse;
 import com.skytrace.backend.task.dto.UpdateInspectionTaskRequest;
 import com.skytrace.backend.task.service.InspectionTaskService;
+import com.skytrace.backend.telemetry.dto.DeviceTelemetryPointResponse;
+import com.skytrace.backend.telemetry.service.DeviceTelemetryHistoryService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,9 +21,13 @@ import java.util.List;
 @RequestMapping("/inspection-tasks")
 public class InspectionTaskController {
     private final InspectionTaskService inspectionTaskService;
+    private final DeviceTelemetryHistoryService telemetryHistoryService;
 
-    public InspectionTaskController(InspectionTaskService inspectionTaskService) {
+    public InspectionTaskController(
+            InspectionTaskService inspectionTaskService,
+            DeviceTelemetryHistoryService telemetryHistoryService) {
         this.inspectionTaskService = inspectionTaskService;
+        this.telemetryHistoryService = telemetryHistoryService;
     }
 
     @GetMapping
@@ -32,6 +38,16 @@ public class InspectionTaskController {
     @GetMapping("/{taskCode}")
     public ApiResponse<InspectionTaskResponse> detail(@PathVariable String taskCode) {
         return ApiResponse.ok(inspectionTaskService.findByTaskCode(taskCode));
+    }
+
+    @GetMapping("/{taskCode}/telemetry")
+    public ApiResponse<List<DeviceTelemetryPointResponse>> telemetry(
+            @PathVariable String taskCode) {
+        // 先确认任务真实存在，不存在的任务返回 404 而非空轨迹。
+        inspectionTaskService.findByTaskCode(taskCode);
+        return ApiResponse.ok(
+                telemetryHistoryService.findTrackByTaskCode(taskCode)
+        );
     }
 
     @PostMapping

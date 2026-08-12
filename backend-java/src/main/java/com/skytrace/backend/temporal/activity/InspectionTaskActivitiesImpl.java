@@ -27,6 +27,21 @@ public class InspectionTaskActivitiesImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public void assertStartable(String taskCode) {
+        InspectionTask task = repository.findByTaskCode(taskCode)
+                .orElseThrow(() -> new IllegalStateException(
+                        "巡检任务不存在：" + taskCode
+                ));
+        if (task.isTerminal()) {
+            throw new IllegalStateException(
+                    "终态任务不能再次启动：" + taskCode
+                            + " status=" + task.getStatus()
+            );
+        }
+    }
+
+    @Override
     @Transactional
     public void updateStatus(String taskCode, String status) {
         InspectionTask task = repository.findByTaskCode(taskCode)

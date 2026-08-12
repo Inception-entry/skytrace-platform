@@ -25,4 +25,10 @@ public interface InspectionWorkflow {
 
     @QueryMethod
     String getLastAlarmEventCode();
+
+    @QueryMethod
+    long getStartedAtEpochMs();
+
+    @QueryMethod
+    String getFinishReason();
 }

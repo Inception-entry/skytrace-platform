@@ -68,4 +68,54 @@ class InspectionRouteServiceTest {
                 .isInstanceOf(java.util.NoSuchElementException.class)
                 .hasMessageContaining("航线不存在");
     }
+
+    @Test
+    void shouldUpdateWaypointsJson() {
+        InspectionRoute existing = new InspectionRoute(
+                "ROUTE-001",
+                "东区示例航线",
+                "默认演示航线",
+                "[{\"lat\":31.23,\"lng\":121.47,\"alt\":80}]"
+        );
+        when(repository.findByRouteCode("ROUTE-001"))
+                .thenReturn(Optional.of(existing));
+
+        String nextJson =
+                "[{\"lat\":31.23,\"lng\":121.47,\"alt\":80},"
+                        + "{\"lat\":31.24,\"lng\":121.48,\"alt\":90}]";
+        RouteResponse response = service.update(
+                "ROUTE-001",
+                new com.skytrace.backend.route.dto.UpdateRouteRequest(
+                        "东区示例航线",
+                        "更新航点",
+                        nextJson
+                )
+        );
+
+        assertThat(response.waypointsJson()).isEqualTo(nextJson);
+        assertThat(response.description()).isEqualTo("更新航点");
+    }
+
+    @Test
+    void shouldClearBlankWaypointsToNull() {
+        InspectionRoute existing = new InspectionRoute(
+                "ROUTE-003",
+                "空航点",
+                null,
+                "[{\"lat\":1,\"lng\":2,\"alt\":3}]"
+        );
+        when(repository.findByRouteCode("ROUTE-003"))
+                .thenReturn(Optional.of(existing));
+
+        RouteResponse response = service.update(
+                "ROUTE-003",
+                new com.skytrace.backend.route.dto.UpdateRouteRequest(
+                        "空航点",
+                        null,
+                        "   "
+                )
+        );
+
+        assertThat(response.waypointsJson()).isNull();
+    }
 }

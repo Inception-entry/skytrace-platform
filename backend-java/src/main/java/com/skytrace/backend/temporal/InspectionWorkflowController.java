@@ -64,7 +64,9 @@ public class InspectionWorkflowController {
         return ApiResponse.ok(Map.of(
                 "taskCode", taskCode,
                 "status", workflow.getStatus(),
-                "lastAlarmEventCode", workflow.getLastAlarmEventCode()
+                "lastAlarmEventCode", workflow.getLastAlarmEventCode(),
+                "startedAtEpochMs", Long.toString(workflow.getStartedAtEpochMs()),
+                "finishReason", workflow.getFinishReason()
         ));
     }
 

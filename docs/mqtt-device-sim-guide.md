@@ -132,6 +132,7 @@ request body。
 ```text
 skytrace/{env}/device/{deviceCode}/heartbeat
 skytrace/{env}/device/{deviceCode}/status
+skytrace/{env}/device/{deviceCode}/telemetry
 ```
 
 第一版固定：
@@ -139,7 +140,8 @@ skytrace/{env}/device/{deviceCode}/status
 - `{env}`：本地为 `local`；
 - `{deviceCode}`：必须是数据库已存在的编号；
 - `heartbeat`：只表示“我还活着”；
-- `status`：主动上线、下线和运行状态变化。
+- `status`：主动上线、下线和运行状态变化；
+- `telemetry`：实时位置（经纬度），与 heartbeat 并列，不塞进 heartbeat。
 
 ### Payload
 
@@ -166,13 +168,29 @@ Status：
 }
 ```
 
+Telemetry：
+
+```json
+{
+  "deviceCode": "UAV-001",
+  "ts": "2026-08-12T01:00:00Z",
+  "source": "sim",
+  "latitude": 31.2304,
+  "longitude": 121.4737,
+  "altitude": 120.0,
+  "heading": 45.0
+}
+```
+
 第一版的处理规则：
 
 | 情况 | Java 应该做什么 |
 | --- | --- |
 | 已知设备的 heartbeat | 调用 `presence.heartbeat(code)` |
 | 已知设备的 `online: true` | 调用 `presence.heartbeat(code)` |
-| 已知设备的 `online: false` | 调用 `presence.clear(code)` |
+| 已知设备的 `online: false` | 调用 `presence.clear(code)`，并清除遥测 Redis key |
+| 已知设备的 telemetry（含 lat/lon） | `presence.heartbeat` + Redis 最新点 + Rabbit 实时事件 |
+| telemetry 缺 lat/lon | 忽略并记 warning |
 | 数据库中不存在的设备 | 忽略，不自动创建设备 |
 | Topic 编号与 JSON 编号不同 | 忽略并记 warning 日志 |
 | 非法 Topic / 非法 JSON | 忽略并记 warning 日志 |
@@ -183,12 +201,16 @@ Status：
 | --- | --- | --- | --- |
 | heartbeat | 0 | false | 高频、下一次很快再来，偶尔丢一条可接受 |
 | status | 1 | false | 上下线变化更重要，至少送达一次即可 |
+| telemetry | 0 | false | 1～2 秒一条，丢一条可接受，下一帧会补上 |
 
 `HEARTBEAT_INTERVAL_SEC` 默认 30 秒，Presence TTL 默认 90 秒。保持：
 
 ```text
 心跳间隔 < Presence TTL / 2
 ```
+
+`TELEMETRY_INTERVAL_SEC` 默认 2 秒。最新坐标写入 Redis Hash
+`skytrace:device:telemetry:{deviceCode}`，TTL 与 Presence 同量级（约 90 秒），不落 MySQL。
 
 不要把 `online:true` 设置为 retained。否则 Java 重连时可能收到很久以前的“上线”消息，
 让实际已离线的设备短暂复活。设备在线的最终判定仍由 Redis TTL 兜底。
@@ -201,16 +223,26 @@ Status：
 
 ### A1. 新建 Mosquitto 配置
 
-新建 `deploy/mqtt/mosquitto.conf`：
+`deploy/mqtt/mosquitto.conf` 当前要求认证：
 
 ```conf
 listener 1883
-allow_anonymous true
+allow_anonymous false
+password_file /tmp/mosquitto.passwd
+acl_file /mosquitto/config/acl.conf
 persistence false
 ```
 
-这是仅用于本机开发的配置。`allow_anonymous true` 不允许带到预发或生产环境；真实环境
-至少需要用户名密码、ACL 和 TLS。
+容器启动脚本 `docker-entrypoint.sh` 会用环境变量生成 password_file。
+默认本地用户：
+
+| 用户 | 默认密码 | ACL |
+| --- | --- | --- |
+| `backend` | `skytrace-mqtt-backend` | 只读 `skytrace/+/device/+/#` |
+| `device-sim` | `skytrace-mqtt-sim` | 只写 heartbeat/status/telemetry |
+
+本地可继续无 TLS（明文 TCP）；真机/预发请再上 `mqtts` + 证书。
+`.env` 里用 `MQTT_BACKEND_*` / `MQTT_SIM_*` 覆盖默认密码。
 
 ### A2. 新建 Compose overlay
 
@@ -279,6 +311,7 @@ docker compose --env-file deploy/.env \
 ```bash
 docker exec skytrace-mqtt mosquitto_sub \
   -h 127.0.0.1 \
+  -u backend -P skytrace-mqtt-backend \
   -t 'skytrace/local/device/+/+' \
   -v
 ```
@@ -288,6 +321,7 @@ docker exec skytrace-mqtt mosquitto_sub \
 ```bash
 docker exec skytrace-mqtt mosquitto_pub \
   -h 127.0.0.1 \
+  -u device-sim -P skytrace-mqtt-sim \
   -t 'skytrace/local/device/UAV-001/heartbeat' \
   -q 0 \
   -m '{"deviceCode":"UAV-001","source":"manual"}'
@@ -944,13 +978,15 @@ onBeforeUnmount(() => {
 | 检查点 | 怎么检查 | 正常结果 | 常见原因 |
 | --- | --- | --- | --- |
 | Broker 在运行 | `docker ps --filter name=skytrace-mqtt` | 状态为 Up | overlay 没有带上 |
-| Broker 收到消息 | `mosquitto_sub` 订阅 `device/+/+` | 每 30 秒有 heartbeat | sim 未连接、Topic 环境不一致 |
-| 模拟器正常 | `docker logs skytrace-device-sim` | 有 connected 和 heartbeat | 容器内误用了 localhost |
-| Java 已订阅 | `docker logs skytrace-backend-java` | 有 connected/subscribed | `MQTT_ENABLED` 仍是 false |
+| Broker 收到消息 | `mosquitto_sub` 订阅 `device/+/+` | 每 30 秒有 heartbeat；约每 2 秒有 UAV-001 telemetry | sim 未连接、Topic 环境不一致 |
+| 模拟器正常 | `docker logs skytrace-device-sim` | 有 connected、heartbeat、telemetry | 容器内误用了 localhost |
+| Java 已订阅 | `docker logs skytrace-backend-java` | 有 connected/subscribed（含 telemetry） | `MQTT_ENABLED` 仍是 false |
 | Java 接受设备 | 看 warning 日志 | 没有 unknown/mismatch | 数据库没有该 code、JSON 不一致 |
-| Redis 有 Presence | `redis-cli TTL ...` | 返回正数 | cache 未启用、Handler 未调用 heartbeat |
+| Redis 有 Presence | `redis-cli TTL skytrace:device:online:UAV-001` | 返回正数 | cache 未启用、Handler 未调用 heartbeat |
+| Redis 有遥测 | `redis-cli HGETALL skytrace:device:telemetry:UAV-001` | 有 latitude/longitude | telemetry 未订阅或设备未知 |
 | API 返回 ONLINE | 浏览器 Network 看 `/api/devices` | `status: "ONLINE"` | BFF/Java 未重建或 Redis 已过期 |
-| 页面显示 ONLINE | 看 Vue 状态标签 | 与 API 一致 | 页面没有刷新、前端缓存旧数据 |
+| Socket 推送 | 前端 Network / 控制台 | 收到 `device.telemetry` | Node 未消费 Rabbit、未登录 WS |
+| 地图轨迹 | 打开 `http://localhost:8888/map` | UAV-001 移动且有短尾迹 | 前端未重建、Cesium 未订阅 |
 
 ### 高频坑
 
@@ -982,18 +1018,130 @@ Java `pom.xml`、Java 源码、`device-sim` 源码变化后，用 `up -d --build
 
 ---
 
+## 扩展：地图实时轨迹（telemetry）
+
+在心跳链路稳定后，可演示「飞机在飞」而无需真机。数据流：
+
+```text
+device-sim → MQTT .../telemetry
+  → Java 订阅 → Redis 最新点 + Rabbit fanout
+  → Node 消费 → Socket.IO `device.telemetry`
+  → `/map` Cesium Entity + 短折线（内存约 200 点）
+```
+
+### 本地启用
+
+代码变更后先重建相关镜像，再启 MQTT overlay：
+
+```bash
+./scripts/skytrace.sh rebuild backend-java backend-node frontend
+./scripts/skytrace.sh mqtt-start
+```
+
+确认：
+
+1. `docker logs skytrace-device-sim` 有 `telemetry -> UAV-001 lat=...`；
+2. `mosquitto_sub -h 127.0.0.1 -u backend -P skytrace-mqtt-backend -t 'skytrace/local/device/+/telemetry' -v` 能看到 JSON；
+3. Redis：`HGETALL skytrace:device:telemetry:UAV-001` 有坐标；
+4. 登录后打开 `http://localhost:8888/map`，可见 UAV-001 移动与青色尾迹。
+
+模拟器相关环境变量（`docker-compose.mqtt.yml`）：
+
+| 变量 | 默认 | 含义 |
+| --- | --- | --- |
+| `TELEMETRY_INTERVAL_SEC` | `2` | 上报周期（秒） |
+| `TELEMETRY_DEVICE_CODE` | `UAV-001` | 仅该机发 telemetry |
+| `TELEMETRY_CENTER_LAT` / `LON` | 上海附近 | 环线中心 |
+| `TELEMETRY_ORBIT_RADIUS_DEG` | `0.008` | 环线半径（度） |
+
+本扩展不做：历史轨迹表、航线编辑地图化、多机编队、完整飞控状态机。
+
+航线地图编辑与任务缩略图见前端 `/routes`、`/drone`：点选/拖拽航点写回 `waypointsJson`；任务列表展示绑定航线缩略图；RUNNING 任务可跳转 `/map` 看实时位置（需 `mqtt-start`）。
+
+## 扩展：任务级飞行轨迹回放
+
+`device_telemetry_point`（Flyway V19）落库任务期间的遥测坐标，用于事后回放：
+
+- **落库条件**：仅当设备存在一个 `RUNNING` 状态的巡检任务时才写入（`DeviceTelemetryHistoryService.recordIfTaskRunning`），避免把所有心跳期坐标无限期保留；`task_code` 取当前 RUNNING 任务
+- **API**：`GET /inspection-tasks/{taskCode}/telemetry`（Java）→ Node 同路径代理 → 前端 `getTaskTelemetryTrack`
+- **前端**：`/drone` 任务列表，RUNNING/COMPLETED 任务显示「轨迹回放」按钮，打开 `TelemetryReplay` 组件：Cesium Primitive 折线 + 无人机模型，播放/暂停/拖动进度条
+- **不做**：跨任务轨迹合并、地图历史图层、轨迹导出
+
+验收：任务 `start` 后运行 `mqtt-start`，等 telemetry 上报几次，`complete` 任务后打开「轨迹回放」应看到完整折线与可播放动画。
+
+---
+
+## 扩展：MQTT 认证与 ACL
+
+本地 overlay 已关闭匿名访问：
+
+- `allow_anonymous false` + `password_file` + `acl.conf`
+- Java 用 `MQTT_USERNAME` / `MQTT_PASSWORD`（overlay 注入为 backend 凭据）
+- device-sim 用 `MQTT_USERNAME` / `MQTT_PASSWORD`（overlay 注入为 device-sim 凭据）
+- 无用户名密码的 `mosquitto_pub/sub` 会被拒绝（CONNACK 鉴权失败）
+
+仍未默认开启（真机下一阶段）：
+
+- 生产级证书轮换与密钥托管（本地可用自签演练，见下）
+- 每台真机独立账号与按 `deviceCode` 细粒度 ACL
+- EMQX 集群
+
+### 可选：本地 mqtts（TLS）
+
+```bash
+./scripts/skytrace.sh mqtt-tls-start
+```
+
+会生成 `deploy/mqtt/certs/`（已 gitignore），叠加 `docker-compose.mqtt-tls.yml`：
+
+- 仍监听 `1883`（明文，方便工具）
+- 新增 `8883`（TLS）；Java / device-sim 改连 `ssl://mqtt:8883`
+- 默认 `MQTT_TLS_INSECURE=true` 信任自签；生产改为受信 CA 并设 `false`
+
+手工验证：
+
+```bash
+mosquitto_sub -h 127.0.0.1 -p 8883 \
+  --cafile deploy/mqtt/certs/ca.crt \
+  -u backend -P "$MQTT_BACKEND_PASSWORD" \
+  -t 'skytrace/local/device/+/telemetry' -v
+```
+
+---
+
+## 扩展：Socket.IO 多实例（Redis adapter）
+
+Node 启动时默认启用 `@socket.io/redis-adapter`（`SOCKETIO_REDIS_ADAPTER=true`）：
+
+- 任一 Node 实例消费 Rabbit fanout 后 `server.emit`，其它实例上的浏览器客户端也能收到
+- Redis 不可用时回退内存 adapter（仅适合单实例调试）
+- 设 `SOCKETIO_REDIS_ADAPTER=false` 可强制关闭
+
+已知限制（本扩展不解决）：
+
+- 多个 `backend-java` 同时订阅同一 MQTT topic 会重复写 Redis / 重复投递 Rabbit；Java MQTT 侧仍按单订阅者设计（见 [horizontal-scaling.md](./horizontal-scaling.md)）
+- Temporal 巡检工作流已含启动校验、24h 超时与 Signal 幂等，仍非飞控编排
+
+---
+
 ## 完成定义（Definition of Done）
 
 全部勾选后，这个功能才算完成：
 
 - [ ] 不带 MQTT overlay 时，原有完整栈仍可启动；
 - [ ] `MQTT_ENABLED` 默认是 `false`；
-- [ ] Broker 能通过手工 publish / subscribe 验证；
+- [ ] Broker 拒绝匿名连接；backend / device-sim 凭据可连通；
+- [ ] ACL 拒绝 device-sim 订阅或跨权限 publish（抽测）；
+- [ ] Broker 能通过带账号的手工 publish / subscribe 验证；
 - [ ] 模拟器定时发布两台已知设备的 heartbeat；
-- [ ] Handler 单测覆盖 heartbeat、上线、下线、未知设备和编号不一致；
+- [ ] 模拟器对 `UAV-001` 定时发布 telemetry（含 lat/lon）；
+- [ ] Handler 单测覆盖 heartbeat、telemetry、上线、下线、未知设备和缺坐标；
 - [ ] 一条坏 JSON 不会让订阅线程退出；
 - [ ] Java 重连后会重新订阅；
 - [ ] `GET /api/devices` 能看到 ONLINE；
+- [ ] Redis 有 `skytrace:device:telemetry:UAV-001`；
+- [ ] 前端收到 `device.telemetry`，`/map` 上可见移动与短轨迹；
+- [ ] Node 日志可见 Socket.IO Redis adapter connected（除非显式关闭）；
 - [ ] 正常停止模拟器会立即 OFFLINE；
 - [ ] 异常停止后会在 Presence TTL 内 OFFLINE；
 - [ ] 现有 HTTP heartbeat 仍然可用；
@@ -1008,20 +1156,20 @@ chore(deploy): 增加本地 Mosquitto MQTT overlay
 feat(device-sim): 增加无真机设备心跳模拟器
 feat(backend-java): 订阅 MQTT 并更新设备 Presence
 feat(frontend): 轮询刷新设备在线状态       # 可选
+feat(map): MQTT 模拟坐标并在 Cesium 实时绘制轨迹
+feat(mqtt): Mosquitto 用户名密码与 ACL
+feat(node): Socket.IO Redis adapter 支持多实例广播
 ```
 
 ## 这一期先不要做
 
 - 浏览器通过 MQTT.js 直连 Broker；
-- EMQX 集群、TLS 证书和生产 ACL；
-- 用 RabbitMQ 代替设备接入协议（RabbitMQ 继续服务现有告警链路）；
+- EMQX 集群、生产级 TLS 证书轮换与密钥托管；
+- 用 RabbitMQ 代替设备接入协议（RabbitMQ 继续服务现有告警 / 实时推送链路）；
 - 把未知 `deviceCode` 自动写入 MySQL；
-- 电量、飞行模式等状态落 MySQL；
+- 多 Java 实例共用 MQTT 订阅的去重 / 选主；
 - 指令下行、真飞控协议、多设备独立 LWT；
-- 为了“实时”同时引入 MQTT、轮询和一套新 WebSocket。
-
-先把 A → B → C 的单向心跳链路做稳，再决定是否需要状态 Hash、模拟器控制 API 或
-Socket.IO 推送。
+- 把 Temporal 巡检工作流做成完整飞控编排。
 
 ## 官方资料
 

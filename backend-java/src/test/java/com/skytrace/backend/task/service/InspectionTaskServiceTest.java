@@ -171,4 +171,96 @@ class InspectionTaskServiceTest {
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("不能修改");
     }
+
+    @Test
+    void shouldRejectEditingCancelledTask() {
+        InspectionTask task = new InspectionTask(
+                "TASK-CANCEL-001",
+                "已取消任务",
+                "UAV-001",
+                LocalDateTime.of(2026, 7, 17, 9, 0),
+                LocalDateTime.of(2026, 7, 17, 10, 0)
+        );
+        task.changeStatus("CANCELLED");
+        when(deviceRepository.existsByDeviceCode("UAV-001")).thenReturn(true);
+        when(repository.findByTaskCode("TASK-CANCEL-001"))
+                .thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> service.update(
+                "TASK-CANCEL-001",
+                new UpdateInspectionTaskRequest(
+                        "再改一次",
+                        "UAV-001",
+                        null,
+                        LocalDateTime.of(2026, 7, 18, 9, 0),
+                        LocalDateTime.of(2026, 7, 18, 10, 0)
+                )
+        ))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("不能修改");
+    }
+
+    @Test
+    void shouldUpdateRunningTaskRouteBinding() {
+        InspectionTask task = new InspectionTask(
+                "TASK-RUN-001",
+                "执行中任务",
+                "UAV-001",
+                null,
+                LocalDateTime.of(2026, 7, 18, 9, 0),
+                LocalDateTime.of(2026, 7, 18, 11, 0)
+        );
+        task.changeStatus("RUNNING");
+        when(deviceRepository.existsByDeviceCode("UAV-001")).thenReturn(true);
+        when(deviceRepository.findByDeviceCode("UAV-001"))
+                .thenReturn(Optional.of(new Device("UAV-001", "一号机", "UAV")));
+        when(routeRepository.existsByRouteCode("ROUTE-001")).thenReturn(true);
+        when(routeRepository.findByRouteCode("ROUTE-001"))
+                .thenReturn(Optional.of(
+                        new com.skytrace.backend.route.domain.InspectionRoute(
+                                "ROUTE-001",
+                                "东区示例航线",
+                                null,
+                                "[]"
+                        )
+                ));
+        when(repository.findByTaskCode("TASK-RUN-001"))
+                .thenReturn(Optional.of(task));
+
+        InspectionTaskResponse response = service.update(
+                "TASK-RUN-001",
+                new UpdateInspectionTaskRequest(
+                        "执行中任务",
+                        "UAV-001",
+                        "ROUTE-001",
+                        LocalDateTime.of(2026, 7, 18, 9, 0),
+                        LocalDateTime.of(2026, 7, 18, 11, 0)
+                )
+        );
+
+        assertThat(response.routeCode()).isEqualTo("ROUTE-001");
+        assertThat(response.routeName()).isEqualTo("东区示例航线");
+        assertThat(response.status()).isEqualTo("RUNNING");
+    }
+
+    @Test
+    void shouldRejectDuplicateTaskCode() {
+        LocalDateTime start = LocalDateTime.of(2026, 7, 18, 9, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 7, 18, 11, 0);
+        when(deviceRepository.existsByDeviceCode("UAV-001")).thenReturn(true);
+        when(repository.existsByTaskCode("TASK-DUP")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(
+                new CreateInspectionTaskRequest(
+                        "TASK-DUP",
+                        "重复编号",
+                        "UAV-001",
+                        null,
+                        start,
+                        end
+                )
+        ))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("已存在");
+    }
 }

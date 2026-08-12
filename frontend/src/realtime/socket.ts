@@ -106,6 +106,36 @@ export function onAlarmCreated(listener: (alarm: unknown) => void) {
   }
 }
 
+export interface DeviceTelemetryPayload {
+  type?: string
+  deviceCode: string
+  ts?: string
+  source?: string
+  latitude: number
+  longitude: number
+  altitude?: number | null
+  heading?: number | null
+}
+
+export function onDeviceTelemetry(
+  listener: (telemetry: DeviceTelemetryPayload) => void,
+) {
+  let active = true
+  void connectAlarmRealtime()
+    .then((currentSocket) => {
+      if (active) {
+        currentSocket.on('device.telemetry', listener)
+      }
+    })
+    .catch((error: unknown) => {
+      console.error('无法订阅设备遥测', error)
+    })
+  return () => {
+    active = false
+    socket?.off('device.telemetry', listener)
+  }
+}
+
 async function handleConnectionError(error: RealtimeConnectionError) {
   const status = error.data?.status
   if (status === 403) {

@@ -10,6 +10,8 @@ public class MqttProperties {
     private String clientId = "skytrace-backend-java";
     private String username = "";
     private String password = "";
+    /** 仅用于本地自签 mqtts；生产必须为 false 并配置受信 CA。 */
+    private boolean tlsInsecure = false;
 
     public boolean isEnabled() {
         return enabled;
@@ -57,5 +59,13 @@ public class MqttProperties {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public boolean isTlsInsecure() {
+        return tlsInsecure;
+    }
+
+    public void setTlsInsecure(boolean tlsInsecure) {
+        this.tlsInsecure = tlsInsecure;
     }
 }

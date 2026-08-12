@@ -48,6 +48,13 @@ export class InspectionTaskController {
     );
   }
 
+  @Get(':taskCode/telemetry')
+  telemetry(@Param('taskCode') taskCode: string): Promise<unknown> {
+    return this.javaClient.get(
+      `/inspection-tasks/${taskCode}/telemetry`,
+    );
+  }
+
   @Post()
   @Roles('ADMIN', 'OPERATOR')
   create(@Body() dto: CreateInspectionTaskDto): Promise<unknown> {

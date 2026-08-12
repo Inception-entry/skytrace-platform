@@ -40,3 +40,4 @@ Thumbs.db
 # Docker / runtime
 *.pid
 tmp/
+deploy/mqtt/certs/

@@ -3,7 +3,11 @@ package com.skytrace.backend.device.mqtt;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skytrace.backend.cache.DevicePresenceService;
+import com.skytrace.backend.cache.DeviceTelemetryService;
 import com.skytrace.backend.device.repository.DeviceRepository;
+import com.skytrace.backend.messaging.DeviceTelemetryEvent;
+import com.skytrace.backend.messaging.DeviceTelemetryPublisher;
+import com.skytrace.backend.telemetry.service.DeviceTelemetryHistoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -17,14 +21,23 @@ public class DeviceMqttMessageHandler {
 
     private final DeviceRepository deviceRepository;
     private final ObjectProvider<DevicePresenceService> presenceProvider;
+    private final ObjectProvider<DeviceTelemetryService> telemetryProvider;
+    private final ObjectProvider<DeviceTelemetryPublisher> telemetryPublisherProvider;
+    private final DeviceTelemetryHistoryService telemetryHistoryService;
     private final ObjectMapper objectMapper;
 
     public DeviceMqttMessageHandler(
             DeviceRepository deviceRepository,
             ObjectProvider<DevicePresenceService> presenceProvider,
+            ObjectProvider<DeviceTelemetryService> telemetryProvider,
+            ObjectProvider<DeviceTelemetryPublisher> telemetryPublisherProvider,
+            DeviceTelemetryHistoryService telemetryHistoryService,
             ObjectMapper objectMapper) {
         this.deviceRepository = deviceRepository;
         this.presenceProvider = presenceProvider;
+        this.telemetryProvider = telemetryProvider;
+        this.telemetryPublisherProvider = telemetryPublisherProvider;
+        this.telemetryHistoryService = telemetryHistoryService;
         this.objectMapper = objectMapper;
     }
 
@@ -40,7 +53,9 @@ public class DeviceMqttMessageHandler {
 
             String deviceCode = parts[3];
             String kind = parts[4];
-            if (!"heartbeat".equals(kind) && !"status".equals(kind)) {
+            if (!"heartbeat".equals(kind)
+                    && !"status".equals(kind)
+                    && !"telemetry".equals(kind)) {
                 return;
             }
 
@@ -66,6 +81,11 @@ public class DeviceMqttMessageHandler {
                 return;
             }
 
+            if ("telemetry".equals(kind)) {
+                handleTelemetry(deviceCode, payload, presence);
+                return;
+            }
+
             JsonNode online = payload.get("online");
             if (online == null || !online.isBoolean()) {
                 log.warn("status 消息缺少 boolean online: {}", deviceCode);
@@ -75,10 +95,64 @@ public class DeviceMqttMessageHandler {
                 presence.heartbeat(deviceCode);
             } else {
                 presence.clear(deviceCode);
+                DeviceTelemetryService telemetry = telemetryProvider.getIfAvailable();
+                if (telemetry != null) {
+                    telemetry.clear(deviceCode);
+                }
             }
         } catch (Exception error) {
             // MQTT 回调线程不能因为一条坏消息退出。
             log.warn("处理 MQTT 设备消息失败: {}", error.getMessage());
         }
+    }
+
+    private void handleTelemetry(
+            String deviceCode,
+            JsonNode payload,
+            DevicePresenceService presence) {
+        JsonNode latNode = payload.get("latitude");
+        JsonNode lonNode = payload.get("longitude");
+        if (latNode == null || lonNode == null
+                || !latNode.isNumber() || !lonNode.isNumber()) {
+            log.warn("telemetry 消息缺少 latitude/longitude: {}", deviceCode);
+            return;
+        }
+
+        double latitude = latNode.asDouble();
+        double longitude = lonNode.asDouble();
+        Double altitude = readOptionalDouble(payload.get("altitude"));
+        Double heading = readOptionalDouble(payload.get("heading"));
+        String ts = payload.path("ts").asText(null);
+        String source = payload.path("source").asText("mqtt");
+
+        presence.heartbeat(deviceCode);
+
+        DeviceTelemetryService telemetry = telemetryProvider.getIfAvailable();
+        if (telemetry != null) {
+            telemetry.saveLatest(deviceCode, latitude, longitude, altitude, heading, ts);
+        }
+
+        DeviceTelemetryPublisher publisher = telemetryPublisherProvider.getIfAvailable();
+        if (publisher != null) {
+            publisher.publish(DeviceTelemetryEvent.of(
+                    deviceCode,
+                    ts,
+                    source,
+                    latitude,
+                    longitude,
+                    altitude,
+                    heading
+            ));
+        }
+
+        telemetryHistoryService.recordIfTaskRunning(
+                deviceCode, latitude, longitude, altitude, heading, source, ts);
+    }
+
+    private static Double readOptionalDouble(JsonNode node) {
+        if (node == null || node.isNull() || !node.isNumber()) {
+            return null;
+        }
+        return node.asDouble();
     }
 }

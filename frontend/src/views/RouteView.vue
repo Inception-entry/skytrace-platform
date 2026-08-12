@@ -18,6 +18,7 @@
             {{ $t('routes.create') }}
           </button>
           <RouterLink class="nav-link" to="/drone">{{ $t('nav.tasks') }}</RouterLink>
+          <RouterLink class="nav-link" to="/map">{{ $t('nav.map') }}</RouterLink>
           <RouterLink class="nav-link" to="/devices">{{ $t('nav.devices') }}</RouterLink>
         </div>
       </header>
@@ -46,11 +47,21 @@
             <span>{{ $t('routes.description') }}</span>
             <input v-model.trim="form.description" maxlength="512" />
           </label>
+          <div class="full map-field">
+            <span class="field-label">{{ $t('routes.waypointsMap') }}</span>
+            <RouteWaypointEditor
+              v-model="form.waypointsJson"
+              :hint="$t('routes.waypointsHint')"
+              :undo-label="$t('routes.undoWaypoint')"
+              :clear-label="$t('routes.clearWaypoints')"
+              :count-template="$t('routes.waypointCount')"
+            />
+          </div>
           <label class="full">
-            <span>{{ $t('routes.waypoints') }}</span>
+            <span>{{ $t('routes.waypointsJsonAdvanced') }}</span>
             <textarea
               v-model.trim="form.waypointsJson"
-              rows="4"
+              rows="3"
               :placeholder="$t('routes.waypointsPlaceholder')"
             />
           </label>
@@ -67,6 +78,7 @@
         <table>
           <thead>
             <tr>
+              <th>{{ $t('routes.preview') }}</th>
               <th>{{ $t('routes.code') }}</th>
               <th>{{ $t('routes.name') }}</th>
               <th>{{ $t('routes.description') }}</th>
@@ -75,6 +87,13 @@
           </thead>
           <tbody>
             <tr v-for="route in routes" :key="route.routeCode">
+              <td>
+                <RouteThumbnail
+                  :waypoints-json="route.waypointsJson"
+                  :title="route.routeName"
+                  :empty-label="$t('routes.noWaypoints')"
+                />
+              </td>
               <td>{{ route.routeCode }}</td>
               <td>{{ route.routeName }}</td>
               <td>{{ route.description || '—' }}</td>
@@ -90,7 +109,7 @@
               </td>
             </tr>
             <tr v-if="!routes.length">
-              <td colspan="4" class="empty">{{ $t('routes.empty') }}</td>
+              <td colspan="5" class="empty">{{ $t('routes.empty') }}</td>
             </tr>
           </tbody>
         </table>
@@ -109,6 +128,9 @@ import {
   updateRoute,
   type Route,
 } from '@/api/route'
+import { parseWaypointsJson } from '@/libs/route/waypoints'
+import RouteThumbnail from '@/components/route-thumbnail/index.vue'
+import RouteWaypointEditor from '@/components/route-waypoint-editor/index.vue'
 
 const { t } = useTranslation()
 
@@ -172,6 +194,16 @@ async function saveRoute() {
   errorMessage.value = ''
   successMessage.value = ''
   try {
+    if (form.waypointsJson.trim()) {
+      try {
+        JSON.parse(form.waypointsJson)
+      } catch {
+        throw new Error(t('routes.invalidWaypointsJson'))
+      }
+      if (!parseWaypointsJson(form.waypointsJson).length) {
+        throw new Error(t('routes.invalidWaypointsJson'))
+      }
+    }
     if (editingRouteCode.value) {
       await updateRoute(editingRouteCode.value, {
         routeName: form.routeName,
@@ -209,7 +241,7 @@ onMounted(() => {
 }
 
 .route-panel {
-  max-width: 980px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
@@ -258,6 +290,15 @@ onMounted(() => {
   grid-column: 1 / -1;
 }
 
+.map-field {
+  display: grid;
+  gap: 8px;
+}
+
+.field-label {
+  color: var(--st-text-muted);
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -283,6 +324,7 @@ td {
   padding: 10px;
   border-bottom: 1px solid var(--st-border);
   text-align: left;
+  vertical-align: middle;
 }
 
 .empty {

@@ -185,6 +185,7 @@
               <th>{{ $t('tasks.taskInfo') }}</th>
               <th>{{ $t('tasks.device') }}</th>
               <th>{{ $t('nav.routes') }}</th>
+              <th>{{ $t('tasks.routePreview') }}</th>
               <th>{{ $t('tasks.plannedTime') }}</th>
               <th>{{ $t('common.status') }}</th>
               <th>{{ $t('common.actions') }}</th>
@@ -211,6 +212,15 @@
                 <small v-if="task.routeCode">{{ task.routeCode }}</small>
               </td>
               <td>
+                <RouteThumbnail
+                  v-if="task.routeCode"
+                  :waypoints-json="routeWaypoints(task.routeCode)"
+                  :title="task.routeName || task.routeCode || ''"
+                  :empty-label="$t('routes.noWaypoints')"
+                />
+                <span v-else class="muted">{{ $t('tasks.unbound') }}</span>
+              </td>
+              <td>
                 <span>{{ formatDateTime(task.planStartTime) }}</span>
                 <small>{{ $t('tasks.timeTo', { time: formatDateTime(task.planEndTime) }) }}</small>
               </td>
@@ -221,12 +231,27 @@
               </td>
               <td>
                 <div class="row-actions">
+                  <RouterLink
+                    v-if="task.status === 'RUNNING'"
+                    class="map-link"
+                    to="/map"
+                  >
+                    {{ $t('tasks.viewLiveMap') }}
+                  </RouterLink>
                   <button
                     type="button"
                     :disabled="loading"
                     @click="selectTask(task.taskCode)"
                   >
                     {{ $t('tasks.evidence') }}
+                  </button>
+                  <button
+                    v-if="task.status === 'RUNNING' || task.status === 'COMPLETED'"
+                    type="button"
+                    :disabled="loading"
+                    @click="selectReplayTask(task.taskCode)"
+                  >
+                    {{ $t('tasks.replay') }}
                   </button>
                   <template v-if="canOperate">
                     <button
@@ -264,11 +289,33 @@
             </tr>
 
             <tr v-if="tasks.length === 0">
-              <td colspan="6" class="empty-cell">{{ $t('tasks.empty') }}</td>
+              <td colspan="7" class="empty-cell">{{ $t('tasks.empty') }}</td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <section v-if="replayTaskCode" class="evidence-panel">
+        <div class="evidence-header">
+          <div>
+            <h2>{{ $t('tasks.replayTitle', { code: replayTaskCode }) }}</h2>
+            <p>{{ $t('tasks.replayHint') }}</p>
+          </div>
+          <button class="secondary-button" type="button" @click="closeReplay">
+            {{ $t('common.close') }}
+          </button>
+        </div>
+        <TelemetryReplay
+          :points="replayPoints"
+          :loading="replayLoading"
+          :loading-label="$t('tasks.replayLoading')"
+          :empty-label="$t('tasks.replayEmpty')"
+          :play-label="$t('tasks.replayPlay')"
+          :pause-label="$t('tasks.replayPause')"
+          :altitude-label="$t('tasks.replayAltitude')"
+          :heading-label="$t('tasks.replayHeading')"
+        />
+      </section>
 
       <section v-if="selectedTaskCode" class="evidence-panel">
         <div class="evidence-header">
@@ -347,11 +394,15 @@ import {
   completeInspectionTask,
   createInspectionTask,
   getInspectionTasks,
+  getTaskTelemetryTrack,
   startInspectionTask,
   updateInspectionTask,
   type InspectionTask,
+  type TaskTelemetryPoint,
 } from '@/api/inspection-task'
 import { createEvidencePreviewUrl } from '@/api/evidence'
+import RouteThumbnail from '@/components/route-thumbnail/index.vue'
+import TelemetryReplay from '@/components/telemetry-replay/index.vue'
 
 interface TaskForm {
   taskCode: string
@@ -369,6 +420,9 @@ const devices = ref<Device[]>([])
 const routes = ref<Route[]>([])
 const evidenceList = ref<EvidenceAsset[]>([])
 const selectedTaskCode = ref('')
+const replayTaskCode = ref('')
+const replayPoints = ref<TaskTelemetryPoint[]>([])
+const replayLoading = ref(false)
 const loading = ref(false)
 const evidenceLoading = ref(false)
 const evidenceOpeningCode = ref('')
@@ -459,7 +513,11 @@ const loadTasks = async () => {
   errorMessage.value = ''
 
   try {
-    tasks.value = await getInspectionTasks()
+    const [taskList] = await Promise.all([
+      getInspectionTasks(),
+      loadRoutes(),
+    ])
+    tasks.value = taskList
   } catch (error) {
     errorMessage.value = errorText(error, t('tasks.loadFailed'))
   } finally {
@@ -467,9 +525,39 @@ const loadTasks = async () => {
   }
 }
 
+const routeByCode = computed(() => {
+  const map = new Map<string, Route>()
+  for (const route of routes.value) {
+    map.set(route.routeCode, route)
+  }
+  return map
+})
+
+const routeWaypoints = (routeCode: string) =>
+  routeByCode.value.get(routeCode)?.waypointsJson ?? null
+
+
 const selectTask = async (taskCode: string) => {
   selectedTaskCode.value = taskCode
   await loadEvidence(taskCode)
+}
+
+const selectReplayTask = async (taskCode: string) => {
+  replayTaskCode.value = taskCode
+  replayLoading.value = true
+  replayPoints.value = []
+  try {
+    replayPoints.value = await getTaskTelemetryTrack(taskCode)
+  } catch (error) {
+    errorMessage.value = errorText(error, t('tasks.replayLoadFailed'))
+  } finally {
+    replayLoading.value = false
+  }
+}
+
+const closeReplay = () => {
+  replayTaskCode.value = ''
+  replayPoints.value = []
 }
 
 const loadEvidence = async (taskCode: string) => {
@@ -612,7 +700,7 @@ const runTaskAction = async (
 }
 
 const isTerminal = (status: string) =>
-  status === 'COMPLETED' || status === 'CANCELLED'
+  status === 'COMPLETED' || status === 'CANCELLED' || status === 'TIMED_OUT'
 
 const statusLabel = (status: string) => {
   const key = `tasks.status.${status}`
@@ -873,6 +961,23 @@ td small {
 
 .row-actions button {
   padding: 6px 9px;
+  font-size: 12px;
+}
+
+.map-link {
+  padding: 6px 9px;
+  font-size: 12px;
+  border: 1px solid var(--st-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--st-color-primary) 18%, transparent);
+  color: var(--st-text);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.muted {
+  color: var(--st-text-muted);
   font-size: 12px;
 }
 

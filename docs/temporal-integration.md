@@ -54,7 +54,9 @@ localhost:7233
 
 Java Worker 使用 `skytrace-inspection-task-queue`，已注册：
 
-- `InspectionWorkflow`：启动、查询状态、完成、取消，以及 `alarmDetected` Signal；
+- `InspectionWorkflow`：启动校验、RUNNING、完成/取消 Signal（幂等）、告警 Signal、
+  **最长 24h 超时 → TIMED_OUT**；Query 含 `status` / `lastAlarmEventCode` /
+  `startedAtEpochMs` / `finishReason`；
 - `InspectionAnalysisWorkflow`：可靠的完整 AI 分析；
 - `InspectionChatWorkflow`：同步聊天分析。
 
@@ -73,7 +75,10 @@ POST /api/evidence
 
 其中 `/analysis` 的完整结果由 Workflow 编排；`/analysis/stream` 直接透传 SSE，
 避免将每个模型 Token 记录到 Temporal 历史。两条通道均在成功完成后保存分析
-记录。`/status` 会返回 `lastAlarmEventCode`。
+记录。`/status` 会返回 `lastAlarmEventCode`、`startedAtEpochMs`、`finishReason`。
+
+水平扩展（多 Worker、MQTT 单订阅者、Socket.IO Redis adapter）见
+[horizontal-scaling.md](./horizontal-scaling.md)。
 
 ## RabbitMQ 与 Temporal 的关系
 
@@ -105,4 +110,6 @@ Temporal Nexus 适合跨 Temporal 应用的可靠服务调用。官方文档说�
 
 1. 将真实 YOLO/视觉推理结果接入现有检测投递通道。
 2. 在 Workflow Activity 中补充证据归档与通知编排。
-3. 生产环境规划 Namespace、mTLS/API Key、权限、归档和可观测性。
+3. 按任务 `planEndTime` 动态设置 await 超时（替代固定 24h）。
+4. 生产环境规划 Namespace、mTLS/API Key、权限、归档和可观测性。
+5. MQTT 多活：Shared Subscription 或选主，避免双订阅重复。

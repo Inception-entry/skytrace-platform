@@ -82,6 +82,10 @@ export class AlarmRealtimeGateway implements
     this.server.emit('alarm.created', alarm);
   }
 
+  broadcastDeviceTelemetry(telemetry: unknown) {
+    this.server.emit('device.telemetry', telemetry);
+  }
+
   private async authenticate(
     client: Socket,
     next: (error?: Error) => void,

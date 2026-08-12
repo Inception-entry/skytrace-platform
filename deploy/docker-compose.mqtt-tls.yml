@@ -1,0 +1,21 @@
+# Optional overlay: MQTT over TLS (mqtts://mqtt:8883) for local/pre-prod drills.
+# Prerequisites: ./scripts/mqtt-gen-certs.sh
+# Or: ./scripts/skytrace.sh mqtt-tls-start
+services:
+  mqtt:
+    ports:
+      - "127.0.0.1:${MQTT_TLS_HOST_PORT:-8883}:8883"
+    volumes:
+      - ./mqtt/mosquitto-tls.conf:/mosquitto/config/mosquitto-tls.conf:ro
+      - ./mqtt/certs:/mosquitto/certs:ro
+
+  device-sim:
+    environment:
+      MQTT_PORT: "8883"
+      MQTT_TLS: "true"
+      MQTT_TLS_INSECURE: ${MQTT_TLS_INSECURE:-true}
+
+  backend-java:
+    environment:
+      MQTT_BROKER_URL: ssl://mqtt:8883
+      MQTT_TLS_INSECURE: ${MQTT_TLS_INSECURE:-true}
