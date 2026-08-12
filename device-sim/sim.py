@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import signal
 import threading
@@ -20,6 +21,14 @@ DEVICE_CODES = [
     if code.strip()
 ]
 INTERVAL = int(os.getenv("HEARTBEAT_INTERVAL_SEC", "30"))
+TELEMETRY_INTERVAL = float(os.getenv("TELEMETRY_INTERVAL_SEC", "2"))
+TELEMETRY_DEVICE = os.getenv("TELEMETRY_DEVICE_CODE", "UAV-001")
+CENTER_LAT = float(os.getenv("TELEMETRY_CENTER_LAT", "31.2304"))
+CENTER_LON = float(os.getenv("TELEMETRY_CENTER_LON", "121.4737"))
+ORBIT_RADIUS_DEG = float(os.getenv("TELEMETRY_ORBIT_RADIUS_DEG", "0.008"))
+ORBIT_ALTITUDE = float(os.getenv("TELEMETRY_ALTITUDE_M", "120"))
+# 约 90 秒一圈（半径 0.008°）
+ORBIT_OMEGA = float(os.getenv("TELEMETRY_ORBIT_OMEGA", "0.07"))
 
 stopping = threading.Event()
 connected = threading.Event()
@@ -47,6 +56,19 @@ def payload(code: str, **extra: object) -> str:
         },
         ensure_ascii=False,
     )
+
+
+def orbit_position(elapsed: float) -> tuple[float, float, float, float]:
+    """上海附近小环线：返回 lat, lon, altitude, heading(度)。"""
+    angle = elapsed * ORBIT_OMEGA
+    lat = CENTER_LAT + ORBIT_RADIUS_DEG * math.sin(angle)
+    lon = CENTER_LON + ORBIT_RADIUS_DEG * math.cos(angle)
+    # 切线方向（北向为 0°）：d(lat)/dt ∝ cos, d(lon)/dt ∝ -sin
+    heading = (math.degrees(math.atan2(
+        -math.sin(angle),
+        math.cos(angle),
+    )) + 360.0) % 360.0
+    return lat, lon, ORBIT_ALTITUDE, heading
 
 
 def on_connect(client, userdata, flags, reason_code, properties) -> None:
@@ -96,6 +118,10 @@ def main() -> None:
         client.loop_stop()
         raise RuntimeError("MQTT connection acknowledgement timed out")
 
+    started = time.monotonic()
+    next_heartbeat = 0.0
+    next_telemetry = 0.0
+
     try:
         for code in DEVICE_CODES:
             publish(
@@ -107,10 +133,40 @@ def main() -> None:
             )
 
         while not stopping.is_set():
-            for code in DEVICE_CODES:
-                publish(client, code, "heartbeat", payload(code), qos=0)
-                print(f"heartbeat -> {code}", flush=True)
-            stopping.wait(INTERVAL)
+            now_mono = time.monotonic()
+
+            if now_mono >= next_heartbeat:
+                for code in DEVICE_CODES:
+                    publish(client, code, "heartbeat", payload(code), qos=0)
+                    print(f"heartbeat -> {code}", flush=True)
+                next_heartbeat = now_mono + INTERVAL
+
+            if (
+                TELEMETRY_DEVICE in DEVICE_CODES
+                and now_mono >= next_telemetry
+            ):
+                lat, lon, alt, heading = orbit_position(now_mono - started)
+                publish(
+                    client,
+                    TELEMETRY_DEVICE,
+                    "telemetry",
+                    payload(
+                        TELEMETRY_DEVICE,
+                        latitude=round(lat, 7),
+                        longitude=round(lon, 7),
+                        altitude=round(alt, 1),
+                        heading=round(heading, 1),
+                    ),
+                    qos=0,
+                )
+                print(
+                    f"telemetry -> {TELEMETRY_DEVICE} "
+                    f"lat={lat:.5f} lon={lon:.5f} hdg={heading:.0f}",
+                    flush=True,
+                )
+                next_telemetry = now_mono + TELEMETRY_INTERVAL
+
+            stopping.wait(0.2)
     finally:
         for code in DEVICE_CODES:
             info = client.publish(

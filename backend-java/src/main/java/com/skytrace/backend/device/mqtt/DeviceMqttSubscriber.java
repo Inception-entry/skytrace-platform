@@ -170,6 +170,7 @@ public class DeviceMqttSubscriber {
         String prefix = "skytrace/" + properties.getEnv() + "/device/+/";
         String heartbeatFilter = prefix + "heartbeat";
         String statusFilter = prefix + "status";
+        String telemetryFilter = prefix + "telemetry";
 
         mqttClient.subscribe(heartbeatFilter, 0, (topic, message) ->
                 handler.onMessage(
@@ -183,7 +184,14 @@ public class DeviceMqttSubscriber {
                         new String(message.getPayload(), StandardCharsets.UTF_8)
                 )
         );
+        mqttClient.subscribe(telemetryFilter, 0, (topic, message) ->
+                handler.onMessage(
+                        topic,
+                        new String(message.getPayload(), StandardCharsets.UTF_8)
+                )
+        );
 
-        log.info("MQTT 已订阅: {} , {}", heartbeatFilter, statusFilter);
+        log.info("MQTT 已订阅: {} , {} , {}",
+                heartbeatFilter, statusFilter, telemetryFilter);
     }
 }

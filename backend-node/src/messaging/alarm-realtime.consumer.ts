@@ -42,16 +42,22 @@ export class AlarmRealtimeConsumer
           return;
         }
         try {
-          const payload = JSON.parse(message.content.toString('utf8'));
-          this.alarmGateway.broadcastAlarm({
-            success: true,
-            message: 'success',
-            data: payload,
-          });
+          const payload = JSON.parse(message.content.toString('utf8')) as {
+            type?: string;
+          };
+          if (payload?.type === 'device.telemetry') {
+            this.alarmGateway.broadcastDeviceTelemetry(payload);
+          } else {
+            this.alarmGateway.broadcastAlarm({
+              success: true,
+              message: 'success',
+              data: payload,
+            });
+          }
           this.channel.ack(message);
         } catch (error) {
           this.logger.warn(
-            `failed to broadcast realtime alarm: ${String(error)}`,
+            `failed to broadcast realtime event: ${String(error)}`,
           );
           this.channel.nack(message, false, false);
         }

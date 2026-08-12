@@ -22,6 +22,10 @@ services:
       MQTT_CLIENT_ID: skytrace-device-sim
       DEVICE_CODES: UAV-001,CAMERA-001
       HEARTBEAT_INTERVAL_SEC: "15"
+      TELEMETRY_INTERVAL_SEC: "2"
+      TELEMETRY_DEVICE_CODE: UAV-001
+      TELEMETRY_CENTER_LAT: "31.2304"
+      TELEMETRY_CENTER_LON: "121.4737"
     depends_on:
       - mqtt
     networks:
