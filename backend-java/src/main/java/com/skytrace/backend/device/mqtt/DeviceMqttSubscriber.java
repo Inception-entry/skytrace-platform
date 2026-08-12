@@ -14,7 +14,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.UUID;
 
 /**
@@ -53,6 +58,7 @@ public class DeviceMqttSubscriber {
             options.setUserName(properties.getUsername());
             options.setPassword(properties.getPassword().toCharArray());
         }
+        applyTlsIfNeeded(options, properties.getBrokerUrl());
 
         String clientId = properties.getClientId() + "-" + UUID.randomUUID();
         final MqttClient mqttClient;
@@ -164,6 +170,49 @@ public class DeviceMqttSubscriber {
         throw last == null
                 ? new IllegalStateException("MQTT 连接失败")
                 : last;
+    }
+
+    private void applyTlsIfNeeded(MqttConnectOptions options, String brokerUrl) {
+        if (brokerUrl == null) {
+            return;
+        }
+        String lower = brokerUrl.toLowerCase();
+        if (!lower.startsWith("ssl://") && !lower.startsWith("mqtts://")) {
+            return;
+        }
+        if (!properties.isTlsInsecure()) {
+            log.info("MQTT TLS 已启用（使用 JVM 默认信任库）: {}", brokerUrl);
+            return;
+        }
+        try {
+            TrustManager[] trustAll = new TrustManager[]{
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(
+                                X509Certificate[] chain, String authType) {
+                        }
+
+                        @Override
+                        public void checkServerTrusted(
+                                X509Certificate[] chain, String authType) {
+                        }
+
+                        @Override
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+                    }
+            };
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, trustAll, new SecureRandom());
+            options.setSocketFactory(context.getSocketFactory());
+            log.warn(
+                    "MQTT TLS insecure 模式已开启（仅本地自签），broker={}",
+                    brokerUrl
+            );
+        } catch (Exception error) {
+            throw new IllegalStateException("配置 MQTT TLS 失败", error);
+        }
     }
 
     private void subscribeAll(MqttClient mqttClient) throws MqttException {

@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${SKYTRACE_ENV_FILE:-$ROOT_DIR/deploy/.env}"
 COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.yml"
 MQTT_COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.mqtt.yml"
+MQTT_TLS_COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.mqtt-tls.yml"
 
 compose() {
   docker compose \
@@ -20,6 +21,15 @@ compose_mqtt() {
     --env-file "$ENV_FILE" \
     -f "$COMPOSE_FILE" \
     -f "$MQTT_COMPOSE_FILE" \
+    "$@"
+}
+
+compose_mqtt_tls() {
+  docker compose \
+    --env-file "$ENV_FILE" \
+    -f "$COMPOSE_FILE" \
+    -f "$MQTT_COMPOSE_FILE" \
+    -f "$MQTT_TLS_COMPOSE_FILE" \
     "$@"
 }
 
@@ -47,6 +57,7 @@ show_help() {
   skytrace.sh auth-verify          执行 ADMIN/OPERATOR/VIEWER 权限验收
   skytrace.sh auth-token           获取 skytrace-service 的 Bearer Token
   skytrace.sh mqtt-start           启动 Mosquitto + device-sim，并启用 Java MQTT
+  skytrace.sh mqtt-tls-start       同上，并启用本地自签 mqtts（需先 mqtt-gen-certs）
   skytrace.sh mqtt-stop            停止 Mosquitto + device-sim
   skytrace.sh mqtt-logs            查看 MQTT / device-sim 日志
   skytrace.sh cleanup              停栈并清理 orphan（端口 500 时先跑这个）
@@ -64,6 +75,7 @@ show_help() {
   skytrace.sh auth-verify
   skytrace.sh auth-token
   skytrace.sh mqtt-start
+  skytrace.sh mqtt-tls-start
   skytrace.sh mqtt-logs
   skytrace.sh logs backend-ai
   skytrace.sh logs backend-java
@@ -139,15 +151,15 @@ case "$ACTION" in
     fi
     ;;
   cleanup)
-    # WSL/Docker Desktop 常见：容器已停但端口转发僵尸，表现为 expose status 500
+    # WSL + Docker Engine 常见：容器已停但端口转发残留，表现为 expose status 500
     compose down --remove-orphans || true
     if [[ -f "$MQTT_COMPOSE_FILE" ]]; then
       compose_mqtt down --remove-orphans || true
     fi
     echo "已执行 compose down --remove-orphans"
     echo "若 start 仍报 ports ... status 500："
-    echo "  1) Docker Desktop → Restart"
-    echo "  2) 或 Windows PowerShell: wsl --shutdown 后再开 Docker / 终端"
+    echo "  1) sudo systemctl restart docker"
+    echo "  2) 仍不行则 Windows PowerShell: wsl --shutdown，再开 WSL 并确认 docker 服务已启动"
     ;;
   restart)
     compose restart "$@"
@@ -228,11 +240,26 @@ print(token)
     compose_mqtt up -d --build mqtt device-sim
     compose_mqtt up -d --force-recreate --no-deps backend-java
     echo "MQTT 已启动：skytrace-mqtt / skytrace-device-sim（backend-java 已启用 MQTT）"
+    echo "认证：backend / device-sim 用户名密码见 deploy/.env（默认见 .env.example）"
+    ;;
+  mqtt-tls-start)
+    if [[ ! -f "$MQTT_COMPOSE_FILE" || ! -f "$MQTT_TLS_COMPOSE_FILE" ]]; then
+      echo "缺少 MQTT / MQTT-TLS 叠加文件"
+      exit 1
+    fi
+    bash "$ROOT_DIR/scripts/mqtt-gen-certs.sh"
+    compose_mqtt_tls up -d --build mqtt device-sim
+    compose_mqtt_tls up -d --force-recreate --no-deps backend-java
+    echo "MQTT TLS 已启动：1883 + 8883（mqtts）；Java/sim 使用 ssl://mqtt:8883"
+    echo "本地自签默认 MQTT_TLS_INSECURE=true；生产请换受信 CA 并设为 false"
     ;;
   mqtt-stop)
     if [[ ! -f "$MQTT_COMPOSE_FILE" ]]; then
       echo "缺少 MQTT 叠加文件：$MQTT_COMPOSE_FILE"
       exit 1
+    fi
+    if [[ -f "$MQTT_TLS_COMPOSE_FILE" ]]; then
+      compose_mqtt_tls stop device-sim mqtt || true
     fi
     compose_mqtt stop device-sim mqtt
     echo "MQTT 已停止：skytrace-mqtt / skytrace-device-sim"

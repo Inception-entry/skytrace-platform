@@ -12,6 +12,14 @@ import paho.mqtt.client as mqtt
 MQTT_HOST = os.getenv("MQTT_HOST", "127.0.0.1")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 MQTT_ENV = os.getenv("MQTT_ENV", "local")
+MQTT_USERNAME = os.getenv("MQTT_USERNAME", "").strip()
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
+MQTT_TLS = os.getenv("MQTT_TLS", "false").lower() in ("1", "true", "yes")
+MQTT_TLS_INSECURE = os.getenv("MQTT_TLS_INSECURE", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 DEVICE_CODES = [
     code.strip()
     for code in os.getenv(
@@ -108,6 +116,14 @@ def main() -> None:
         mqtt.CallbackAPIVersion.VERSION2,
         client_id=os.getenv("MQTT_CLIENT_ID", "skytrace-device-sim"),
     )
+    if MQTT_USERNAME:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    if MQTT_TLS:
+        # 本地自签可用 insecure；生产应挂载 CA 并关闭 insecure。
+        client.tls_set()
+        if MQTT_TLS_INSECURE:
+            client.tls_insecure_set(True)
+            print("MQTT TLS insecure mode enabled", flush=True)
     client.on_connect = on_connect
     client.reconnect_delay_set(min_delay=1, max_delay=30)
 

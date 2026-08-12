@@ -3,10 +3,18 @@ services:
     image: eclipse-mosquitto:2
     container_name: skytrace-mqtt
     restart: unless-stopped
+    entrypoint: ["/bin/sh", "/mosquitto/config/docker-entrypoint.sh"]
     ports:
       - "127.0.0.1:${MQTT_HOST_PORT:-1883}:1883"
+    environment:
+      MQTT_BACKEND_USERNAME: ${MQTT_BACKEND_USERNAME:-backend}
+      MQTT_BACKEND_PASSWORD: ${MQTT_BACKEND_PASSWORD:-skytrace-mqtt-backend}
+      MQTT_SIM_USERNAME: ${MQTT_SIM_USERNAME:-device-sim}
+      MQTT_SIM_PASSWORD: ${MQTT_SIM_PASSWORD:-skytrace-mqtt-sim}
     volumes:
       - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mqtt/acl.conf:/mosquitto/config/acl.conf:ro
+      - ./mqtt/docker-entrypoint.sh:/mosquitto/config/docker-entrypoint.sh:ro
     networks:
       - backend
 
@@ -20,6 +28,8 @@ services:
       MQTT_PORT: "1883"
       MQTT_ENV: ${MQTT_ENV:-local}
       MQTT_CLIENT_ID: skytrace-device-sim
+      MQTT_USERNAME: ${MQTT_SIM_USERNAME:-device-sim}
+      MQTT_PASSWORD: ${MQTT_SIM_PASSWORD:-skytrace-mqtt-sim}
       DEVICE_CODES: UAV-001,CAMERA-001
       HEARTBEAT_INTERVAL_SEC: "15"
       TELEMETRY_INTERVAL_SEC: "2"
@@ -27,7 +37,8 @@ services:
       TELEMETRY_CENTER_LAT: "31.2304"
       TELEMETRY_CENTER_LON: "121.4737"
     depends_on:
-      - mqtt
+      mqtt:
+        condition: service_started
     networks:
       - backend
 
@@ -37,6 +48,8 @@ services:
       MQTT_BROKER_URL: tcp://mqtt:1883
       MQTT_ENV: ${MQTT_ENV:-local}
       MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-skytrace-backend-java}
+      MQTT_USERNAME: ${MQTT_BACKEND_USERNAME:-backend}
+      MQTT_PASSWORD: ${MQTT_BACKEND_PASSWORD:-skytrace-mqtt-backend}
     depends_on:
       mqtt:
         condition: service_started
