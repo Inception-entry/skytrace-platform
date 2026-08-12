@@ -8,9 +8,10 @@ test.describe('SkyTrace live map shell', () => {
 
     await page.goto('/map')
     await expect(page.locator('.map-shell')).toBeVisible({ timeout: 30_000 })
-    // Cesium 容器由 st-cesium-vue 挂载；至少保证地图壳与 canvas/容器出现
+    // 不要用 `.map-shell > div`：Cesium loaded 后首个子节点是隐藏的 UI overlay，
+    // `.first()` 会命中它并误报 hidden。只认 Cesium 自己的 viewer / canvas。
     await expect(
-      page.locator('.map-shell canvas, .map-shell [class*="cesium"], .map-shell > div').first(),
+      page.locator('.map-shell .cesium-viewer, .map-shell canvas').first(),
     ).toBeVisible({ timeout: 60_000 })
   })
 })
