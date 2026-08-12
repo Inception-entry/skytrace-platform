@@ -48,6 +48,7 @@ public class EvidenceManifestService {
                         asset.getAlarmEventCode(),
                         asset.getBucket(),
                         asset.getObjectKey(),
+                        // ZIP 内部路径以 evidenceCode 为准，避免原始文件名重复或包含不安全字符。
                         "files/" + asset.getEvidenceCode()
                                 + resolveExtension(asset)
                 ))
@@ -58,6 +59,7 @@ public class EvidenceManifestService {
             EvidenceArchiveJob job,
             List<ArchivedEvidenceFile> files) {
         try {
+            // 使用有序 Map，保证导出的 JSON 字段顺序稳定，便于人工核对和差异比较。
             Map<String, Object> root = new LinkedHashMap<>();
             root.put("jobCode", job.getJobCode());
             root.put("scopeType", job.getScopeType().name());
@@ -72,6 +74,7 @@ public class EvidenceManifestService {
 
             List<Map<String, Object>> manifestFiles = new ArrayList<>();
             for (ArchivedEvidenceFile file : files) {
+                // manifest 中记录的 archivePath 必须与 ZIP 里的真实条目路径完全一致。
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("evidenceCode", file.evidenceCode());
                 item.put("archivePath", file.archivePath());
@@ -94,6 +97,7 @@ public class EvidenceManifestService {
     public byte[] buildChecksums(List<ArchivedEvidenceFile> files) {
         StringBuilder builder = new StringBuilder();
         for (ArchivedEvidenceFile file : files) {
+            // 采用 "<hash>  <path>" 的常见 sha256 清单格式，便于外部工具复核。
             builder.append(stripPrefix(file.contentHash()))
                     .append("  ")
                     .append(file.archivePath())
@@ -108,6 +112,7 @@ public class EvidenceManifestService {
             return filename.substring(filename.lastIndexOf('.'))
                     .toLowerCase(Locale.ROOT);
         }
+        // 原始文件名缺失扩展名时，回退到 contentType 推断，保证归档文件仍可识别。
         return switch (asset.getContentType()) {
             case "image/png" -> ".png";
             case "image/webp" -> ".webp";

@@ -26,6 +26,9 @@ public class AuditActionResolver {
     private static final Pattern EVIDENCE_ARCHIVE_JOB = Pattern.compile(
             "^/evidence/archive-jobs(?:/([^/]+)(?:/(download-url|manifest-url))?)?$"
     );
+    private static final Pattern EVIDENCE_MAINTENANCE = Pattern.compile(
+            "^/admin/evidence-maintenance/(hash-backfill|cleanup)$"
+    );
 
     public boolean shouldAudit(HttpServletRequest request) {
         String method = request.getMethod();
@@ -109,6 +112,20 @@ public class AuditActionResolver {
                     ? "EVIDENCE_BATCH_REVIEW"
                     : "EVIDENCE_BATCH_TAGS";
             return new AuditDescriptor(action, "EVIDENCE", null);
+        }
+
+        Matcher evidenceMaintenance = EVIDENCE_MAINTENANCE.matcher(path);
+        if (evidenceMaintenance.matches()) {
+            String action = "hash-backfill".equals(
+                    evidenceMaintenance.group(1)
+            )
+                    ? "EVIDENCE_HASH_BACKFILL"
+                    : "EVIDENCE_CLEANUP_EXECUTE";
+            return new AuditDescriptor(
+                    action,
+                    "EVIDENCE_MAINTENANCE",
+                    null
+            );
         }
 
         Matcher archiveJob = EVIDENCE_ARCHIVE_JOB.matcher(path);

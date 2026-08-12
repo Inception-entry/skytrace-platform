@@ -27,6 +27,8 @@ export interface EvidenceSummary {
   createdAt: string
   deleted: boolean
   reviewStatus?: EvidenceReviewStatus | string
+  contentHash?: string | null
+  archiveStatus?: string | null
   tags?: EvidenceTag[]
   thumbnailUrl?: string | null
   posterUrl?: string | null
@@ -58,6 +60,27 @@ export interface EvidencePage {
 export interface EvidenceAccessUrl {
   url: string
   expiresAt: string
+}
+
+export type EvidenceArchiveJobStatus =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'COMPLETED'
+  | 'FAILED'
+
+export interface EvidenceArchiveJob {
+  jobCode: string
+  scopeType: 'TASK' | 'ALARM' | string
+  scopeValue: string
+  status: EvidenceArchiveJobStatus | string
+  outputObjectKey: string | null
+  manifestObjectKey: string | null
+  packageContentHash: string | null
+  totalFiles: number
+  totalBytes: number
+  createdAt: string
+  completedAt: string | null
+  errorMessage: string | null
 }
 
 export interface EvidenceSearchParams {
@@ -174,4 +197,35 @@ export function batchTagEvidence(payload: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
+}
+
+export function createEvidenceArchiveJob(payload: {
+  scopeType: 'TASK' | 'ALARM'
+  scopeValue: string
+}) {
+  return request<EvidenceArchiveJob>('/api/evidence/archive-jobs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function getEvidenceArchiveJob(jobCode: string) {
+  return request<EvidenceArchiveJob>(
+    `/api/evidence/archive-jobs/${encodeURIComponent(jobCode)}`,
+  )
+}
+
+export function createEvidenceArchiveDownloadUrl(jobCode: string) {
+  return request<EvidenceAccessUrl>(
+    `/api/evidence/archive-jobs/${encodeURIComponent(jobCode)}/download-url`,
+    { method: 'POST' },
+  )
+}
+
+export function createEvidenceArchiveManifestUrl(jobCode: string) {
+  return request<EvidenceAccessUrl>(
+    `/api/evidence/archive-jobs/${encodeURIComponent(jobCode)}/manifest-url`,
+    { method: 'POST' },
+  )
 }

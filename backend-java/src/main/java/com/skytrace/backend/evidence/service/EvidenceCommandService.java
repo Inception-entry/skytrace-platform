@@ -1,6 +1,7 @@
 package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
+import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
 import com.skytrace.backend.evidence.domain.EvidenceDerivativeStatus;
 import com.skytrace.backend.evidence.domain.EvidenceReviewStatus;
 import com.skytrace.backend.evidence.domain.EvidenceSourceType;
@@ -108,6 +109,14 @@ public class EvidenceCommandService {
         EvidenceAsset asset = queryService.requireAny(evidenceCode);
         if (!asset.isDeleted()) {
             throw new IllegalArgumentException("证据未被删除，无需恢复");
+        }
+        // PURGING 已被清理任务原子认领，恢复会与对象删除形成竞态，必须先拒绝。
+        if (asset.getArchiveStatus() == EvidenceArchiveStatus.PURGING) {
+            throw new IllegalStateException("证据正在物理清理，暂时不能恢复");
+        }
+        // PURGED 只保留数据库墓碑，原始对象已经不存在，不能恢复成可访问证据。
+        if (asset.getArchiveStatus() == EvidenceArchiveStatus.PURGED) {
+            throw new IllegalStateException("证据内容已物理清理，不能恢复");
         }
         asset.setDeleted(false);
         asset.setDeletedAt(null);

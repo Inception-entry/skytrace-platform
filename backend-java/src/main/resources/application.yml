@@ -16,8 +16,9 @@ spring:
       request-timeout: 300000
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 11MB
+      # 单文件默认留在 Gateway/Nginx 20 MB 请求上限以内，为 multipart 边界预留空间。
+      max-file-size: ${EVIDENCE_MAX_FILE_SIZE:19MB}
+      max-request-size: ${EVIDENCE_MAX_REQUEST_SIZE:20MB}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -61,12 +62,31 @@ app:
   minio:
     enabled: ${MINIO_ENABLED:true}
     endpoint: ${MINIO_ENDPOINT:http://localhost:9011}
+    public-endpoint: ${MINIO_PUBLIC_ENDPOINT:${MINIO_ENDPOINT:http://localhost:9011}}
+    region: ${MINIO_REGION:us-east-1}
     access-key: ${MINIO_ACCESS_KEY:minioadmin}
     secret-key: ${MINIO_SECRET_KEY:minioadmin123}
     evidence-bucket: ${MINIO_EVIDENCE_BUCKET:skytrace-evidence}
     public-read-enabled: ${MINIO_PUBLIC_READ_ENABLED:false}
     presign-preview-ttl-seconds: ${MINIO_PRESIGN_PREVIEW_TTL_SECONDS:300}
     presign-download-ttl-seconds: ${MINIO_PRESIGN_DOWNLOAD_TTL_SECONDS:300}
+    connect-timeout: ${MINIO_CONNECT_TIMEOUT:5s}
+    read-timeout: ${MINIO_READ_TIMEOUT:5m}
+    write-timeout: ${MINIO_WRITE_TIMEOUT:5m}
+    archive-temp-dir: ${MINIO_ARCHIVE_TEMP_DIR:${java.io.tmpdir}/skytrace-evidence-archives}
+  evidence:
+    maintenance:
+      hash-backfill-enabled: ${EVIDENCE_HASH_BACKFILL_ENABLED:false}
+      hash-backfill-batch-size: ${EVIDENCE_HASH_BACKFILL_BATCH_SIZE:25}
+      hash-backfill-retry-hours: ${EVIDENCE_HASH_BACKFILL_RETRY_HOURS:24}
+      hash-backfill-fixed-delay-ms: ${EVIDENCE_HASH_BACKFILL_DELAY_MS:300000}
+      hash-backfill-initial-delay-ms: ${EVIDENCE_HASH_BACKFILL_INITIAL_DELAY_MS:60000}
+      cleanup-enabled: ${EVIDENCE_CLEANUP_ENABLED:false}
+      cleanup-dry-run: ${EVIDENCE_CLEANUP_DRY_RUN:true}
+      cleanup-retention-days: ${EVIDENCE_CLEANUP_RETENTION_DAYS:90}
+      cleanup-batch-size: ${EVIDENCE_CLEANUP_BATCH_SIZE:20}
+      cleanup-cron: "${EVIDENCE_CLEANUP_CRON:0 30 3 * * *}"
+      cleanup-stale-claim-hours: ${EVIDENCE_CLEANUP_STALE_CLAIM_HOURS:6}
   messaging:
     enabled: ${MESSAGING_ENABLED:true}
   cache:

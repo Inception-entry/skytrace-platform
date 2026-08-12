@@ -1,7 +1,9 @@
 # 证据中心 Phase 3：代码级实现参考
 
 > 前置：Phase 1 + Phase 2 已稳定。
-> 本文给出归档 / 哈希 / Temporal 打包的**可粘贴核心代码**。
+> 本文给出归档 / 哈希 / Temporal 打包的核心结构。2026-08-11 之后的完整实现还包含
+> V18 历史回填、物理清理、包级校验和压测；实际源码优先于本文的教学节选，生产操作见
+> [evidence-maintenance-runbook.md](./evidence-maintenance-runbook.md)。
 
 ---
 
@@ -45,6 +47,23 @@ CREATE TABLE evidence_archive_job (
 );
 ```
 
+### `V18__add_evidence_maintenance_fields.sql`
+
+```sql
+ALTER TABLE evidence_asset
+  ADD COLUMN hash_backfill_attempted_at DATETIME NULL,
+  ADD COLUMN hash_backfill_error VARCHAR(512) NULL,
+  ADD COLUMN purge_started_at DATETIME NULL,
+  ADD COLUMN purged_at DATETIME NULL,
+  ADD COLUMN purge_error VARCHAR(512) NULL;
+
+ALTER TABLE evidence_archive_job
+  ADD COLUMN package_content_hash VARCHAR(128) NULL,
+  ADD COLUMN package_verified_at DATETIME NULL;
+```
+
+迁移文件中还包含回填候选与清理候选索引，完整定义以实际 V18 文件为准。
+
 ---
 
 ## 2. Domain
@@ -52,7 +71,9 @@ CREATE TABLE evidence_archive_job (
 ```java
 public enum EvidenceArchiveStatus {
     ACTIVE,
-    ARCHIVED
+    ARCHIVED,
+    PURGING,
+    PURGED
 }
 
 public enum EvidenceArchiveJobStatus {
@@ -153,6 +174,7 @@ public record EvidenceArchiveJobResponse(
         String status,
         String outputObjectKey,
         String manifestObjectKey,
+        String packageContentHash,
         int totalFiles,
         long totalBytes,
         Instant createdAt,
@@ -297,126 +319,96 @@ public class EvidenceManifestService {
 
 ### `EvidenceArchivePackageService.java`（打包核心）
 
+当前实现已经改为“磁盘临时 ZIP + 固定缓冲区 + 文件上传”，完整逐句注释见
+[`EvidenceArchivePackageService.java`](../../backend-java/src/main/java/com/skytrace/backend/evidence/service/EvidenceArchivePackageService.java)。核心生命周期如下：
+
 ```java
-package com.skytrace.backend.evidence.service;
+private static final int STREAM_BUFFER_SIZE = 64 * 1024;
 
-import com.skytrace.backend.evidence.domain.EvidenceArchiveJob;
-import com.skytrace.backend.evidence.domain.EvidenceAsset;
-import io.minio.GetObjectArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import org.springframework.stereotype.Service;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-
-@Service
-public class EvidenceArchivePackageService {
-
-    private final MinioClient minioClient;
-    private final EvidenceManifestService manifestService;
-    private final EvidenceHashService hashService;
-
-    public EvidenceArchivePackageService(
-            MinioClient minioClient,
-            EvidenceManifestService manifestService,
-            EvidenceHashService hashService) {
-        this.minioClient = minioClient;
-        this.manifestService = manifestService;
-        this.hashService = hashService;
+public ArchivePackageResult buildAndStore(
+        EvidenceArchiveJob job,
+        List<ArchivedEvidenceFile> files,
+        byte[] manifestBytes,
+        byte[] checksumsBytes) {
+    if (files == null || files.isEmpty()) {
+        throw new IllegalArgumentException("归档文件列表不能为空");
     }
 
-    public record PackageResult(
-            String outputObjectKey,
-            String manifestObjectKey,
-            int totalFiles,
-            long totalBytes
-    ) {
-    }
-
-    public PackageResult buildAndUpload(
-            EvidenceArchiveJob job,
-            List<EvidenceAsset> assets,
-            String archiveBucket) throws Exception {
-        // 1) 补齐缺失哈希
-        for (EvidenceAsset asset : assets) {
-            if (asset.getContentHash() == null || asset.getContentHash().isBlank()) {
-                try (var in = minioClient.getObject(
-                        GetObjectArgs.builder()
-                                .bucket(asset.getBucket())
-                                .object(asset.getObjectKey())
-                                .build())) {
-                    asset.setContentHash(hashService.sha256Hex(in));
-                }
-            }
-        }
-
-        byte[] manifest = manifestService.toJson(job, assets);
-        byte[] checksums = manifestService.toChecksums(assets);
-
-        ByteArrayOutputStream zipBuffer = new ByteArrayOutputStream();
-        long totalBytes = 0;
-        try (ZipOutputStream zip = new ZipOutputStream(zipBuffer)) {
-            zip.putNextEntry(new ZipEntry("manifest.json"));
-            zip.write(manifest);
-            zip.closeEntry();
-
-            zip.putNextEntry(new ZipEntry("checksums.sha256"));
-            zip.write(checksums);
-            zip.closeEntry();
-
-            for (EvidenceAsset asset : assets) {
-                String entryName = "files/" + asset.getEvidenceCode()
-                        + extensionOf(asset.getOriginalFilename());
-                zip.putNextEntry(new ZipEntry(entryName));
-                try (var in = minioClient.getObject(
-                        GetObjectArgs.builder()
-                                .bucket(asset.getBucket())
-                                .object(asset.getObjectKey())
-                                .build())) {
-                    totalBytes += in.transferTo(zip);
-                }
-                zip.closeEntry();
-            }
-        }
-
-        String zipKey = "archives/" + job.getJobCode() + ".zip";
-        String manifestKey = "archives/" + job.getJobCode() + ".manifest.json";
-        byte[] zipBytes = zipBuffer.toByteArray();
-
-        minioClient.putObject(
-                PutObjectArgs.builder()
-                        .bucket(archiveBucket)
-                        .object(zipKey)
-                        .stream(new ByteArrayInputStream(zipBytes), zipBytes.length, -1)
-                        .contentType("application/zip")
-                        .build()
+    String jobCode = job.getJobCode();
+    Path temporaryZip = null;
+    try {
+        String packageObjectKey = "archives/" + jobCode
+                + "/" + jobCode + ".zip";
+        String manifestObjectKey = "archives/" + jobCode
+                + "/manifest.json";
+        String bucket = files.getFirst().bucket();
+        // 每个任务创建唯一的磁盘临时文件。
+        temporaryZip = createTemporaryZip();
+        // 原始 MinIO 对象逐段写入 ZIP，不生成完整 zipBytes。
+        writeZipToFile(
+                temporaryZip,
+                files,
+                manifestBytes,
+                checksumsBytes
         );
-        minioClient.putObject(
-                PutObjectArgs.builder()
-                        .bucket(archiveBucket)
-                        .object(manifestKey)
-                        .stream(new ByteArrayInputStream(manifest), manifest.length, -1)
-                        .contentType("application/json")
-                        .build()
+        // 再用固定缓冲区读取磁盘 ZIP，保存包级完整性摘要。
+        String packageContentHash = sha256(temporaryZip);
+        // ZipOutputStream 关闭后，SDK 直接读取磁盘文件上传。
+        storageService.uploadObject(
+                bucket,
+                packageObjectKey,
+                temporaryZip,
+                "application/zip"
         );
-
-        return new PackageResult(zipKey, manifestKey, assets.size(), totalBytes);
+        // manifest 是小型元数据，仍单独上传，便于快速查看。
+        storageService.putObject(
+                bucket,
+                manifestObjectKey,
+                manifestBytes,
+                "application/json"
+        );
+        long totalBytes = files.stream()
+                .mapToLong(ArchivedEvidenceFile::sizeBytes)
+                .sum();
+        return new ArchivePackageResult(
+                bucket,
+                packageObjectKey,
+                manifestObjectKey,
+                packageContentHash,
+                files.size(),
+                totalBytes
+        );
+    } catch (Exception exception) {
+        throw new IllegalStateException("生成归档压缩包失败", exception);
+    } finally {
+        // 成功、读取失败或上传失败都会进入这里。
+        deleteTemporaryZip(temporaryZip, jobCode);
     }
+}
 
-    private static String extensionOf(String filename) {
-        if (filename == null || !filename.contains(".")) {
-            return "";
+private static void copy(
+        InputStream source,
+        OutputStream target,
+        byte[] transferBuffer) throws IOException {
+    int bytesRead;
+    while ((bytesRead = source.read(transferBuffer)) != -1) {
+        if (bytesRead > 0) {
+            target.write(transferBuffer, 0, bytesRead);
         }
-        return filename.substring(filename.lastIndexOf('.'));
     }
 }
 ```
 
-> 生产环境大归档应改为临时文件流式 zip，避免全量进内存；Phase 3 第一版可用内存实现，并在文档中标注限制。
+`EvidenceStorageService.uploadObject(...)` 使用 MinIO SDK 的
+`UploadObjectArgs.filename(...)` 直接上传本地文件。归档大小增加时，JVM 堆内存不再随
+ZIP 总大小线性增长；主要固定开销是 64 KiB 复制缓冲区和
+`BufferedOutputStream`。`manifestBytes` 与 `checksumsBytes` 仍在内存中，因为它们只是
+与文件数量相关的小型文本元数据。
+
+临时目录由 `app.minio.archive-temp-dir` 配置，环境变量为
+`MINIO_ARCHIVE_TEMP_DIR`，默认值是
+`${java.io.tmpdir}/skytrace-evidence-archives`。生产环境应把它放到容量受控、可监控的
+专用磁盘，并为进程被强制终止后可能遗留的文件设置巡检或清理策略。
 
 ---
 
@@ -570,9 +562,12 @@ public class EvidenceArchiveWorkflowImpl implements EvidenceArchiveWorkflow {
                     EvidenceArchiveActivities.class,
                     ActivityOptions.newBuilder()
                             .setStartToCloseTimeout(Duration.ofMinutes(30))
+                            .setHeartbeatTimeout(Duration.ofMinutes(10))
                             .setRetryOptions(
                                     RetryOptions.newBuilder()
-                                            .setMaximumAttempts(3)
+                                            .setInitialInterval(Duration.ofSeconds(2))
+                                            .setMaximumInterval(Duration.ofSeconds(30))
+                                            .setMaximumAttempts(8)
                                             .build()
                             )
                             .build()
@@ -665,17 +660,18 @@ Node 透传对应路径；前端在证据页增加「按任务/告警创建归�
 
 ---
 
-## 7. 清理策略（文档位，非必须立刻跑 Job）
+## 7. 已落地的回填与清理链路
 
-建议 `docs/evidence-center/retention-policy.md`：
+实现按职责拆成五层：
 
-```text
-- deleted=true 且未归档：保留 30 天后允许物理删对象
-- ARCHIVED：归档包保留期与对象保留期分离配置
-- 物理清理必须先校验 archive_job COMPLETED 且 checksum 可核验
-```
+1. `EvidenceHashBackfillService` 查询缺失哈希，原子认领后流式回填，失败对象按时间退避。
+2. `EvidenceArchiveIntegrityService` 检查任务状态和对象存在性，每批重算 ZIP SHA-256，校验独立/包内 manifest 一致，并构建证据级索引。
+3. `EvidenceCleanupService` 执行 dry-run、完整条件原子认领、manifest 逐项匹配、原件/派生对象删除、墓碑落库和失败恢复。
+4. `EvidenceMaintenanceAuditService` 用独立事务写 STARTED/SUCCESS/FAILURE 审计。
+5. `EvidenceMaintenanceScheduler/Controller` 分别提供默认关闭的调度入口和 ADMIN 手动入口。
 
-第一版可只文档化，不做自动清理 Worker。
+正式清理只删除在线原件、缩略图和封面；`archives/` 由存储服务硬保护，数据库记录保留为
+`PURGED` 墓碑。精确候选条件、90 天默认保留期和确认串见 Runbook。
 
 ---
 
@@ -696,10 +692,25 @@ void shouldMarkAssetsArchivedOnSuccess() { ... }
 
 ## 9. 粘贴顺序
 
-1. V16 / V17  
+1. V16 / V17 / V18
 2. Domain / DTO / Repository  
 3. Hash / Manifest / Package / ArchiveService  
 4. Temporal Workflow + Activity + Worker  
 5. Controller / Node / Frontend  
-6. retention-policy 文档  
+6. 回填 / 完整性 / 清理 / 审计服务
 7. 测试
+
+## 10. 当前实现阅读入口
+
+按下面顺序阅读，比继续复制本文节选更容易理解真实事务边界：
+
+1. `V18__add_evidence_maintenance_fields.sql`
+2. `EvidenceAssetRepository` 中的候选查询和原子认领 JPQL
+3. `EvidenceHashBackfillService`
+4. `EvidenceArchiveIntegrityService`
+5. `EvidenceCleanupService`
+6. `EvidenceMaintenanceAuditService`
+7. `EvidenceMaintenanceScheduler`
+8. `EvidenceMaintenanceController`
+9. Node `admin.controller.ts` 与 `evidence.controller.ts`
+10. 前端 `EvidenceView.vue` 和 `verify-evidence-archive.sh`

@@ -72,6 +72,28 @@ class AuditActionResolverTest {
                 .isEqualTo("EVIDENCE_ARCHIVE_MANIFEST_URL");
     }
 
+    @Test
+    void resolvesEvidenceMaintenanceActions() {
+        // 管理员手动回填和清理都必须进入 HTTP 审计链路。
+        AuditActionResolver.AuditDescriptor backfill = resolver.resolve(
+                request(
+                        "POST",
+                        "/api/admin/evidence-maintenance/hash-backfill"
+                )
+        );
+        AuditActionResolver.AuditDescriptor cleanup = resolver.resolve(
+                request(
+                        "POST",
+                        "/api/admin/evidence-maintenance/cleanup"
+                )
+        );
+
+        assertThat(backfill.action()).isEqualTo("EVIDENCE_HASH_BACKFILL");
+        assertThat(cleanup.action()).isEqualTo("EVIDENCE_CLEANUP_EXECUTE");
+        assertThat(cleanup.resourceType())
+                .isEqualTo("EVIDENCE_MAINTENANCE");
+    }
+
     private MockHttpServletRequest request(
             String method,
             String uri) {

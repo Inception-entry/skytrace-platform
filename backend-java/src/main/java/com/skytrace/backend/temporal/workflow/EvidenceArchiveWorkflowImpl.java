@@ -14,10 +14,15 @@ public class EvidenceArchiveWorkflowImpl implements EvidenceArchiveWorkflow {
                     EvidenceArchiveActivities.class,
                     ActivityOptions.newBuilder()
                             .setStartToCloseTimeout(Duration.ofMinutes(30))
+                            // Worker 无心跳超过十分钟时，Temporal 可以把 Activity 判为失联并重试。
+                            .setHeartbeatTimeout(Duration.ofMinutes(10))
                             .setRetryOptions(
                                     RetryOptions.newBuilder()
                                             .setInitialInterval(Duration.ofSeconds(2))
-                                            .setMaximumAttempts(3)
+                                            // 指数退避最多等待 30 秒，覆盖短时 MinIO/网络抖动。
+                                            .setMaximumInterval(Duration.ofSeconds(30))
+                                            // 有限重试避免永久占用 Workflow，同时提供约两分钟恢复窗口。
+                                            .setMaximumAttempts(8)
                                             .build()
                             )
                             .build()

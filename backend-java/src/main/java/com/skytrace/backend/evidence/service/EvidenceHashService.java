@@ -3,7 +3,6 @@ package com.skytrace.backend.evidence.service;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -11,7 +10,6 @@ import java.io.OutputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.HexFormat;
-import java.util.List;
 
 @Service
 @ConditionalOnProperty(name = "app.minio.enabled", havingValue = "true")
@@ -45,16 +43,6 @@ public class EvidenceHashService {
                     exception
             );
         }
-    }
-
-    public int backfillMissingHashes(int limit) {
-        int pageSize = Math.max(limit, 1);
-        List<EvidenceAsset> assets =
-                repository.findByDeletedFalseAndContentHashIsNullOrderByCreatedAtAsc(
-                        PageRequest.of(0, pageSize)
-                );
-        assets.forEach(this::ensureContentHash);
-        return assets.size();
     }
 
     public String sha256Hex(InputStream inputStream) {

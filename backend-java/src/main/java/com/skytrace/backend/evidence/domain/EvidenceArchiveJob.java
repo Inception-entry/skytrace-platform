@@ -42,6 +42,12 @@ public class EvidenceArchiveJob {
     @Column(name = "manifest_object_key", length = 512)
     private String manifestObjectKey;
 
+    @Column(name = "package_content_hash", length = 128)
+    private String packageContentHash;
+
+    @Column(name = "package_verified_at")
+    private LocalDateTime packageVerifiedAt;
+
     @Column(name = "total_files", nullable = false)
     private int totalFiles;
 
@@ -121,6 +127,22 @@ public class EvidenceArchiveJob {
 
     public void setManifestObjectKey(String manifestObjectKey) {
         this.manifestObjectKey = manifestObjectKey;
+    }
+
+    public String getPackageContentHash() {
+        return packageContentHash;
+    }
+
+    public void setPackageContentHash(String packageContentHash) {
+        this.packageContentHash = packageContentHash;
+    }
+
+    public LocalDateTime getPackageVerifiedAt() {
+        return packageVerifiedAt;
+    }
+
+    public void setPackageVerifiedAt(LocalDateTime packageVerifiedAt) {
+        this.packageVerifiedAt = packageVerifiedAt;
     }
 
     public int getTotalFiles() {

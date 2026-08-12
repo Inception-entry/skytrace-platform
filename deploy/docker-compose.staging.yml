@@ -17,6 +17,9 @@ services:
 
   backend-java:
     image: ${REGISTRY}/backend-java:${IMAGE_TAG:-latest}
+    environment:
+      # Caddy 将同一公共域名转发到 frontend，Nginx 再代理证据桶路径到 MinIO。
+      MINIO_PUBLIC_ENDPOINT: https://${SKYTRACE_DOMAIN}
 
   backend-node:
     image: ${REGISTRY}/backend-node:${IMAGE_TAG:-latest}
