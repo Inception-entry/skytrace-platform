@@ -96,7 +96,8 @@ public class InspectionTask {
 
     public boolean isTerminal() {
         return "COMPLETED".equals(status)
-                || "CANCELLED".equals(status);
+                || "CANCELLED".equals(status)
+                || "TIMED_OUT".equals(status);
     }
 
     public void changeStatus(String status) {

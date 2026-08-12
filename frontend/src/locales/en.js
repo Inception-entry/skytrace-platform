@@ -159,6 +159,7 @@ export default {
       COMPLETED: 'Completed',
       FAILED: 'Failed',
       CANCELLED: 'Cancelled',
+      TIMED_OUT: 'Timed out',
     },
   },
   evidence: {

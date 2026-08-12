@@ -159,6 +159,7 @@ export default {
       COMPLETED: '已完成',
       FAILED: '失败',
       CANCELLED: '已取消',
+      TIMED_OUT: '已超时',
     },
   },
   evidence: {
