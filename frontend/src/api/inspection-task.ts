@@ -166,6 +166,20 @@ export function getInspectionAnalysisHistory(taskCode: string) {
   )
 }
 
+export interface TaskTelemetryPoint {
+  latitude: number
+  longitude: number
+  altitude: number | null
+  heading: number | null
+  recordedAt: string
+}
+
+export function getTaskTelemetryTrack(taskCode: string) {
+  return request<TaskTelemetryPoint[]>(
+    `/api/inspection-tasks/${encodeURIComponent(taskCode)}/telemetry`,
+  )
+}
+
 export async function streamInspectionAnalysis(
   taskCode: string,
   sessionId: string,
