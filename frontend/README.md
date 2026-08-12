@@ -1,174 +1,138 @@
-# SkyTrace（天巡智控）
+# SkyTrace Frontend（天巡智控 Web 端）
 
-基于 Vue 3 + Cesium + TypeScript 的无人机智能巡检业务端。
+SkyTrace 平台的业务前端：基于 Vue 3 + TypeScript + Vite 构建，使用 Cesium 承载三维地图，
+通过 Socket.IO 接收实时告警与遥测，通过 Keycloak 完成单点登录与角色鉴权。
 
-## 功能特性
-- 根据系统是深色模式或浅色模式，来切换主题色（也可关闭此功能）
-- 同时支持用户自主切换主题色
+本目录只包含前端；后端服务、部署编排与整体架构见仓库根目录的 [README.md](../README.md)
+与 [docs/architecture.md](../docs/architecture.md)。
 
-- 🌏 多种底图切换
-  - 高德地图(含纠偏)
-  - 腾讯地图(含纠偏)
-  - 天地图
-  - 影像图/矢量图切换
-  
-- 📏 测量工具
-  - 距离测量
-  - 面积测量 
-  - 高程测量
-  - 角度测量
-  - 实时动态显示测量结果
-  - 支持清除测量
+## 功能概览
 
-- 🔍 地名地址搜索
-  - 支持POI关键字搜索
-  - 支持经纬度坐标定位
-  - 支持地理编码和逆地理编码
-  - 坐标系自动转换(WGS84/GCJ02)
-
-- 🎯 场景控制
-  - 全屏切换
-  - 二三维场景切换
-  - 场景状态保存与恢复
-  - 相机视角保存与恢复
-  - 键盘控制相机移动
-  - 抗锯齿处理
-
-- 🌐 地图优化
-  - 支持高德/腾讯地图纠偏
-  - 地图瓦片自动加载
-  - 3DTiles模型加载
-  - 性能优化
+- **三维地图（`/map`）**：Cesium 场景、设备图标与实时航迹。订阅 `device.telemetry` 事件后，
+  无人机模型随遥测移动，并绘制最近一段飞行轨迹线。
+- **任务管理（`/drone`）**：巡检任务列表与状态流转，行内展示航线缩略图（SVG），
+  可打开「飞行回放」面板按历史遥测点回放整段航迹。
+- **航线管理（`/routes`）**：航点表格编辑与地图取点编辑双向联动，支持拖拽调整航点位置。
+- **设备管理（`/devices`）**：设备台账与在线状态。
+- **智能问答（`/chat`）**：接入 AI 服务的对话入口，仅 `ADMIN`/`OPERATOR` 角色可见。
+- **知识库（`/knowledge`）**：文档上传与检索。
+- **取证中心（`/evidence`）**：告警证据链查看与导出。
+- **审计（`/audit`）**：操作审计日志，仅 `ADMIN` 角色可见。
+- **国际化与主题**：i18next 驱动的中英文切换；支持跟随系统深浅色，也可手动切换主题色。
 
 ## 技术栈
 
-- Vue 3.5.13
-- Vite 6.3.5
-- pinia 3.0.3
-- sass 1.89.1
-- Cesium 1.116.0
-- typescript 5.8.3
-- i18next 25.3.0
+| 领域 | 选型 |
+| --- | --- |
+| 框架 | Vue 3.5 (`<script setup>`) + TypeScript 5.8 |
+| 构建 | Vite 6 + `vite-plugin-cesium` + `vite-plugin-compression` |
+| UI | Ant Design Vue 4 + Sass |
+| 地图 | Cesium 1.133 + `cesium-navigation-es6` |
+| 状态 | Pinia 3 |
+| 路由 | Vue Router 4（`meta.roles` 做角色守卫） |
+| 国际化 | i18next + `i18next-vue` + 浏览器语言探测 |
+| 鉴权 | `keycloak-js` 26 |
+| 实时 | Socket.IO 客户端（`src/realtime/socket.ts`） |
 
 ## 快速开始
 
-### 环境要求
+环境要求：Node.js >= 22.11.0、npm >= 10.9.0。
 
-- Node.js >= 22.11.0
-- npm >= 10.9.0
-
-
-## 📁 项目结构
-
-```
-├── .eslintrc.js          # ESLint配置文件
-├── .gitignore            # Git忽略文件配置
-├── .vscode/              # VSCode配置目录
-│   └── extensions.json
-├── LICENSE               # 许可证文件
-├── README.md             # 项目说明文档
-├── index.html            # 入口HTML文件
-├── package.json          # 项目依赖配置
-├── public/               # 公共资源目录
-│   └── vite.svg
-├── src/                  # 源代码目录
-│   ├── @types/           # TypeScript类型定义目录
-│   ├── App.vue           # 根组件
-│   ├── assets/           # 静态资源目录
-│   │   └── icons/        # 图标资源
-│   ├── components/       # 公共组件目录
-│   │   └── st-cesium-vue/
-│   ├── config/           # 配置文件目录
-│   ├── main.ts           # 入口文件
-│   ├── router/           # 路由配置
-│   │   └── index.ts
-│   ├── store/            # 状态管理
-│   │   └── index.ts
-│   ├── style/            # 样式文件目录
-│   │   ├── common.scss   # 公共样式
-│   │   └── variables.scss # 样式变量
-│   ├── utils/            # 工具函数目录
-│   ├── views/            # 页面组件目录
-│   │   ├── DroneView.vue
-│   │   └── Home.vue
-│   └── vite-env.d.ts     # Vite环境声明文件
-├── tsconfig.app.json     # TypeScript应用配置
-├── tsconfig.json         # TypeScript主配置
-├── tsconfig.node.json    # TypeScript Node配置
-└── vite.config.ts        # Vite配置文件
+```bash
+npm install                  # postinstall 会自动执行 patch-package
+cp .env.example .env.local   # 按需修改 Keycloak 地址
+npm run dev                  # http://localhost:8888，默认自动打开浏览器
 ```
 
-## 🎮 操作说明
+开发服务器已在 `vite.config.ts` 中配置代理，无需额外跨域处理：
 
-### 地图操作
-- 左键拖动: 平移视角
-- 右键拖动: 旋转视角
-- 滚轮: 缩放视角
+- `/api` → `http://localhost:8082`（backend-node BFF）
+- `/socket.io` → `ws://localhost:8082`（Socket.IO，已开启 `ws: true`）
 
-### 无人机控制
-- 开始飞行: 点击开始按钮
-- 暂停飞行: 点击暂停按钮
-- 重置飞行: 点击重置按钮
-- 调整参数: 通过参数面板实时调整
+因此本地开发前需要先把 backend-node 及其依赖起起来，最简单的方式是在仓库根目录执行
+`./scripts/skytrace.sh start`（详见根 README）。
 
-## 🔧 自定义配置
+### 可用脚本
 
-### Vite 配置
-项目使用 Vite 作为构建工具，配置文件位于 `vite.config.js`。
+| 命令 | 说明 |
+| --- | --- |
+| `npm run dev` | 启动开发服务器 |
+| `npm run build` | `vue-tsc -b` 类型检查后产出 `dist/` |
+| `npm run preview` | 预览构建产物 |
+| `npm run lint` / `npm run lint:fix` | ESLint 检查 / 自动修复 |
+| `npm test` | 运行 `test/*.test.js`（Node 内置测试运行器） |
 
-### Cesium 配置
-Cesium 相关配置位于 `src/utils/cesiumUtils.js`，包括:
-- 地图初始化参数
-- 场景配置
-- 相机参数
+## 配置
 
-## 📝 开发指南
+前端支持两种配置来源，运行时配置优先于构建时环境变量：
 
-### 添加新的地图功能
-1. 在 `src/components/cesium` 下创建新组件
-2. 在 `Map.vue` 中引入并使用
-3. 在 `cesiumUtils.js` 中添加相关工具方法
+1. **构建时**：`.env.local` 中的 `VITE_KEYCLOAK_URL`、`VITE_KEYCLOAK_REALM`、
+   `VITE_KEYCLOAK_CLIENT_ID`（见 `.env.example`）。
+2. **运行时**：由 Nginx 注入的 `window.__SKYTRACE_CONFIG__`，字段为
+   `keycloakUrl` / `keycloakRealm` / `keycloakClientId`。这样同一份镜像可以部署到不同环境
+   而无需重新构建，解析逻辑见 `src/auth/keycloak.ts`。
 
-## <img class="emoji" title=":octocat:" alt=":octocat:" src="https://github.githubassets.com/images/icons/emoji/octocat.png" height="38" width="38" align="absmiddle"> 代码提交规范
+容器化相关文件：`Dockerfile`、`nginx.conf`、`nginx.https.conf.example`。
 
-```
-git <type>: <subject>
-git commit -m “feat: 项目初始化”
-```
-
-### type 参考:
+## 项目结构
 
 ```
-feat      ✨ 增加新功能（feature）
-fix       🐛 Bug修复
-docs      📖 文档书写改动（documentation）
-style     💎 style修改，代码风格相关无影响运行结果的
-refactor  📦 重构(既不增加新功能, 也不修改bug的代码改动)
-perf      🚀 性能相关优化
-test      🚨 测试相关
-build     👷 影响构建系统或外部依赖的更改（例如：vite，webpack，broccoli，npm）
-ci        🔖 持续集成的配置文件和脚本的变动（例如：Travis，Circle，BrowserStack，SauceLabs）
-chore     🎫 依赖更新/脚手架配置修改等
-revert    🔙 代码撤销修改
-init      🎉 初始化提交
-release   🔖 发布版本
-wip       🚧 正在进行中, 且有可能出现不稳定运行的提交
-config    🔧 修改配置文件
-merge     🔀 合并分支
+frontend/
+├── src/
+│   ├── @types/                  # Cesium / Vue / window 的类型补充声明
+│   ├── api/                     # 按域划分的 HTTP 封装
+│   │   ├── http.ts              # 基于 fetch 的请求层：注入 token、401 自动续期、403 跳转
+│   │   ├── inspection-task.ts   # 任务 CRUD 与历史遥测轨迹
+│   │   ├── route.ts             # 航线与航点
+│   │   ├── device.ts / admin.ts / knowledge.ts / evidence.ts / alarm-evidence.ts
+│   ├── assets/model/            # 无人机 glTF 模型等静态资源
+│   ├── auth/                    # Keycloak 初始化与按角色的导航过滤
+│   ├── components/
+│   │   ├── route-thumbnail/     # 航线 SVG 缩略图（任务列表内联展示）
+│   │   ├── route-waypoint-editor/  # 地图取点式航点编辑器
+│   │   ├── telemetry-replay/    # 历史遥测回放面板（播放/暂停/进度）
+│   │   ├── st-cesium-vue/       # Cesium 容器组件
+│   │   ├── st-menu-aside/ st-tool-header/ st-auth-toolbar/ st-overlay/
+│   │   └── st-global-register/  # 全局组件注册
+│   ├── libs/
+│   │   ├── cesium/              # Cesium 封装：底图、实体、实时遥测轨迹绘制
+│   │   └── route/waypoints.ts   # 航点 JSON 的解析与序列化（有单测覆盖）
+│   ├── locales/                 # zh.js / en.js 文案
+│   ├── realtime/socket.ts       # Socket.IO 连接与 alarm/telemetry 订阅
+│   ├── router/index.ts          # 路由表与 meta.roles 守卫
+│   ├── store/modules/           # Pinia：lang / layout / theme
+│   ├── style/                   # reset、变量、主题 token
+│   ├── theme/                   # 主题配置与注册表
+│   ├── utils/                   # 语言、布局、主题工具函数
+│   └── views/                   # 页面级组件（与路由一一对应）
+├── test/                        # Node test runner 单测
+├── Dockerfile / nginx.conf      # 生产镜像与静态服务配置
+└── vite.config.ts
 ```
 
-## 📄 许可证
+## 测试
+
+单元测试使用 Node 内置的 `node:test`，不依赖额外测试框架：
+
+```bash
+npm test
+```
+
+覆盖范围包括航点解析（`test/waypoints.test.js`）、关键路径与取证中心流程。
+端到端测试统一放在仓库根目录的 `e2e/`，由 Playwright 驱动，说明见
+[docs/testing.md](../docs/testing.md)。
+
+## 开发约定
+
+- 组件目录使用 kebab-case，页面组件使用 PascalCase 并以 `View` 结尾（`Home.vue` 除外）。
+- 路径别名 `@` 指向 `src/`，在 `vite.config.ts` 与 `tsconfig.app.json` 中均已配置。
+- 新增页面需要限制角色时，在路由的 `meta.roles` 中声明，守卫会自动跳转 `/403`。
+- 新增文案必须同时补 `src/locales/zh.js` 和 `en.js`，避免键缺失。
+- 提交信息遵循 Conventional Commits（`feat` / `fix` / `docs` / `refactor` / `test` / `chore` 等）。
+
+## 许可证
 
 [MIT](LICENSE)
 
-## 🔗 相关链接
-
-- [Vue 3 文档](https://v3.vuejs.org/)
-- [Cesium 文档](https://cesium.com/docs/)
-- [typescript](https://www.typescriptlang.org/)
-- [Turf.js 文档](https://turfjs.fenxianglu.cn/)
-
-## 📧 联系方式
-
-如有问题或建议，欢迎提issue或PR。
-_注意: 不要使用 1.81.0 - 1.82.1 版本的 cesium, 它包含一个已知的[bug](https://github.com/CesiumGS/cesium/issues/9590)._
+> 注意：不要使用 1.81.0 - 1.82.1 版本的 Cesium，该区间存在已知
+> [缺陷](https://github.com/CesiumGS/cesium/issues/9590)。
