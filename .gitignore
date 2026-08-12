@@ -36,6 +36,7 @@ Thumbs.db
 # Logs
 *.log
 /logs/
+docs/Typora_Hook_Log.txt
 
 # Docker / runtime
 *.pid
