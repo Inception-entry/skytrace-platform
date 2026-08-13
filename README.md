@@ -66,7 +66,7 @@ skytrace-platform/
 │   ├── knowledge-base.md                # 知识库与 RAG 调用链
 │   ├── ops.md                           # 运维速查与告警处置
 │   ├── security-audit-admin.md          # 业务端权限与审计
-│   ├── evidence-center-productization.md # 取证中心产品化设计
+│   ├── evidence-center/                 # 证据中心运维：runbook / 上线 / 回滚
 │   ├── temporal-integration.md          # Temporal 当前实现与演进方向
 │   └── releases/
 │       ├── v0.2.0.md                    # 0.2.0 发版说明

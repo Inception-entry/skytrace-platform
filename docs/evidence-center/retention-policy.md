@@ -231,4 +231,3 @@ confirmation=PURGE_ARCHIVED_EVIDENCE
 
 - 上线节奏与验收顺序见 [go-live-checklist.md](./go-live-checklist.md)
 - 技术条件、接口与压测见 [evidence-maintenance-runbook.md](./evidence-maintenance-runbook.md)
-- 归档与合规背景见 [phase-3-archive-compliance.md](./phase-3-archive-compliance.md)

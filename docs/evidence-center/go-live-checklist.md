@@ -215,10 +215,8 @@
 
 ### 归档与清理功能说明
 
-- [Phase 3：归档、导出与合规扩展](./phase-3-archive-compliance.md)
-- [Phase 3：逐文件改动清单](./phase-3-file-checklist.md)
-- [Phase 3：代码级实现参考](./phase-3-implementation-code.md)
 - [归档后清理策略](./retention-policy.md)
+- [证据哈希回填、归档清理与压测 Runbook](./evidence-maintenance-runbook.md)
 
 ### 真实链路压测
 
@@ -227,7 +225,6 @@
 ### 真实环境联调与验收
 
 - [真实环境联调与验收清单](./integration-acceptance-checklist.md)
-- [联调当天操作单](./integration-day-playbook.md)
 
 ### 上线开关与回滚
 
