@@ -1,6 +1,6 @@
 {
   "name": "skytrace-backend-node",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "NestJS BFF and WebSocket service for SkyTrace",
   "scripts": {
     "build": "nest build",
@@ -13,12 +13,12 @@
   },
   "dependencies": {
     "@nestjs/axios": "4.0.1",
-    "@nestjs/common": "11.1.28",
+    "@nestjs/common": "11.2.1",
     "@nestjs/config": "4.0.4",
     "@nestjs/core": "11.1.28",
     "@nestjs/platform-express": "11.1.28",
-    "@nestjs/platform-socket.io": "11.1.28",
-    "@nestjs/websockets": "11.1.28",
+    "@nestjs/platform-socket.io": "11.2.1",
+    "@nestjs/websockets": "11.2.1",
     "@socket.io/redis-adapter": "^8.3.0",
     "amqplib": "^2.0.1",
     "axios": "^1.7.7",
@@ -37,8 +37,8 @@
     "@types/amqplib": "^0.10.8",
     "@types/node": "^22.9.0",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
-    "@typescript-eslint/parser": "^8.66.0",
-    "eslint": "^9.14.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "eslint": "^10.8.1",
     "typescript": "^5.6.3"
   },
   "overrides": {

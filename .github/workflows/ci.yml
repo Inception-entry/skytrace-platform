@@ -326,6 +326,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
 
       - name: Install Playwright and run browser E2E
         working-directory: e2e
@@ -336,8 +344,11 @@ jobs:
           KEYCLOAK_URL: http://127.0.0.1:8180
           GATEWAY_URL: http://127.0.0.1:8082
         run: |
-          npm install
-          npx playwright install --with-deps chromium
+          npm ci
+          # 不要 --with-deps：GH ubuntu-24.04 的 apt 走 azure.archive.ubuntu.com，
+          # Ign 重试会把 job 拖死（timeout 124 / 45 分钟 cancelled）。
+          # runner 已带 Chromium 系统库；浏览器本体走缓存或 Playwright CDN。
+          npx playwright install chromium
           npm test
 
       - name: Collect failure diagnostics
