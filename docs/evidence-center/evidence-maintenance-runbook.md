@@ -209,7 +209,6 @@ HTTP 管理操作会进入通用审计：
 
 如果需要把“压测”和“前端/BFF/权限/失败恢复联调”一起收口，建议同时使用：
 [真实环境联调与验收清单](./integration-acceptance-checklist.md)
-[联调当天操作单](./integration-day-playbook.md)
 
 它会创建独立任务，上传真实对象，创建归档任务，轮询 Temporal，下载 ZIP 和 manifest，
 并验证：
