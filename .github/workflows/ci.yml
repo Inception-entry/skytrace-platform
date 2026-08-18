@@ -345,11 +345,10 @@ jobs:
           GATEWAY_URL: http://127.0.0.1:8082
         run: |
           npm ci
-          # GH ubuntu-24.04 默认走 azure.archive.ubuntu.com，偶发 Ign 重试拖死 45 分钟超时
-          sudo find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) \
-            -exec sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/g' {} + \
-            2>/dev/null || true
-          timeout 300 npx playwright install --with-deps chromium
+          # 不要 --with-deps：GH ubuntu-24.04 的 apt 走 azure.archive.ubuntu.com，
+          # Ign 重试会把 job 拖死（timeout 124 / 45 分钟 cancelled）。
+          # runner 已带 Chromium 系统库；浏览器本体走缓存或 Playwright CDN。
+          npx playwright install chromium
           npm test
 
       - name: Collect failure diagnostics
