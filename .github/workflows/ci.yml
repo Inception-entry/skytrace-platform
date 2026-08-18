@@ -326,6 +326,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
 
       - name: Install Playwright and run browser E2E
         working-directory: e2e
@@ -336,8 +344,12 @@ jobs:
           KEYCLOAK_URL: http://127.0.0.1:8180
           GATEWAY_URL: http://127.0.0.1:8082
         run: |
-          npm install
-          npx playwright install --with-deps chromium
+          npm ci
+          # GH ubuntu-24.04 默认走 azure.archive.ubuntu.com，偶发 Ign 重试拖死 45 分钟超时
+          sudo find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) \
+            -exec sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/g' {} + \
+            2>/dev/null || true
+          timeout 300 npx playwright install --with-deps chromium
           npm test
 
       - name: Collect failure diagnostics
