@@ -346,5 +346,4 @@
 - [ ] 压测完成
 - [ ] 验收留档完整
 
-如果要按“当天现场执行”的方式推进，建议继续使用：
-[联调当天操作单](./integration-day-playbook.md)
+按本节清单现场打勾即可；上线节奏见 [go-live-checklist.md](./go-live-checklist.md)。
