@@ -1,6 +1,6 @@
 {
   "name": "skytrace-admin-service",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "NestJS admin service with RBAC for SkyTrace",
   "scripts": {
     "build": "nest build",
