@@ -21,7 +21,7 @@
     "i18next-vue": "^5.3.0",
     "js-cookie": "^3.0.5",
     "keycloak-js": "26.2.4",
-    "pinia": "^3.0.3",
+    "pinia": "^4.0.3",
     "vue": "^3.5.41",
     "vue-router": "^4.5.1"
   },
