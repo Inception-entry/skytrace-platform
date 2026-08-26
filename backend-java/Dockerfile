@@ -9,7 +9,12 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-RUN rm -f /usr/bin/pebble
+# CVE-2025-68973 (gnupg) / CVE-2026-45447 (openssl): temurin 标签滞后于 Ubuntu 安全更新
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/bin/pebble
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

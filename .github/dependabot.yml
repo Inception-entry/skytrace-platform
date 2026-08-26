@@ -13,6 +13,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # Boot 4 moves WebMvcTest/MockBean and ships Spring Data Redis 4.
+      # Stay on 3.5.x until a dedicated upgrade PR.
+      - dependency-name: org.springframework.boot:spring-boot-starter-parent
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: maven
     directory: /gateway-java
@@ -20,6 +25,12 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: org.springframework.boot:spring-boot-starter-parent
+        update-types: ["version-update:semver-major"]
+      # 2025.1.x is the Boot 4 generation (Gateway 5). Stay on 2025.0.x.
+      - dependency-name: org.springframework.cloud:spring-cloud-dependencies
+        versions: ["2025.1.x"]
 
   - package-ecosystem: npm
     directory: /backend-node
@@ -47,12 +58,24 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    ignore:
+      # Spring Boot 3.5 / java.version 21. Major Temurin bumps drop curl
+      # (compose healthcheck) and compile with unsupported JDKs.
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+      - dependency-name: maven
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /gateway-java
     schedule:
       interval: weekly
       day: monday
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+      - dependency-name: maven
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /backend-node
