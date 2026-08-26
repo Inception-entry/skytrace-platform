@@ -32,7 +32,7 @@
     "@vitejs/plugin-vue": "^5.2.3",
     "@vue/runtime-core": "^3.5.17",
     "@vue/tsconfig": "^0.9.1",
-    "eslint": "^8.57.1",
+    "eslint": "^10.9.0",
     "eslint-plugin-vue": "^9.33.0",
     "fast-glob": "^3.3.3",
     "patch-package": "^8.0.0",
