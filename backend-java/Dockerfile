@@ -7,7 +7,7 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -ntp clean package -DskipTests
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:24-jre
 WORKDIR /app
 # CVE-2025-68973 (gnupg) / CVE-2026-45447 (openssl): temurin 标签滞后于 Ubuntu 安全更新
 RUN apt-get update \
