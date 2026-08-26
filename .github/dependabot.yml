@@ -38,6 +38,12 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # Node runtime is 20; @types/node 26 is the Node 26 typings.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /frontend
@@ -45,6 +51,16 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # typescript-eslint 8 peers typescript >=4.8.4 <6.1.0; TS 7 has no compiler API yet.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # ESLint 9/10 need flat config; plugin-vue 9 and the current .eslintrc stay on 8.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # Vite 8 needs @vitejs/plugin-vue 6 and Rolldown; stay on Vite 6.
+      - dependency-name: vite
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: pip
     directory: /backend-ai
