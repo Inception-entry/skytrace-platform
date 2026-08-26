@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   createPublicKey,
   verify as verifySignature,
+  type KeyObject,
 } from 'node:crypto';
-import type { JsonWebKey, KeyObject } from 'node:crypto';
 
 const BUSINESS_ROLES = new Set(['ADMIN', 'OPERATOR', 'VIEWER']);
 const CLOCK_TOLERANCE_SECONDS = 5;
@@ -29,10 +29,14 @@ interface JwtPayload {
   }>;
 }
 
-interface JsonWebKeyWithMetadata extends JsonWebKey {
+interface JsonWebKeyWithMetadata {
+  kty?: string;
   kid?: string;
   alg?: string;
   use?: string;
+  n?: string;
+  e?: string;
+  [key: string]: unknown;
 }
 
 interface JsonWebKeySet {
