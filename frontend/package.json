@@ -16,7 +16,7 @@
     "ant-design-vue": "^4.2.6",
     "cesium": "~1.133.1",
     "cesium-navigation-es6": "^3.0.9",
-    "i18next": "^25.3.0",
+    "i18next": "^26.4.0",
     "i18next-browser-languagedetector": "^8.2.0",
     "i18next-vue": "^5.3.0",
     "js-cookie": "^3.0.5",
