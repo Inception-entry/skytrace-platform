@@ -52,6 +52,9 @@ updates:
       day: monday
     open-pull-requests-limit: 5
     ignore:
+      # CI Node is 22; @types/node 26 is the Node 26 typings.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
       # typescript-eslint 8 peers typescript >=4.8.4 <6.1.0; TS 7 has no compiler API yet.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
