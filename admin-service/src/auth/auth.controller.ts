@@ -21,6 +21,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Log('系统', '刷新令牌')
   @HttpCode(200)
   refresh(@Body() dto: RefreshDto) {
     return this.authService.refresh(dto.refresh_token)
@@ -28,6 +29,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
+  @Log('系统', '登出')
   @HttpCode(204)
   async logout(@Body() dto: RefreshDto) {
     await this.authService.logout(dto.refresh_token)
@@ -47,6 +49,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Put('password')
+  @Log('系统', '修改密码')
   @HttpCode(204)
   async changePassword(@CurrentUser() user: RequestUser, @Body() dto: ChangePasswordDto) {
     await this.authService.changePassword(user.id, dto)

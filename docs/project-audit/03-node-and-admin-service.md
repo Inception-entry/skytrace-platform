@@ -209,6 +209,8 @@ Java client 再拒绝 `.`、`..`、斜杠、反斜杠、编码斜杠和非 `/api
 
 ### AS-01 / P0：操作日志保存明文密码/token
 
+动手修复请看单独说明：[as-01-operation-log-redaction.md](as-01-operation-log-redaction.md)。下面是审计当时的证据和草稿。
+
 证据链：
 
 - 全局拦截器：`admin-service/src/common/interceptors/operation-log.interceptor.ts:23-38`。

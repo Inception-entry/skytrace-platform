@@ -10,7 +10,7 @@
 
 | ID | 问题 | 直接证据 | 为什么阻断 |
 | --- | --- | --- | --- |
-| RB-01 | Admin 操作日志持久化明文密码/token | `admin-service/src/common/interceptors/operation-log.interceptor.ts:23-38`，登录接口 `auth.controller.ts:15-20` | 数据库或日志查看权限可直接获得账号凭据；还必须清理历史数据并轮换已暴露凭据 |
+| RB-01 | Admin 操作日志持久化明文密码/token | `admin-service/src/common/interceptors/operation-log.interceptor.ts:23-38`，登录接口 `auth.controller.ts:15-20`。实施说明：[as-01-operation-log-redaction.md](as-01-operation-log-redaction.md) | 数据库或日志查看权限可直接获得账号凭据；还必须清理历史数据并轮换已暴露凭据 |
 | RB-02 | 非 super 可分配更高权限角色并修改 super 边界 | `admin-service/src/users/users.service.ts:74-149`、`roles/roles.service.ts:57-96` | 形成纵向提权、禁用/删除 super 或篡改 super 角色路径 |
 | RB-03 | seed 内置并打印 `admin / Admin@123` | `admin-service/prisma/seed.ts:79-101` | 一旦生产误跑 seed，公开凭据可直接获得最高权限 |
 | RB-04 | 生产 Keycloak realm 导入三个永久开发账号 | `deploy/keycloak/skytrace-realm.json:90-143`，生产仍 `start --import-realm` | 与 RB-03 叠加形成默认账号风险；旧 realm 不会因修改 JSON 自动清掉已有用户 |
