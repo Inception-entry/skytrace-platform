@@ -23,7 +23,7 @@
     "keycloak-js": "26.2.4",
     "pinia": "^4.0.3",
     "vue": "^3.5.42",
-    "vue-router": "^4.5.1"
+    "vue-router": "^5.3.0"
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",
