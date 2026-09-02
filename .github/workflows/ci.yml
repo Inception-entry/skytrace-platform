@@ -267,10 +267,48 @@ jobs:
             -f deploy/docker-compose.yml \
             build backend-ai backend-java backend-node gateway frontend admin-service admin-frontend
 
+      - name: Install Trivy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Pin the binary. Do not pipe install.sh from aquasecurity/trivy@main.
+          version=v0.74.0
+          ver="${version#v}"
+          asset="trivy_${ver}_Linux-64bit.tar.gz"
+          checksums="trivy_${ver}_checksums.txt"
+          dest="${RUNNER_TEMP}/trivy-install"
+          mkdir -p "$dest"
+          download() {
+            gh release download "$version" \
+              --repo aquasecurity/trivy \
+              --pattern "$asset" \
+              --pattern "$checksums" \
+              --dir "$dest" \
+              --clobber
+          }
+          for attempt in 1 2 3; do
+            if download; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "failed to download Trivy ${version}" >&2
+              exit 1
+            fi
+            sleep $((attempt * 5))
+          done
+          (
+            cd "$dest"
+            sha256sum --ignore-missing -c "$checksums"
+            tar -xzf "$asset" trivy
+            mkdir -p "$HOME/.local/bin"
+            install -m 0755 trivy "$HOME/.local/bin/trivy"
+          )
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/trivy" --version
+
       - name: Scan application images for vulnerabilities
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b /usr/local/bin latest
           for svc in backend-ai backend-java backend-node gateway frontend admin-service admin-frontend; do
             image="${COMPOSE_PROJECT_NAME}-${svc}"
             docker image inspect "$image" >/dev/null
