@@ -478,7 +478,7 @@ npm test
 | --- | --- |
 | 改 `docs/authentication-unification/` 正文 | 那是 Keycloak 大方案，不是这次 |
 | 清空全部操作日志（现有 `DELETE /logs`） | 会毁掉审计记录；不是脱敏 |
-| 修 RB-02 提权、seed 默认密码、Keycloak 开发用户 | 下一个分支 |
+| 修 RB-02 提权、seed 默认密码、Keycloak 开发用户 | 下一刀是 seed： [as-04-bootstrap-credentials.md](as-04-bootstrap-credentials.md)；提权再下一刀 |
 | 提交 Typora 日志 | 编辑器垃圾文件 |
 | 为了这件事去改 `package-lock.json` | 不需要新依赖 |
 | 连生产库删历史 `params`、轮换已泄漏密码 | 运维动作；代码合入后另做 |
