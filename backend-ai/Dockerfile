@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.12.9 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.13 AS uv
 
 FROM python:3.12-slim
 
@@ -13,10 +13,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
-RUN apt-get update \
-    && apt-get upgrade -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    apt_retry() { apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 "$@"; }; \
+    i=0; \
+    until apt_retry update; do \
+      i=$((i + 1)); \
+      [ "$i" -ge 5 ] && exit 1; \
+      sleep $((i * 8)); \
+    done; \
+    apt_retry upgrade -y --no-install-recommends; \
+    apt_retry install -y --no-install-recommends ffmpeg; \
+    rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock ./
 RUN if [ "$INSTALL_VISION" = "1" ]; then \

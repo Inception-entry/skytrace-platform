@@ -287,6 +287,8 @@ await prisma.$transaction(async tx => {
 
 ### AS-04 / P0：seed 内置公开默认管理员
 
+动手修复请看单独说明：[as-04-bootstrap-credentials.md](as-04-bootstrap-credentials.md)。下面是审计当时的证据和草稿。
+
 `admin-service/prisma/seed.ts:79-101` 创建 `admin / Admin@123`、打印密码、`update:{}` 长期保留旧值，并可能吞掉异常让进程成功退出。
 
 建议：
