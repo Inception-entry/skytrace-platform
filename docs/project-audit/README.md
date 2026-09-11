@@ -24,6 +24,7 @@
 ## 专项方案
 
 - [AS-01 操作日志脱敏实施说明](as-01-operation-log-redaction.md)：第一项代码修复的逐步说明（登录/用户请求不再把明文密码写入操作日志）。
+- [AS-04 去掉公开默认管理员实施说明](as-04-bootstrap-credentials.md)：第二项代码修复（seed 不再写死 `admin / Admin@123`，首次建号用 `ADMIN_INITIAL_PASSWORD`）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级
