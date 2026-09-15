@@ -80,7 +80,9 @@ services:
       - backend
 
   minio:
-    image: minio/minio:latest
+    # minio/minio on Docker Hub is archived; :latest anonymous pull is denied.
+    # Pigsty rebuild is S3-compatible with the same env and `server /data`.
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: skytrace-minio
     restart: always
     command: server /data --console-address ":9002"
