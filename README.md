@@ -348,6 +348,16 @@ npm run dev
 
 Docker 部署时，管理页面和管理 API 会随完整 Compose 环境一起启动。首次使用前请确认
 `deploy/.env` 中的 `ADMIN_JWT_SECRET`、PostgreSQL 和 MinIO 配置已经替换为本地或生产环境值。
+管理后台（:8889）的引导账号用户名为 `admin`。仓库不再提供默认密码。
+第一次空库需要在 `admin-service` 目录执行：
+
+```bash
+DATABASE_URL=postgresql://admin_user:<postgres密码>@127.0.0.1:5433/skytrace_admin \
+ADMIN_INITIAL_PASSWORD='<至少16位且非已知默认的密码>' \
+npm run prisma:seed
+```
+
+密码不会打印到终端。已经有 `admin` 的库再跑 seed 只同步菜单/角色，不会改密码。
 
 管理后台支持以下核心功能：
 
