@@ -49,16 +49,20 @@ export class RolesController {
   @Put(':id')
   @RequirePermissions('role:update')
   @Log('角色管理', '更新')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoleDto) {
-    return this.rolesService.update(id, dto)
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateRoleDto,
+    @CurrentUser() actor: RequestUser,
+  ) {
+    return this.rolesService.update(id, dto, actor.id)
   }
 
   @Delete(':id')
   @HttpCode(204)
   @RequirePermissions('role:delete')
   @Log('角色管理', '删除')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.rolesService.remove(id)
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() actor: RequestUser) {
+    return this.rolesService.remove(id, actor.id)
   }
 
   @Get(':id/menus')
