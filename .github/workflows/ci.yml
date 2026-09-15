@@ -262,7 +262,7 @@ jobs:
 
       - name: Build application images
         run: |
-          docker compose \
+          scripts/ci/compose-with-retry.sh \
             --env-file "$SKYTRACE_ENV_FILE" \
             -f deploy/docker-compose.yml \
             build backend-ai backend-java backend-node gateway frontend admin-service admin-frontend
@@ -323,7 +323,7 @@ jobs:
 
       - name: Start backend integration stack
         run: |
-          docker compose \
+          scripts/ci/compose-with-retry.sh \
             --env-file "$SKYTRACE_ENV_FILE" \
             -f deploy/docker-compose.yml \
             up -d --no-build gateway frontend
