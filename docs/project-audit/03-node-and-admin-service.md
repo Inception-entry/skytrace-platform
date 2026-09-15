@@ -248,6 +248,8 @@ function redact(value: unknown, depth = 0): unknown {
 
 ### AS-02 / P0：非 super 可纵向提权或破坏 super 边界
 
+动手修复请看单独说明：[as-02-rbac-super-invariants.md](as-02-rbac-super-invariants.md)。下面是审计当时的证据和草稿。
+
 证据：
 
 - `src/users/users.service.ts:102-114` 非 super 可分配任意非 super 角色，包括给自己，没有检查权限并集是否为操作者权限子集。
@@ -269,6 +271,8 @@ function redact(value: unknown, depth = 0): unknown {
 必须补 service 单测和真实 PostgreSQL 集成测试；前端隐藏按钮不能作为授权控制。
 
 ### AS-03 / P1：最后一个 super 保护存在并发 TOCTOU
+
+与 AS-02 同一把实施说明（advisory lock）：[as-02-rbac-super-invariants.md](as-02-rbac-super-invariants.md)。下面是审计当时的证据和草稿。
 
 `src/users/users.service.ts:77-86,95-100,116-149` 先 count 后 update/delete，二者不在同一串行化事务/锁域中。两个并发请求都可能看到 count=2，然后同时成功，最终归零。
 

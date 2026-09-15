@@ -54,15 +54,16 @@ export class RolesService {
     return this.prisma.role.create({ data: dto })
   }
 
-  async update(id: number, dto: UpdateRoleDto) {
+  async update(id: number, dto: UpdateRoleDto, actorId: number) {
     const role = await this.findOne(id)
+    await this.assertCanMutateSuperRole(actorId, role.code)
     if (role.code === SUPER_ADMIN_ROLE_CODE && dto.status === 0) {
       throw new BadRequestException('不能禁用超级管理员角色')
     }
     return this.prisma.role.update({ where: { id }, data: dto })
   }
 
-  async remove(id: number) {
+  async remove(id: number, _actorId: number) {
     const role = await this.findOne(id)
     if (role.code === SUPER_ADMIN_ROLE_CODE) {
       throw new BadRequestException('不能删除超级管理员角色')
@@ -71,7 +72,8 @@ export class RolesService {
   }
 
   async assignMenus(roleId: number, menuIds: number[], actorId: number) {
-    await this.findOne(roleId)
+    const role = await this.findOne(roleId)
+    await this.assertCanMutateSuperRole(actorId, role.code)
 
     const menus = await this.prisma.menu.findMany({ where: { id: { in: menuIds } } })
     if (menus.length !== menuIds.length) {
@@ -116,5 +118,11 @@ export class RolesService {
       select: { menuId: true },
     })
     return roleMenus.map(rm => rm.menuId)
+  }
+
+  private async assertCanMutateSuperRole(actorId: number, roleCode: string): Promise<void> {
+    if (roleCode !== SUPER_ADMIN_ROLE_CODE) return
+    if (await this.permissions.isSuperAdmin(actorId)) return
+    throw new ForbiddenException('仅超级管理员可变更超级管理员角色')
   }
 }
