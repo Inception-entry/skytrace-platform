@@ -1,6 +1,11 @@
 import asyncio
+from importlib.metadata import version
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+
+import pytest
+from pypdf import PdfWriter
 
 from app.config import Settings
 from app.knowledge_base import KnowledgeBase
@@ -80,3 +85,51 @@ def test_search_maps_qdrant_payload_to_traceable_result() -> None:
     assert results[0].page == 8
     assert results[0].score == 0.91
     assert client.query_points.await_args.kwargs["limit"] == 3
+
+
+def test_pypdf_lock_is_at_least_advisory_fix() -> None:
+    major, minor, patch = (int(part) for part in version("pypdf").split(".")[:3])
+    assert (major, minor, patch) >= (6, 15, 0)
+
+
+def _blank_pdf_bytes() -> bytes:
+    buffer = BytesIO()
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    writer.write(buffer)
+    return buffer.getvalue()
+
+
+def test_blank_pdf_has_no_extractable_text() -> None:
+    knowledge_base = KnowledgeBase(
+        Settings(),
+        client=SimpleNamespace(),
+        embeddings=FakeEmbeddings(),
+    )
+
+    with pytest.raises(ValueError, match="没有可提取的文字"):
+        asyncio.run(
+            knowledge_base.import_document(
+                "empty.pdf",
+                "application/pdf",
+                _blank_pdf_bytes(),
+            )
+        )
+
+
+def test_corrupt_pdf_is_rejected() -> None:
+    knowledge_base = KnowledgeBase(
+        Settings(),
+        client=SimpleNamespace(),
+        embeddings=FakeEmbeddings(),
+    )
+
+    with pytest.raises(ValueError, match="损坏或无法解析"):
+        asyncio.run(
+            knowledge_base.import_document(
+                "broken.pdf",
+                "application/pdf",
+                b"%PDF-1.4 this is not a valid pdf",
+            )
+        )
+
