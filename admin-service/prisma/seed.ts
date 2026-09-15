@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcryptjs'
+import { assertBootstrapPassword } from '../src/common/utils/bootstrap-password'
 
 const prisma = new PrismaClient()
 
@@ -76,12 +77,11 @@ async function main() {
     })
   }
 
-  const admin = await prisma.user.upsert({
-    where: { username: 'admin' },
-    update: {},
-    create: {
+  const existingAdmin = await prisma.user.findUnique({ where: { username: 'admin' } })
+  const admin = existingAdmin ?? await prisma.user.create({
+    data: {
       username: 'admin',
-      password: await bcrypt.hash('Admin@123', 10),
+      password: await bcrypt.hash(assertBootstrapPassword(process.env.ADMIN_INITIAL_PASSWORD), 10),
       nickname: '管理员',
       email: 'admin@example.com',
     },
@@ -93,9 +93,18 @@ async function main() {
     create: { userId: admin.id, roleId: role.id },
   })
 
-  console.log('Seed complete. Default credentials: admin / Admin@123')
+  if (existingAdmin) {
+    console.log("Seed complete. User 'admin' already existed; password was not changed.")
+  } else {
+    console.log("Seed complete. Created user 'admin'. Password was not printed.")
+  }
 }
 
 main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect())
+  .catch((err) => {
+    console.error(err)
+    process.exitCode = 1
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
