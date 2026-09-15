@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 import {
   IsBoolean,
   IsIn,
@@ -10,6 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator'
+import { strictBoolean } from '../../common/strict-boolean'
 
 export class SearchEvidenceDto {
   @IsOptional()
@@ -75,7 +76,7 @@ export class SearchEvidenceDto {
   keyword?: string
 
   @IsOptional()
-  @Type(() => Boolean)
+  @Transform(({ value }) => strictBoolean(value))
   @IsBoolean()
   includeDeleted?: boolean
 }

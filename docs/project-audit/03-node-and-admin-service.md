@@ -45,6 +45,8 @@ function toJavaLocalDateTime(value?: string): string {
 
 ### BN-02 / P0：`includeDeleted=false` 被转换为 `true`
 
+动手修复请看单独说明：[bn-02-include-deleted-boolean.md](bn-02-include-deleted-boolean.md)。下面是审计当时的证据和草稿。
+
 证据：`backend-node/src/evidence/dto/search-evidence.dto.ts:77-80` 使用 `@Type(() => Boolean)`。JavaScript 中 `Boolean('false') === true`。
 
 建议改成严格转换：
