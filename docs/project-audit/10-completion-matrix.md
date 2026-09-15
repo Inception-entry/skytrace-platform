@@ -59,7 +59,7 @@
 - [ ] 没有修 Admin 日志秘密或清理历史数据。
 - [x] 服务端已加 super 不变量（非 super 不能提权/改 super 边界；最后一名 super 带 advisory lock）。未做真实 PostgreSQL 并发套件。Keycloak 开发用户未动。
 - [x] seed 固定密码已移除（首次建号用 `ADMIN_INITIAL_PASSWORD`）；Keycloak 开发用户未动。
-- [x] Node `includeDeleted` 已改为严格布尔。告警 `eventTime` 已按上海 DATETIME 兼容转换（AI/Node 写入、Java 兼容读取）。证据 API 仍把上海 DATETIME 当 UTC（JV-02 未动）。
+- [x] Node `includeDeleted` 已改为严格布尔。告警 `eventTime` 已按上海 DATETIME 兼容转换（AI/Node 写入、Java 兼容读取）。证据查询/归档 Instant 已按 `DatabaseTimes.ZONE` 解释上海 DATETIME（JV-02）。
 - [ ] 没有升级任何依赖或锁文件。
 - [ ] 没有增加 migration、event ID、outbox、DLQ 或索引。
 - [ ] 没有修改上传、FFmpeg、PDF、图片像素或 RAG 逻辑。

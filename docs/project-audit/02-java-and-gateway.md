@@ -53,6 +53,8 @@ CREATE INDEX idx_task_route_code ON inspection_task(route_code);
 
 ### JV-02：证据 API 把上海本地 DATETIME 当 UTC
 
+动手修复请看单独说明：[jv-02-evidence-shanghai-instant.md](jv-02-evidence-shanghai-instant.md)。下面是审计当时的证据和草稿。
+
 证据：
 
 - JVM：`deploy/docker-compose.yml:198` 固定 `Asia/Shanghai`。

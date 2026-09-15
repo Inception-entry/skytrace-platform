@@ -40,7 +40,7 @@ Node: new Date().toISOString() → "2026-08-24T02:00:00.000Z"
 
 | 不要做 | 原因 |
 | --- | --- |
-| 证据 `toInstant(..., UTC)` / JV-02 | 下一刀 |
+| 证据 `toInstant(..., UTC)` / JV-02 | 独立 PR，见 [jv-02-evidence-shanghai-instant.md](jv-02-evidence-shanghai-instant.md) |
 | 数据库改 `TIMESTAMP`、DTO 改 `OffsetDateTime` | 无版本切契约，应走 `v1.3.0` |
 | 加 luxon / 新运行时依赖 | Node 用 `Intl`，Python 用 `zoneinfo` |
 | 修 pypdf、Keycloak 开发用户、AUTH-004 | 别的 PR |
@@ -77,4 +77,4 @@ Java 默认时区仍是 Compose 的 `Asia/Shanghai`。转换用 `ZoneId.of("Asia
 
 ## 6. 再下一刀
 
-JV-02：证据 API 把上海 DATETIME 当 UTC。AUTH-004 仍是 P1。
+JV-02 证据 Instant 已单独实施，见 [jv-02-evidence-shanghai-instant.md](jv-02-evidence-shanghai-instant.md)。下一刀是 RB-07 pypdf。AUTH-004 仍是 P1。

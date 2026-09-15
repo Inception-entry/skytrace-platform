@@ -47,6 +47,7 @@
 
 - 用同一 instant 分别发送 `Z`、`+08:00` 和兼容无 offset 格式，落库结果必须代表同一时刻。
 - 验证 UTC 跨日：`2026-08-24T16:30:00Z` 在上海为 `2026-08-25 00:30:00`，事件编码日期和 UI 显示符合明确约定。
+- 证据详情/归档 JSON 的 Instant：上海墙钟 `2026-08-24 16:00` 必须是 `2026-08-24T08:00:00Z`，不能当 UTC。实施说明：[jv-02-evidence-shanghai-instant.md](jv-02-evidence-shanghai-instant.md)。
 - `includeDeleted=false` 不返回删除记录；`true` 仅对拥有相应权限的调用方生效；非法字符串必须 400。
 
 ### 4.3 文件与依赖

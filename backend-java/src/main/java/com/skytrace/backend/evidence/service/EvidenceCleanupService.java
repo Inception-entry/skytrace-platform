@@ -1,5 +1,6 @@
 package com.skytrace.backend.evidence.service;
 
+import com.skytrace.backend.common.DatabaseTimes;
 import com.skytrace.backend.evidence.EvidenceMaintenanceProperties;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJob;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
@@ -76,8 +77,8 @@ public class EvidenceCleanupService {
                 properties.getCleanupRetentionDays(),
                 1
         );
-        // 数据库 DATETIME 没有时区，必须沿用应用时区才能与既有 archivedAt/deletedAt 对齐。
-        ZonedDateTime cutoffDateTime = ZonedDateTime.now()
+        // 数据库 DATETIME 没有时区，必须按上海墙钟解释，才能与查询/归档 Instant 对齐。
+        ZonedDateTime cutoffDateTime = ZonedDateTime.now(DatabaseTimes.ZONE)
                 .minusDays(retentionDays);
         // API 仍返回带时区语义的 Instant，便于运维准确理解本轮边界。
         Instant cutoffInstant = cutoffDateTime.toInstant();

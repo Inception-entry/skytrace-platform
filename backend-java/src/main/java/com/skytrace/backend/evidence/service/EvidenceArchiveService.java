@@ -1,6 +1,7 @@
 package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.alarm.repository.AlarmEventRepository;
+import com.skytrace.backend.common.DatabaseTimes;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJob;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJobStatus;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveScopeType;
@@ -183,8 +184,10 @@ public class EvidenceArchiveService {
                 job.getPackageContentHash(),
                 job.getTotalFiles(),
                 job.getTotalBytes(),
-                toInstant(job.getCreatedAt()),
-                job.getCompletedAt() == null ? null : toInstant(job.getCompletedAt()),
+                DatabaseTimes.toInstant(job.getCreatedAt()),
+                job.getCompletedAt() == null
+                        ? null
+                        : DatabaseTimes.toInstant(job.getCompletedAt()),
                 job.getErrorMessage()
         );
     }
@@ -212,10 +215,6 @@ public class EvidenceArchiveService {
 
     private static String normalize(String value) {
         return value == null || value.isBlank() ? null : value.trim();
-    }
-
-    private static Instant toInstant(java.time.LocalDateTime value) {
-        return value.atZone(ZoneOffset.UTC).toInstant();
     }
 
     private static String filenameOf(String objectKey) {
