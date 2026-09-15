@@ -13,6 +13,8 @@
 
 ### BN-01 / P0：告警时间与 Java `LocalDateTime` 不兼容
 
+动手修复请看单独说明：[bn-01-eventtime-shanghai-compat.md](bn-01-eventtime-shanghai-compat.md)。下面是审计当时的证据和草稿。
+
 证据：
 
 - `backend-node/src/alarm/alarm.controller.ts:36-41` 默认 `new Date().toISOString()`。

@@ -96,7 +96,7 @@ detection_payload="$(
     "\"latitude\":31.2304," \
     "\"longitude\":121.4737," \
     "\"imageObjectKey\":\"$object_key\"," \
-    "\"eventTime\":\"2030-01-01T08:15:00\"}"
+    "\"eventTime\":\"2030-01-01T08:15:00+08:00\"}"
 )"
 api_request POST "/api/alarms/detections" "$detection_payload" >/dev/null
 printf '识别告警已投递到 RabbitMQ\n'

@@ -27,6 +27,7 @@
 - [AS-04 去掉公开默认管理员实施说明](as-04-bootstrap-credentials.md)：第二项代码修复（seed 不再写死 `admin / Admin@123`，首次建号用 `ADMIN_INITIAL_PASSWORD`）。
 - [AS-02 / AS-03 super 不变量实施说明](as-02-rbac-super-invariants.md)：第三项代码修复（非 super 不能提权或改 super 边界；最后一名 super 带事务锁）。
 - [BN-02 includeDeleted 严格布尔实施说明](bn-02-include-deleted-boolean.md)：第四项代码修复（证据搜索 `includeDeleted=false` 不再变成 `true`）。
+- [BN-01 / AI-02 告警 eventTime 上海兼容实施说明](bn-01-eventtime-shanghai-compat.md)：第五项代码修复（AI/Node 写入前转到上海墙钟；Java 兼容读取 Z/offset）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级

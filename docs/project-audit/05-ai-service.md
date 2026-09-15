@@ -52,6 +52,8 @@ if len(chunks) > self.settings.knowledge_max_chunks:
 
 ## 3. AI-02 / P0：告警时间丢弃 timezone，产生 8 小时偏移
 
+动手修复请看单独说明：[bn-01-eventtime-shanghai-compat.md](bn-01-eventtime-shanghai-compat.md)。下面是审计当时的证据和草稿。
+
 `backend-ai/app/detection_publisher.py:44-57` 先使用 UTC aware datetime，再直接 `replace(tzinfo=None)`。这不会转换时区，只是删除标签：
 
 ```text
