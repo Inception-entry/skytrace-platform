@@ -29,7 +29,7 @@ jobs:
           java-version: "21"
           cache: maven
       - name: Test and package
-        run: mvn --batch-mode --no-transfer-progress verify
+        run: ../scripts/ci/mvn-with-retry.sh verify
 
   gateway-java:
     name: Spring Cloud Gateway
@@ -48,7 +48,7 @@ jobs:
           java-version: "21"
           cache: maven
       - name: Test and package
-        run: mvn --batch-mode --no-transfer-progress verify
+        run: ../scripts/ci/mvn-with-retry.sh verify
 
   backend-ai:
     name: AI service (Python)
