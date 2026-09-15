@@ -8,6 +8,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { strictBoolean } from '../../common/strict-boolean';
 
 export class EvidenceMaintenanceBatchDto {
   @IsOptional()
@@ -20,12 +21,7 @@ export class EvidenceMaintenanceBatchDto {
 
 export class EvidenceCleanupDto extends EvidenceMaintenanceBatchDto {
   @IsOptional()
-  @Transform(({ value }) => {
-    // 只转换明确的布尔文本，拼写错误必须交给 IsBoolean 返回 400。
-    if (value === true || value === 'true') return true;
-    if (value === false || value === 'false') return false;
-    return value;
-  })
+  @Transform(({ value }) => strictBoolean(value))
   @IsBoolean()
   dryRun = true;
 
