@@ -1,5 +1,8 @@
 package com.skytrace.backend.messaging;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.skytrace.backend.common.ShanghaiLocalDateTimeDeserializer;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -13,6 +16,7 @@ public record DetectionAlarmMessage(
         BigDecimal longitude,
         String imageObjectKey,
         String videoObjectKey,
+        @JsonDeserialize(using = ShanghaiLocalDateTimeDeserializer.class)
         LocalDateTime eventTime
 ) {
 }

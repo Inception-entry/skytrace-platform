@@ -101,7 +101,7 @@ test.describe('SkyTrace login + alarm/evidence loop', () => {
       latitude: 31.2304,
       longitude: 121.4737,
       imageObjectKey: objectKey,
-      eventTime: '2030-01-01T08:15:00',
+      eventTime: '2030-01-01T08:15:00+08:00',
     })
 
     const eventCode = await waitForAlarm(request, token, taskCode, objectKey)

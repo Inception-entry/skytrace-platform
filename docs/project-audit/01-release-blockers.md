@@ -14,7 +14,7 @@
 | RB-02 | 非 super 可分配更高权限角色并修改 super 边界 | `admin-service/src/users/users.service.ts:74-149`、`roles/roles.service.ts:57-96`。实施说明：[as-02-rbac-super-invariants.md](as-02-rbac-super-invariants.md) | 形成纵向提权、禁用/删除 super 或篡改 super 角色路径 |
 | RB-03 | seed 内置并打印 `admin / Admin@123` | `admin-service/prisma/seed.ts:79-101`。实施说明：[as-04-bootstrap-credentials.md](as-04-bootstrap-credentials.md) | 一旦生产误跑 seed，公开凭据可直接获得最高权限 |
 | RB-04 | 生产 Keycloak realm 导入三个永久开发账号 | `deploy/keycloak/skytrace-realm.json:90-143`，生产仍 `start --import-realm` | 与 RB-03 叠加形成默认账号风险；旧 realm 不会因修改 JSON 自动清掉已有用户 |
-| RB-05 | AI/Node/Java 告警时间契约冲突 | `backend-ai/app/detection_publisher.py:44-57`、`backend-node/src/alarm/alarm.controller.ts:36-61`、Java `LocalDateTime` DTO、Compose `Asia/Shanghai` | 可直接 400，或产生 8 小时偏移，破坏告警顺序、事件编码和审计证据时间 |
+| RB-05 | AI/Node/Java 告警时间契约冲突 | `backend-ai/app/detection_publisher.py:44-57`、`backend-node/src/alarm/alarm.controller.ts:36-61`、Java `LocalDateTime` DTO、Compose `Asia/Shanghai`。实施说明：[bn-01-eventtime-shanghai-compat.md](bn-01-eventtime-shanghai-compat.md) | 可直接 400，或产生 8 小时偏移，破坏告警顺序、事件编码和审计证据时间 |
 | RB-06 | `includeDeleted=false` 实际变成 `true` | `backend-node/src/evidence/dto/search-evidence.dto.ts:77-80`。实施说明：[bn-02-include-deleted-boolean.md](bn-02-include-deleted-boolean.md) | 已删除证据可能被意外返回，属于数据可见性错误 |
 | RB-07 | AI 正在解析非可信 PDF，而锁定的 `pypdf 6.14.2` 有两个资源耗尽漏洞 | `knowledge_base.py:74-83`、`uv.lock:1094-1095` | 上传接口可触发解析，漏洞与真实攻击面直接重合 |
 

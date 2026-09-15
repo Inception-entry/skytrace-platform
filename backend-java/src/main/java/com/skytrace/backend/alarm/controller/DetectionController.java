@@ -1,6 +1,8 @@
 package com.skytrace.backend.alarm.controller;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.skytrace.backend.common.ApiResponse;
+import com.skytrace.backend.common.ShanghaiLocalDateTimeDeserializer;
 import com.skytrace.backend.messaging.DetectionAlarmMessage;
 import com.skytrace.backend.messaging.DetectionAlarmPublisher;
 import jakarta.validation.Valid;
@@ -59,6 +61,7 @@ public class DetectionController {
             BigDecimal longitude,
             String imageObjectKey,
             String videoObjectKey,
+            @JsonDeserialize(using = ShanghaiLocalDateTimeDeserializer.class)
             LocalDateTime eventTime
     ) {
     }

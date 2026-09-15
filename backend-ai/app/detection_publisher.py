@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Any
 
 import aio_pika
@@ -12,6 +13,18 @@ from app.config import Settings
 from app.observability import log_event
 
 logger = logging.getLogger(__name__)
+
+DATABASE_ZONE = ZoneInfo("Asia/Shanghai")
+
+
+def to_legacy_java_local(value: datetime) -> str:
+    if value.tzinfo is None:
+        raise ValueError("eventTime 必须携带 timezone offset")
+    return (
+        value.astimezone(DATABASE_ZONE)
+        .replace(tzinfo=None)
+        .isoformat(timespec="seconds")
+    )
 
 
 class DetectionAlarmPayload(BaseModel):
@@ -52,9 +65,7 @@ async def publish_detection_alarm(
         "longitude": payload.longitude,
         "imageObjectKey": payload.image_object_key,
         "videoObjectKey": payload.video_object_key,
-        "eventTime": event_time.replace(tzinfo=None).isoformat(
-            timespec="seconds"
-        ),
+        "eventTime": to_legacy_java_local(event_time),
     }
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     try:

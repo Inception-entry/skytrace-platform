@@ -1,5 +1,7 @@
 package com.skytrace.backend.alarm.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.skytrace.backend.common.ShanghaiLocalDateTimeDeserializer;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -18,5 +20,7 @@ public record CreateAlarmRequest(
         String videoUrl,
         String primaryEvidenceCode,
         String primaryVideoEvidenceCode,
-        @NotNull LocalDateTime eventTime
+        @NotNull
+        @JsonDeserialize(using = ShanghaiLocalDateTimeDeserializer.class)
+        LocalDateTime eventTime
 ) {}

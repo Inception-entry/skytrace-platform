@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JavaClientService } from '../common/java-client/java-client.service';
+import { toJavaLocalDateTime } from '../common/java-local-date-time';
 import { AlarmRealtimeGateway } from '../realtime/alarm-realtime.gateway';
 import { CreateAlarmDto } from './dto/create-alarm.dto';
 import { Roles } from '../auth/http-auth.decorators';
@@ -36,7 +37,7 @@ export class AlarmController {
   async create(@Body() dto: CreateAlarmDto) {
     const payload = {
       ...dto,
-      eventTime: dto.eventTime ?? new Date().toISOString(),
+      eventTime: toJavaLocalDateTime(dto.eventTime),
     };
     const result = await this.javaClient.post('/alarms', payload);
     this.alarmGateway.broadcastAlarm(result);
@@ -56,7 +57,7 @@ export class AlarmController {
       longitude: dto.longitude,
       imageObjectKey: dto.imageObjectKey ?? dto.imageUrl,
       videoObjectKey: dto.videoObjectKey ?? dto.videoUrl,
-      eventTime: dto.eventTime ?? new Date().toISOString(),
+      eventTime: toJavaLocalDateTime(dto.eventTime),
     };
     return this.javaClient.post('/detections/alarms', payload);
   }
