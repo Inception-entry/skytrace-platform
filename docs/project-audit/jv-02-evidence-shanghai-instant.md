@@ -73,4 +73,4 @@ cd backend-java && mvn -q -Dtest=DatabaseTimesTest,EvidenceQueryServiceTest,Evid
 
 ## 6. 再下一刀
 
-RB-07：升级 `pypdf`。RB-04 Keycloak 开发用户仍是 P0。AUTH-004 仍是 P1。
+RB-07 / AI-01 已单独实施，见 [ai-01-pypdf-upgrade.md](ai-01-pypdf-upgrade.md)。下一刀是 RB-04 Keycloak 开发用户。AUTH-004 仍是 P1。

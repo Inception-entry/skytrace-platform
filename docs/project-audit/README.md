@@ -29,6 +29,7 @@
 - [BN-02 includeDeleted 严格布尔实施说明](bn-02-include-deleted-boolean.md)：第四项代码修复（证据搜索 `includeDeleted=false` 不再变成 `true`）。
 - [BN-01 / AI-02 告警 eventTime 上海兼容实施说明](bn-01-eventtime-shanghai-compat.md)：第五项代码修复（AI/Node 写入前转到上海墙钟；Java 兼容读取 Z/offset）。
 - [JV-02 证据 API 上海 DATETIME Instant 实施说明](jv-02-evidence-shanghai-instant.md)：第六项代码修复（证据查询/归档不再把上海墙钟当成 UTC）。
+- [RB-07 / AI-01 升级 pypdf 实施说明](ai-01-pypdf-upgrade.md)：第七项代码修复（知识库 PDF 解析升到 `pypdf >= 6.15.0`）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级
