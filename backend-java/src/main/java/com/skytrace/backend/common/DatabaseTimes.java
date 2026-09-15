@@ -1,5 +1,6 @@
 package com.skytrace.backend.common;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -15,8 +16,22 @@ public final class DatabaseTimes {
     private DatabaseTimes() {
     }
 
-    public static LocalDateTime toDatabaseLocal(java.time.Instant instant) {
+    public static LocalDateTime toDatabaseLocal(Instant instant) {
         return LocalDateTime.ofInstant(instant, ZONE);
+    }
+
+    public static Instant toInstant(LocalDateTime value) {
+        return toInstant(value, ZONE);
+    }
+
+    /**
+     * 包内重载只给单测对照有 DST 的 ZoneId，证明转换走 ZoneId 而不是写死 +8 小时。
+     */
+    static Instant toInstant(LocalDateTime value, ZoneId zone) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZone(zone).toInstant();
     }
 
     public static LocalDateTime parseJsonLocalDateTime(String raw) {

@@ -1,5 +1,6 @@
 package com.skytrace.backend.evidence.service;
 
+import com.skytrace.backend.common.DatabaseTimes;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
@@ -21,9 +22,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -164,13 +162,13 @@ public class EvidenceQueryService {
             if (request.startTime() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(
                         root.get("createdAt"),
-                        toLocal(request.startTime())
+                        DatabaseTimes.toDatabaseLocal(request.startTime())
                 ));
             }
             if (request.endTime() != null) {
                 predicates.add(cb.lessThanOrEqualTo(
                         root.get("createdAt"),
-                        toLocal(request.endTime())
+                        DatabaseTimes.toDatabaseLocal(request.endTime())
                 ));
             }
             String keyword = blankToNull(request.keyword());
@@ -218,7 +216,7 @@ public class EvidenceQueryService {
                 asset.getDeviceCode(),
                 asset.getUploadedByName(),
                 asset.getSizeBytes(),
-                toInstant(asset.getCreatedAt()),
+                DatabaseTimes.toInstant(asset.getCreatedAt()),
                 asset.isDeleted(),
                 asset.getReviewStatus() == null
                         ? EvidenceReviewStatus.PENDING.name()
@@ -247,7 +245,7 @@ public class EvidenceQueryService {
                 asset.getDeviceCode(),
                 asset.getUploadedBy(),
                 asset.getUploadedByName(),
-                toInstant(asset.getCreatedAt()),
+                DatabaseTimes.toInstant(asset.getCreatedAt()),
                 asset.isDeleted(),
                 asset.getReviewStatus() == null
                         ? EvidenceReviewStatus.PENDING.name()
@@ -260,7 +258,7 @@ public class EvidenceQueryService {
                 asset.getReviewedByName(),
                 asset.getReviewedAt() == null
                         ? null
-                        : toInstant(asset.getReviewedAt()),
+                        : DatabaseTimes.toInstant(asset.getReviewedAt()),
                 asset.getAnalysisId(),
                 asset.getDerivativeStatus() == null
                         ? null
@@ -315,14 +313,6 @@ public class EvidenceQueryService {
     private static String archiveStatusName(EvidenceAsset asset) {
         EvidenceArchiveStatus status = asset.getArchiveStatus();
         return status == null ? EvidenceArchiveStatus.ACTIVE.name() : status.name();
-    }
-
-    private static LocalDateTime toLocal(Instant instant) {
-        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-    }
-
-    private static Instant toInstant(LocalDateTime value) {
-        return value.atZone(ZoneOffset.UTC).toInstant();
     }
 
     private static String blankToNull(String value) {

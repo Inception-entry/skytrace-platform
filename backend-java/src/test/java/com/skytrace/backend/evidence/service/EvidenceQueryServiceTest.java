@@ -1,17 +1,25 @@
 package com.skytrace.backend.evidence.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import com.skytrace.backend.evidence.domain.EvidenceSourceType;
 import com.skytrace.backend.evidence.dto.EvidenceAssetResponse;
+import com.skytrace.backend.evidence.dto.EvidenceDetailResponse;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +37,7 @@ class EvidenceQueryServiceTest {
         service = new EvidenceQueryService(repository, storageService, tagService);
         when(storageService.legacyPublicPath("evidence", "TASK-001/demo.jpg"))
                 .thenReturn("/files/evidence/TASK-001/demo.jpg");
+        when(tagService.tagsOf(any())).thenReturn(List.of());
     }
 
     @Test
@@ -52,6 +61,28 @@ class EvidenceQueryServiceTest {
         assertThat(responses.getFirst().evidenceCode())
                 .isEqualTo("EV-20260810-DEMO0001");
         assertThat(responses.getFirst().taskCode()).isEqualTo("TASK-001");
+    }
+
+    @Test
+    void detailInstantUsesShanghaiWallClockNotUtc() throws Exception {
+        EvidenceAsset asset = sample();
+        asset.setCreatedAt(LocalDateTime.of(2026, 8, 24, 16, 0));
+        asset.setReviewedAt(LocalDateTime.of(2026, 8, 24, 16, 30));
+        when(repository.findByEvidenceCode("EV-20260810-DEMO0001"))
+                .thenReturn(Optional.of(asset));
+
+        EvidenceDetailResponse detail = service.detail("EV-20260810-DEMO0001");
+
+        assertThat(detail.createdAt())
+                .isEqualTo(Instant.parse("2026-08-24T08:00:00Z"));
+        assertThat(detail.reviewedAt())
+                .isEqualTo(Instant.parse("2026-08-24T08:30:00Z"));
+
+        ObjectMapper mapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        assertThat(mapper.writeValueAsString(detail.createdAt()))
+                .isEqualTo("\"2026-08-24T08:00:00Z\"");
     }
 
     private EvidenceAsset sample() {
