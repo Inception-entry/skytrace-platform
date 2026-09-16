@@ -83,4 +83,4 @@ cd admin-service && npm test -- auth.service.spec.ts
 
 ## 6. 再下一刀
 
-AUTH-004 剩下的半登录回滚（login 已 `setTokens` 但 `/auth/me` 失败）。然后是 RB-10（refresh `jti` / 并发消费）。`h2`、PDF 限额、redirect URI 仍各自独立。
+FE-05 半登录回滚已单独实施，见 [fe-05-admin-partial-login.md](fe-05-admin-partial-login.md)。下一刀是 RB-10（refresh `jti` / 并发消费）。`h2`、PDF 限额、redirect URI 仍各自独立。

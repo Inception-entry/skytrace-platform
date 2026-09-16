@@ -54,7 +54,7 @@ function refreshOnce(): Promise<string> {
 
 ### FE-02 / P1：登出竞态导致服务端 refresh session 仍有效
 
-实施说明：[rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)（半登录回滚仍未做）。
+实施说明：[rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)。
 
 - `admin-frontend/src/store/auth.ts:25-29` 发出 `logoutApi` 后立即清 token/跳转，没有等待。
 - `src/api/client.ts:19-22` 到异步 interceptor 执行时才读取 access token。
@@ -122,6 +122,8 @@ proxy_set_header X-Forwarded-Proto $scheme;
 CSP 必须在真实构建上 report-only 观察后收紧，尤其 Ant Design 样式、图片 blob 和 API/WebSocket connect-src。测试 1.5 MiB 合法头像、>2 MiB 拒绝、413/502 不被 SPA fallback 改写，并用正式镜像 `nginx -t`。
 
 ### FE-05 / P1：登录双击与半登录状态
+
+实施说明：[fe-05-admin-partial-login.md](fe-05-admin-partial-login.md)。
 
 `admin-frontend/src/pages/Login.tsx:12-21` 先持久化 token 再请求 `/me`；`:55-57` 没 submitting 互斥。`/me` 失败会被误报为“用户名或密码错误”，已保存 token 却不清理。
 
@@ -347,7 +349,7 @@ props 变化时缓存 Cartesian；播放只移动索引/切片；长轨迹做下
 - `st-cesium-vue/index.vue:134,201` 依赖 Cesium 私有 `_element`，升级容易破坏。
 - `admin-frontend/src/types.ts:36-46` 的 FlatMenu 与 DTO/组件概念不完全一致；建议 OpenAPI 生成或共享 schema。
 - `admin-frontend/eslint.config.js:20-21` unused/explicit-any 只是 warning；CI 可逐步收紧为 error 并启 type-aware lint。
-- Admin refresh/logout 状态机已有 vitest（见 [rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md)、[rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)）。权限路由、菜单 path、登录回滚仍无行为测试。
+- Admin refresh/logout/半登录已有 vitest（见 [rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md)、[rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)、[fe-05-admin-partial-login.md](fe-05-admin-partial-login.md)）。权限路由、菜单 path 仍无行为测试。
 - Vue 当前 `frontend/test/*.test.js` 多为 `readFileSync + assert.match` 的源代码字符串断言；可保护代码形状，但不能证明并发、生命周期和网络行为。引入 Vitest、Vue Testing Library、MSW；保留现有契约测试作补充。
 - `frontend/src/assets/model/CesiumDrone.glb:Zone.Identifier` 是 Windows 下载旁车元数据，不是模型资源；建议删除并加入 ignore。
 

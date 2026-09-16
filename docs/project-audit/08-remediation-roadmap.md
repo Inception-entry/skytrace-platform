@@ -73,8 +73,8 @@ immutable release manifest ──> 整栈回滚 ──> 蓝绿切换 ──> 自
 ### Wave 1D：Web 会话
 
 1. 修 Admin refresh 永久挂起（RB-08，见 [rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md)）。
-2. 修 logout 服务端撤销竞态（RB-09，见 [rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)）；partial login 仍未做。
-3. 补 Admin auth 行为测试。
+2. 修 logout 服务端撤销竞态（RB-09，见 [rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)）。
+3. 补 Admin auth 行为测试。半登录回滚见 [fe-05-admin-partial-login.md](fe-05-admin-partial-login.md)。
 4. Admin Nginx 请求体、安全头和 timeout。
 
 阶段 1 release gate：见 `01-release-blockers.md`。通过后才生成 `v1.2.2-rc.1`。

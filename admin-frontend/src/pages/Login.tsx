@@ -1,23 +1,47 @@
+import { useState } from 'react'
 import { Button, Card, Form, Input, message } from 'antd'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { login, me } from '../api/auth'
+import { login } from '../api/auth'
+import {
+  establishAdminSession,
+  loadAdminProfile,
+  loginFailureMessage,
+} from '../api/sessionEstablish'
+import {
+  reportServerRevocationFailure,
+  revokeAdminSession,
+} from '../api/sessionRevoke'
 import { useAuthStore } from '../store/auth'
 import { SkyTraceLogo } from '../components/SkyTraceLogo'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const { setTokens, setUser } = useAuthStore()
+  const [submitting, setSubmitting] = useState(false)
 
   async function handleLogin(values: { username: string; password: string }) {
+    if (submitting) return
+    setSubmitting(true)
     try {
-      const res = await login(values)
-      setTokens(res.access_token, res.refresh_token)
-      const user = await me()
-      setUser(user)
+      await establishAdminSession(
+        {
+          login,
+          loadMe: loadAdminProfile,
+          commit: (tokens, user) => {
+            setTokens(tokens.access_token, tokens.refresh_token)
+            setUser(user)
+          },
+          rollback: revokeAdminSession,
+          onRollbackFailure: reportServerRevocationFailure,
+        },
+        values,
+      )
       navigate('/', { replace: true })
-    } catch {
-      message.error('用户名或密码错误')
+    } catch (error) {
+      message.error(loginFailureMessage(error))
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -50,7 +74,7 @@ export function LoginPage() {
             <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
               <Input.Password size="large" prefix={<LockOutlined className="skytrace-input-icon" />} autoComplete="current-password" placeholder="密码" />
             </Form.Item>
-            <Button type="primary" htmlType="submit" size="large" block>
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={submitting}>
               登 录
             </Button>
           </Form>
