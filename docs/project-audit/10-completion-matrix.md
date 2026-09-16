@@ -57,14 +57,15 @@
 以下状态全部是 **未实施**：
 
 - [ ] 没有修 Admin 日志秘密或清理历史数据。
-- [x] 服务端已加 super 不变量（非 super 不能提权/改 super 边界；最后一名 super 带 advisory lock）。未做真实 PostgreSQL 并发套件。Keycloak 开发用户未动。
-- [x] seed 固定密码已移除（首次建号用 `ADMIN_INITIAL_PASSWORD`）；Keycloak 开发用户未动。
+- [x] 服务端已加 super 不变量（非 super 不能提权/改 super 边界；最后一名 super 带 advisory lock）。未做真实 PostgreSQL 并发套件。
+- [x] seed 固定密码已移除（首次建号用 `ADMIN_INITIAL_PASSWORD`）。
 - [x] Node `includeDeleted` 已改为严格布尔。告警 `eventTime` 已按上海 DATETIME 兼容转换（AI/Node 写入、Java 兼容读取）。证据查询/归档 Instant 已按 `DatabaseTimes.ZONE` 解释上海 DATETIME（JV-02）。AI `pypdf` 已升到 `>= 6.15.0`（RB-07）；`h2` 未动。
 - [x] 已升级 AI `pypdf` 锁文件；没有升级 h2、Admin npm 或其他依赖。
+- [x] 生产 Keycloak 导入文件已去掉三个开发账号（RB-04）；已部署库内用户仍需运维盘点禁用。redirect URI 未改。
 - [ ] 没有增加 migration、event ID、outbox、DLQ 或索引。
 - [ ] 没有修改上传、FFmpeg、PDF、图片像素或 RAG 逻辑。
 - [ ] 没有修 Admin refresh/logout、Cesium、轮询、SSE 或 Socket。
-- [ ] 没有实施 Docker/Compose/Caddy/Keycloak/CI/发布脚本修复；这些文件的当前差异只是注释。
+- [ ] 没有实施 Caddy 或发布脚本整栈回滚。CI 已加 Keycloak 生产 realm 拆分断言。
 - [ ] 没有运行完整 Docker E2E、恶意文件或压力测试。
 - [ ] 没有改任何版本字段、创建 release note、打 tag 或部署。
 
@@ -75,8 +76,8 @@
 | 项目 | 状态 |
 | --- | --- |
 | 当前正式 tag | `v1.2.1` |
-| 当前 main | `v1.2.1` 后 11 个提交，仍声明版本 1.2.1 |
-| 本次是否应 bump | 否；审计/认证文档和注释都不改变运行行为 |
+| 当前 main | `v1.2.1` 后已合入多条 P0；Keycloak 生产导入拆分待合入 |
+| 本次是否应 bump | 否；本 PR 只拆 Keycloak realm，不改产品版本号 |
 | 当前是否建议生产发布 | 否 |
 | 整改后的推荐 RC | `v1.2.2-rc.1` |
 | 全部门禁通过后的推荐正式版 | `v1.2.2` |

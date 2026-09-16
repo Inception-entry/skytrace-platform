@@ -12,6 +12,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  keycloak-realm:
+    name: Keycloak production realm
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Assert production realm has no dev users
+        run: python3 scripts/keycloak/assert_realm_split.py
+
   backend-java:
     name: Java backend
     runs-on: ubuntu-latest

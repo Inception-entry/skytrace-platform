@@ -13,7 +13,7 @@
 | RB-01 | Admin 操作日志持久化明文密码/token | `admin-service/src/common/interceptors/operation-log.interceptor.ts:23-38`，登录接口 `auth.controller.ts:15-20`。实施说明：[as-01-operation-log-redaction.md](as-01-operation-log-redaction.md) | 数据库或日志查看权限可直接获得账号凭据；还必须清理历史数据并轮换已暴露凭据 |
 | RB-02 | 非 super 可分配更高权限角色并修改 super 边界 | `admin-service/src/users/users.service.ts:74-149`、`roles/roles.service.ts:57-96`。实施说明：[as-02-rbac-super-invariants.md](as-02-rbac-super-invariants.md) | 形成纵向提权、禁用/删除 super 或篡改 super 角色路径 |
 | RB-03 | seed 内置并打印 `admin / Admin@123` | `admin-service/prisma/seed.ts:79-101`。实施说明：[as-04-bootstrap-credentials.md](as-04-bootstrap-credentials.md) | 一旦生产误跑 seed，公开凭据可直接获得最高权限 |
-| RB-04 | 生产 Keycloak realm 导入三个永久开发账号 | `deploy/keycloak/skytrace-realm.json:90-143`，生产仍 `start --import-realm` | 与 RB-03 叠加形成默认账号风险；旧 realm 不会因修改 JSON 自动清掉已有用户 |
+| RB-04 | 生产 Keycloak realm 导入三个永久开发账号 | `deploy/keycloak/skytrace-realm.json:90-143`，生产仍 `start --import-realm`。实施说明：[dp-01-keycloak-prod-realm.md](dp-01-keycloak-prod-realm.md) | 与 RB-03 叠加形成默认账号风险；旧 realm 不会因修改 JSON 自动清掉已有用户 |
 | RB-05 | AI/Node/Java 告警时间契约冲突 | `backend-ai/app/detection_publisher.py:44-57`、`backend-node/src/alarm/alarm.controller.ts:36-61`、Java `LocalDateTime` DTO、Compose `Asia/Shanghai`。实施说明：[bn-01-eventtime-shanghai-compat.md](bn-01-eventtime-shanghai-compat.md) | 可直接 400，或产生 8 小时偏移，破坏告警顺序、事件编码和审计证据时间 |
 | RB-06 | `includeDeleted=false` 实际变成 `true` | `backend-node/src/evidence/dto/search-evidence.dto.ts:77-80`。实施说明：[bn-02-include-deleted-boolean.md](bn-02-include-deleted-boolean.md) | 已删除证据可能被意外返回，属于数据可见性错误 |
 | RB-07 | AI 正在解析非可信 PDF，而锁定的 `pypdf 6.14.2` 有两个资源耗尽漏洞 | `knowledge_base.py:74-83`、`uv.lock:1094-1095`。实施说明：[ai-01-pypdf-upgrade.md](ai-01-pypdf-upgrade.md) | 上传接口可触发解析，漏洞与真实攻击面直接重合 |
@@ -41,7 +41,7 @@
 - 登录、创建用户、修改用户、修改密码、刷新、登出成功和失败日志都不得包含秘密。
 - 非 super 给自己分配更高权限、移除 super、禁用 super、删除 super、编辑 super role，全部返回 403。
 - 并发禁用/删除最后两个 active super，最终必须至少保留一个。
-- 生产 realm 中不存在开发账号；生产管理员首次凭据走独立 secret 和强制改密。
+- 生产 realm 中不存在开发账号；生产管理员首次凭据走独立 secret 和强制改密。fresh 导入已不含 `skytrace-admin/operator/viewer`，见 [dp-01-keycloak-prod-realm.md](dp-01-keycloak-prod-realm.md)。已部署库仍需运维盘点。
 
 ### 4.2 时间与证据
 

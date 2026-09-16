@@ -89,6 +89,60 @@
   ],
   "users": [
     {
+      "username": "skytrace-admin",
+      "enabled": true,
+      "email": "skytrace-admin@local.test",
+      "emailVerified": true,
+      "firstName": "SkyTrace",
+      "lastName": "Administrator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${SKYTRACE_DEV_USER_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMIN"
+      ]
+    },
+    {
+      "username": "skytrace-operator",
+      "enabled": true,
+      "email": "skytrace-operator@local.test",
+      "emailVerified": true,
+      "firstName": "SkyTrace",
+      "lastName": "Operator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${SKYTRACE_DEV_USER_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "OPERATOR"
+      ]
+    },
+    {
+      "username": "skytrace-viewer",
+      "enabled": true,
+      "email": "skytrace-viewer@local.test",
+      "emailVerified": true,
+      "firstName": "SkyTrace",
+      "lastName": "Viewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${SKYTRACE_DEV_USER_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "VIEWER"
+      ]
+    },
+    {
       "username": "service-account-skytrace-service",
       "enabled": true,
       "serviceAccountClientId": "skytrace-service",
