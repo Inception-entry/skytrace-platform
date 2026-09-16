@@ -7,7 +7,7 @@
 
 > 本方案回答的不是“前台和后台能不能共用一枚 token”，而是如何做到：身份认证统一、管理面边界独立、细粒度授权不丢失、迁移期间可回滚。
 
-> Keycloak 运行时仍导入 `deploy/keycloak/skytrace-realm.json`。阅读配置时可参考语义完全一致的 `deploy/keycloak/skytrace-realm.annotated.jsonc`；该 JSONC 仅用于人工阅读，不参与 Compose 或 Keycloak 导入。
+> Keycloak 本地/CI 导入 `deploy/keycloak/skytrace-realm.local.json`（含三个 `@local.test` 用户）。生产 overlay 导入不含这些用户的 `deploy/keycloak/skytrace-realm.json`。
 
 ## 结论
 

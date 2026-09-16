@@ -12,6 +12,8 @@
 
 ### DP-01 / P0：生产复用包含开发用户的 Keycloak realm
 
+动手修复请看单独说明：[dp-01-keycloak-prod-realm.md](dp-01-keycloak-prod-realm.md)。下面是审计当时的证据和草稿。改 JSON **不会**清掉已经进库的用户。
+
 `deploy/keycloak/skytrace-realm.json:90-143` 导入三个 enabled 用户：admin、operator、viewer；密码都来自同一个 `SKYTRACE_DEV_USER_PASSWORD`，且 `temporary:false`。生产 overlay `deploy/docker-compose.production.yml:42-54` 仍使用 `start --import-realm`，并继承 base 中的同一持久卷和 Realm 挂载（`deploy/docker-compose.yml:390-392`）。
 
 风险不只在 JSON：Keycloak 对已存在 realm 通常不会按后续 import 自动删除/覆盖现有对象。因此只从模板删除用户，不代表已经部署的数据库内用户消失。

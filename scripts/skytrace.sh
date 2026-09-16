@@ -182,6 +182,7 @@ case "$ACTION" in
     ;;
   auth-users)
     require_local_keycloak_secrets
+    KEYCLOAK_ALLOW_TEST_USERS=true \
     KEYCLOAK_CONTAINER=skytrace-keycloak \
     KEYCLOAK_REALM=skytrace \
     KEYCLOAK_ADMIN_USERNAME="$(env_value KEYCLOAK_ADMIN_USERNAME)" \

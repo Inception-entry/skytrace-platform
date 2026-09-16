@@ -391,7 +391,9 @@ services:
       - "127.0.0.1:${KEYCLOAK_PORT:-8180}:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
-      - ./keycloak/skytrace-realm.json:/opt/keycloak/data/import/skytrace-realm.json:ro
+      # Local/CI only: includes skytrace-admin/operator/viewer.
+      # Production overlay remounts skytrace-realm.json without those users.
+      - ./keycloak/skytrace-realm.local.json:/opt/keycloak/data/import/skytrace-realm.json:ro
     networks:
       - edge
       - backend

@@ -17,7 +17,7 @@
 
 ### 2.1 开发与生产 realm 分离
 
-当前 `deploy/keycloak/skytrace-realm.json:90-152` 包含三个开发用户，三者使用同一个 `${SKYTRACE_DEV_USER_PASSWORD}`，且密码不是 temporary。生产 overlay 在 `deploy/docker-compose.production.yml:42-54` 继续通过 `--import-realm` 启动。
+当前生产 desired state 是 `deploy/keycloak/skytrace-realm.json`，不含三个 `@local.test` 开发用户。本地/CI 使用 `skytrace-realm.local.json`。生产 overlay 在 `deploy/docker-compose.production.yml` 仍通过 `--import-realm` 启动，但挂载的是不含开发用户的文件。已存在的 Keycloak 数据库不会因 JSON 变更自动删用户。
 
 生产要求：
 

@@ -74,4 +74,4 @@ uv run pytest tests/test_knowledge_base.py -v
 
 ## 6. 再下一刀
 
-RB-04：生产 Keycloak realm 去掉三个开发账号。AUTH-004 仍是 P1。`h2` 和 PDF 解析限额另开 PR。
+RB-04 / DP-01 已单独实施，见 [dp-01-keycloak-prod-realm.md](dp-01-keycloak-prod-realm.md)。下一刀是 P1 AUTH-004 / RB-08。`h2` 和 PDF 解析限额另开 PR。

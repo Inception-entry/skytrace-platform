@@ -43,6 +43,9 @@ services:
     # Switch to production mode with MySQL backend.
     # 002_keycloak.sh in mysql/init/ creates the keycloak database.
     command: start --import-realm
+    volumes:
+      # Same target as base, so this bind replaces the local-users realm.
+      - ./keycloak/skytrace-realm.json:/opt/keycloak/data/import/skytrace-realm.json:ro
     environment:
       KC_DB: mysql
       KC_DB_URL: jdbc:mysql://mysql:3306/keycloak?characterEncoding=utf8

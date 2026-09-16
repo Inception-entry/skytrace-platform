@@ -48,7 +48,7 @@ Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `skytrace.sh s
    ```
 
 3. 访问 `http://localhost:8180`，进入 `skytrace` realm。首次启动会从
-   `deploy/keycloak/skytrace-realm.json` 导入以下内容：
+   `deploy/keycloak/skytrace-realm.local.json` 导入以下内容：
 
    - 公共客户端：`skytrace-web`，使用 Authorization Code + PKCE。
    - Realm 角色：`ADMIN`、`OPERATOR`、`VIEWER`。
@@ -62,6 +62,7 @@ Vue 使用 Keycloak PKCE 登录，因此 Keycloak 会跟随普通 `skytrace.sh s
    | `skytrace-operator` | `OPERATOR` | 任务操作和 AI 分析 |
    | `skytrace-viewer` | `VIEWER` | 任务与知识库只读访问 |
 
+   生产 overlay 导入 `deploy/keycloak/skytrace-realm.json`，**不含**上述三个用户。
    已经导入过 realm 的现有环境不会重复执行导入，可以运行以下幂等命令同步
    测试用户、密码和角色：
 
