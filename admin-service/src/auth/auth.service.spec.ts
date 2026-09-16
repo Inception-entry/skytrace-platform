@@ -165,10 +165,25 @@ describe('AuthService', () => {
   })
 
   describe('logout', () => {
-    it('deletes the refresh token from DB', async () => {
+    it('deletes the hashed refresh token from DB', async () => {
       mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
       await service.logout('some-refresh-token')
       expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledTimes(1)
+    })
+
+    it('makes the old refresh token unusable after logout', async () => {
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
+      await service.logout('plain-refresh')
+      const deletedHash = mockPrisma.refreshToken.deleteMany.mock.calls[0][0].where.token
+      expect(deletedHash).toHaveLength(64)
+      expect(deletedHash).not.toBe('plain-refresh')
+
+      mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
+      mockPrisma.refreshToken.findUnique.mockResolvedValue(null)
+      await expect(service.refresh('plain-refresh')).rejects.toThrow('令牌已撤销')
+      expect(mockPrisma.refreshToken.findUnique).toHaveBeenCalledWith({
+        where: { token: deletedHash },
+      })
     })
   })
 

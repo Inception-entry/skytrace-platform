@@ -7,7 +7,7 @@
 | 模块 | lint | build | tests | 生产依赖审计 |
 | --- | --- | --- | --- | --- |
 | Vue 业务前端 | 通过 | 通过；主 JS 约 691.88 kB，超过 500 kB 告警 | 4 个源代码契约测试文件通过 | 0 advisory |
-| React 管理前端 | 通过；package type 告警 | 通过；主 JS 约 1,389.03 kB | RB-08 后有 refresh 状态机 vitest；logout 仍无 | 2 moderate advisory |
+| React 管理前端 | 通过；package type 告警 | 通过；主 JS 约 1,389.03 kB | RB-08/RB-09 后有 refresh/logout vitest | 2 moderate advisory |
 
 构建产物大并不自动等于用户一定慢，但当前同步路由导入和 Cesium/Ant Design 体积说明已经有明确拆包空间。
 
@@ -53,6 +53,8 @@ function refreshOnce(): Promise<string> {
 每个失败请求 `await refreshOnce()` 后自行重放；所有出口自然 settle。测试无 token、刷新失败、10 个并发 401、重放再次 401 和组件卸载。
 
 ### FE-02 / P1：登出竞态导致服务端 refresh session 仍有效
+
+实施说明：[rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)（半登录回滚仍未做）。
 
 - `admin-frontend/src/store/auth.ts:25-29` 发出 `logoutApi` 后立即清 token/跳转，没有等待。
 - `src/api/client.ts:19-22` 到异步 interceptor 执行时才读取 access token。
@@ -345,7 +347,7 @@ props 变化时缓存 Cartesian；播放只移动索引/切片；长轨迹做下
 - `st-cesium-vue/index.vue:134,201` 依赖 Cesium 私有 `_element`，升级容易破坏。
 - `admin-frontend/src/types.ts:36-46` 的 FlatMenu 与 DTO/组件概念不完全一致；建议 OpenAPI 生成或共享 schema。
 - `admin-frontend/eslint.config.js:20-21` unused/explicit-any 只是 warning；CI 可逐步收紧为 error 并启 type-aware lint。
-- Admin refresh 状态机已有 vitest（见 [rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md)）。logout、权限路由、菜单 path、登录回滚仍无行为测试。
+- Admin refresh/logout 状态机已有 vitest（见 [rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md)、[rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)）。权限路由、菜单 path、登录回滚仍无行为测试。
 - Vue 当前 `frontend/test/*.test.js` 多为 `readFileSync + assert.match` 的源代码字符串断言；可保护代码形状，但不能证明并发、生命周期和网络行为。引入 Vitest、Vue Testing Library、MSW；保留现有契约测试作补充。
 - `frontend/src/assets/model/CesiumDrone.glb:Zone.Identifier` 是 Windows 下载旁车元数据，不是模型资源；建议删除并加入 ignore。
 

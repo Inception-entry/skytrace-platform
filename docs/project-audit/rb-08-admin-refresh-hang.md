@@ -80,4 +80,4 @@ cd admin-frontend && npm run build
 
 ## 6. 再下一刀
 
-RB-09 / FE-02：登出先捕获 access/refresh，用**不依赖已清空 store** 的请求撤销服务端 session，并从服务端验证旧 refresh 不能再用。`h2`、PDF 限额、redirect URI 仍各自独立。
+RB-09 / FE-02 已单独实施，见 [rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)。下一刀是半登录回滚。`h2`、PDF 限额、redirect URI 仍各自独立。
