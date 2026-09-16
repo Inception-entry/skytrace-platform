@@ -341,6 +341,8 @@ Compose 将 8000 绑定在 loopback，公网常规路径经 Gateway 鉴权，这
 
 ## 19. AI-18 / P3：版本元数据漂移
 
+动手修复：FastAPI `version` 已改为 `importlib.metadata.version("skytrace-backend-ai")`，随 `1.2.2` 对齐。下面是审计当时的证据。
+
 `backend-ai/pyproject.toml:4` 是 `1.2.1`，但 `backend-ai/app/main.py:123` FastAPI 显示 `0.1.0`。建议从 package metadata 读取：
 
 ```python
