@@ -64,7 +64,7 @@
 - [x] 生产 Keycloak 导入文件已去掉三个开发账号（RB-04）；已部署库内用户仍需运维盘点禁用。redirect URI 未改。
 - [ ] 没有增加 migration、event ID、outbox、DLQ 或索引。
 - [ ] 没有修改上传、FFmpeg、PDF、图片像素或 RAG 逻辑。
-- [ ] 没有修 Admin refresh/logout、Cesium、轮询、SSE 或 Socket。
+- [x] Admin 前端无 refresh token 的 401 不再永久挂起（RB-08）。logout 服务端撤销竞态（RB-09）未做。没有修 Cesium、轮询、SSE 或 Socket。
 - [ ] 没有实施 Caddy 或发布脚本整栈回滚。CI 已加 Keycloak 生产 realm 拆分断言。
 - [ ] 没有运行完整 Docker E2E、恶意文件或压力测试。
 - [ ] 没有改任何版本字段、创建 release note、打 tag 或部署。
@@ -76,10 +76,10 @@
 | 项目 | 状态 |
 | --- | --- |
 | 当前正式 tag | `v1.2.1` |
-| 当前 main | `v1.2.1` 后已合入多条 P0；Keycloak 拆分与 `1.2.2` 版本字段待合入 |
-| 本次是否应 bump | 是，产品版本对齐 `1.2.2`，但 **先 RC 不打生产 tag** |
+| 当前 main | P0 已合入；平台版本 `1.2.2`；GitHub pre-release `v1.2.2-rc.1` 已打 |
+| 本次是否应 bump | 字段已对齐；**不要**再打生产 `v1.2.2` |
 | 当前是否建议生产发布 | 否 |
-| 整改后的推荐 RC | `v1.2.2-rc.1` |
+| 已打的 RC | `v1.2.2-rc.1` |
 | 全部门禁通过后的推荐正式版 | `v1.2.2` |
 | 正式 UTC/Cookie/协议能力升级 | 兼容双栈时建议 `v1.3.0`；直接破坏契约则评估 `v2.0.0` |
 
