@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { MeResponse } from '../types'
-import { logout as logoutApi } from '../api/auth'
+import {
+  endAdminSession,
+  reportServerRevocationFailure,
+  revokeAdminSession,
+} from '../api/sessionRevoke'
 
 interface AuthState {
   accessToken: string | null
@@ -23,10 +27,19 @@ export const useAuthStore = create<AuthState>()(
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setUser: user => set({ user }),
       logout: () => {
-        const { refreshToken } = get()
-        if (refreshToken) logoutApi(refreshToken)
-        set({ accessToken: null, refreshToken: null, user: null })
-        window.location.href = '/login'
+        void endAdminSession({
+          getTokens: () => {
+            const { accessToken, refreshToken } = get()
+            return { accessToken, refreshToken }
+          },
+          clearLocalAuth: () =>
+            set({ accessToken: null, refreshToken: null, user: null }),
+          revokeSession: revokeAdminSession,
+          redirectToLogin: () => {
+            window.location.href = '/login'
+          },
+          onRevokeFailure: reportServerRevocationFailure,
+        })
       },
     }),
     {

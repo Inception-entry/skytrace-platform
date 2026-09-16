@@ -10,9 +10,6 @@ export const refresh = (refreshToken: string) =>
 export const me = () =>
   client.get<MeResponse>('/auth/me').then(r => r.data)
 
-export const logout = (refreshToken: string) =>
-  client.post('/auth/logout', { refresh_token: refreshToken }).catch(() => {})
-
 export const updateProfile = (data: { nickname?: string; email?: string; avatar?: string }) =>
   client.put<{ id: number; username: string; nickname: string | null; email: string | null; avatar: string | null }>(
     '/auth/profile',

@@ -32,6 +32,7 @@
 - [RB-07 / AI-01 升级 pypdf 实施说明](ai-01-pypdf-upgrade.md)：第七项代码修复（知识库 PDF 解析升到 `pypdf >= 6.15.0`）。
 - [RB-04 / DP-01 生产 Keycloak 不导入开发账号实施说明](dp-01-keycloak-prod-realm.md)：第八项代码修复（生产 realm 不再带 `skytrace-admin/operator/viewer`）。
 - [RB-08 / FE-01 Admin 刷新状态机实施说明](rb-08-admin-refresh-hang.md)：第九项代码修复（无 refresh token 的 401 不再把后续请求挂死）。
+- [RB-09 / FE-02 Admin 登出撤销实施说明](rb-09-admin-logout-revoke.md)：第十项代码修复（登出带着捕获到的 token 撤销服务端 refresh）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级
