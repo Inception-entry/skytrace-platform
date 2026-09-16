@@ -41,7 +41,7 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 
 1. refresh token 唯一/原子、JWT fail-fast、基础认证限流。
 2. PDF/图片/视频的直接资源边界与 FFmpeg timeout。
-3. Admin 前端 refresh deadlock（RB-08）、logout 撤销（RB-09，见 [rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md)）、partial-login 竞态。
+3. Admin 前端 refresh deadlock（RB-08）、logout 撤销（RB-09）、partial-login（FE-05，见 [fe-05-admin-partial-login.md](fe-05-admin-partial-login.md)）。
 4. Flyway 空库完整性修复与真 MySQL测试。
 5. detection ID/consumer 幂等的兼容第一阶段。
 6. 生产不可变 image tag、整次部署回滚和真实域名 OIDC 预检。
