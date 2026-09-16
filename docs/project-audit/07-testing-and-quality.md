@@ -12,7 +12,7 @@
 | Backend Node | 13 tests 通过 | DTO 布尔部分、JWT/JWKS基础、Redis adapter 契约通过 | `includeDeleted`、未知 kid 顺序放大、上传压力、断线重连、时间跨服务未覆盖 |
 | Admin Service | 24 tests 通过 | auth/users 的当前 happy/部分 negative path 通过 | 日志秘密、RBAC提权、并发 super、同秒 refresh、真实 PostgreSQL 未覆盖 |
 | Vue frontend | 4 个测试文件通过 | 若干关键源码/API path 形状存在 | 多为源文本正则断言，不能证明浏览器运行时、生命周期、竞态和可访问性 |
-| Admin frontend | 无 test script | 无 | auth refresh/logout、RBAC、错误 UI 等核心状态机没有自动化证据 |
+| Admin frontend | RB-08 后有 `vitest run`（refresh 状态机）；logout/RBAC/错误 UI 仍无 | 无 token、刷新失败、10 并发 401、重放 401 可回归 | 浏览器会话、logout 服务端撤销、权限路由未覆盖 |
 | Browser E2E | 发现 6 条，未在本次运行 | 用例文件可加载 | 本次没有启动全栈，不能报告 E2E passed |
 
 ## 2. 现有工程基础的正向项

@@ -72,7 +72,7 @@ immutable release manifest ──> 整栈回滚 ──> 蓝绿切换 ──> 自
 
 ### Wave 1D：Web 会话
 
-1. 修 Admin refresh 永久挂起。
+1. 修 Admin refresh 永久挂起（RB-08，见 [rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md)）。
 2. 修 logout 服务端撤销竞态和 partial login。
 3. 补 Admin auth 行为测试。
 4. Admin Nginx 请求体、安全头和 timeout。

@@ -22,5 +22,5 @@ export default [
       'no-undef': 'off',
     },
   },
-  { ignores: ['dist/**', 'node_modules/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'src/**/*.test.ts'] },
 ]

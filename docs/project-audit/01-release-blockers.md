@@ -22,7 +22,7 @@
 
 | ID | 问题 | 建议发布门禁 |
 | --- | --- | --- |
-| RB-08 | Admin 前端无 refresh token 的 401 分支永久保持 `isRefreshing=true` | 必须补状态机单测和并发 401 集成测试 |
+| RB-08 | Admin 前端无 refresh token 的 401 分支永久保持 `isRefreshing=true` | 必须补状态机单测和并发 401 集成测试。实施说明：[rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md) |
 | RB-09 | Admin 登出可能不带 access token，服务端 refresh session 未撤销 | 必须验证登出后旧 refresh token 不可再用 |
 | RB-10 | Admin refresh token 无随机 `jti` 且并发消费不原子 | 必须验证同秒 token 不同、并发刷新只成功一次 |
 | RB-11 | Admin JWT secret 启动校验太弱，登录/刷新无分布式限流 | 生产必须 fail-fast 检查强 secret，并配置限流 |

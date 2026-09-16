@@ -182,6 +182,8 @@ jobs:
         run: npm ci
       - name: Audit dependencies
         run: npm audit --audit-level=high --omit=dev
+      - name: Unit tests
+        run: npm test
       - name: Type-check and build
         run: npm run build
 

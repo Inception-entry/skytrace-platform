@@ -84,4 +84,4 @@ KEYCLOAK_ALLOW_TEST_USERS=true scripts/keycloak/sync-test-users.sh  # 本地已�
 
 ## 6. 再下一刀
 
-P0 代码项到此结束。下一刀是 P1：AUTH-004 / RB-08（Admin 前端 refresh 挂起）。`h2`、PDF 解析限额、redirect URI 仍各自独立。
+P0 代码项到此结束。下一刀是 P1：AUTH-004 / RB-08（Admin 前端 refresh 挂起），见 [rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md)。`h2`、PDF 解析限额、redirect URI 仍各自独立。
