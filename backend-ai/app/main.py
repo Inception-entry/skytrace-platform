@@ -3,6 +3,7 @@ import json
 import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from importlib.metadata import PackageNotFoundError, version
 from time import perf_counter
 
 import httpx
@@ -118,9 +119,16 @@ async def lifespan(app: FastAPI):
     )
 
 
+def package_version() -> str:
+    try:
+        return version("skytrace-backend-ai")
+    except PackageNotFoundError:
+        return "0.0.0-dev"
+
+
 app = FastAPI(
     title="SkyTrace AI Service",
-    version="0.1.0",
+    version=package_version(),
     lifespan=lifespan,
 )
 

@@ -1,48 +1,51 @@
 # 09. 版本与发版建议
 
-实施状态：**版本建议；没有改版本号、打 tag 或发布镜像。本轮全仓变更仅为注释和文档维护，不改发版判定。**
+实施状态：**P0 代码已收口为 `1.2.2` 补丁范围；正式生产 tag 仍未打。**
 
 ## 1. 现在该不该发
 
-结论：**现在不要直接发生产版本。**
+结论：**不要直接发生产 `v1.2.2`。** 可以准备 **`v1.2.2-rc.1`**。
 
-原因：当前已有测试/编译总体通过，但存在 `01-release-blockers.md` 中的凭据日志、RBAC、默认账号、时间语义、删除证据布尔转换、恶意 PDF和会话状态机问题。它们不是“等下个大版本再优化”的普通债务。
+P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证据 Instant、`pypdf`、生产 Keycloak 不导入开发用户）已经或即将在独立 PR 合入。这些是向后兼容的安全/正确性补丁，SemVer 用 **1.2.2**。
 
-本次新增审计/认证文档，并为手写源码与配置补充了解释性注释；可执行逻辑、有效配置和产品运行行为均未改变。因此：
+还不能当生产 GA 的原因：
 
-- 不建议仅因为这批文档和注释就把所有子项目从 `1.2.1` 改成 `1.2.2`。
-- 可以按模块合入 docs/comment-only commit，但不打新的产品 release tag。
-- 如果团队有内部审计文档标签，可使用不冒充产品版本的注释 tag/issue milestone；不是必要步骤。
+- Keycloak 拆分 PR 需先合入；已部署库内开发账号要运维盘点，改 JSON 不会删旧用户。
+- 操作日志历史数据未清理，凭据轮换未做。
+- 原 `1.2.2` 大清单里的 P1 仍在：Admin refresh/logout、`h2`/Admin advisory、PDF 限额、Flyway 空库、detection 幂等、整栈回滚、真实域名 OIDC。
+
+本版把 `1.2.2` **收窄为 P0 热修**。未完成的 P1 记入发版说明「已知限制」，正式 tag 前要修完或书面豁免。不要把时间协议改成 UTC（那是 `1.3.0`）。
 
 ## 2. 修完后建议发什么版本
 
-推荐目标：**`v1.2.2`**。
+推荐目标：**`v1.2.2`**，但发布顺序是：
 
-理由：
+1. 合入 Keycloak 拆分。
+2. 版本字段已对齐 `1.2.2` 后打 **`v1.2.2-rc.1`**，fresh staging。
+3. P1 关闭或豁免后，再打不可移动的 **`v1.2.2`**。
 
-- 当前最近正式版本是 `v1.2.1`。
-- `main` 已比 tag 前进 11 个提交，主要是依赖维护；各子项目声明仍是 `1.2.1`。
-- 优先修复项属于安全、正确性、可靠性和依赖补丁，目标是不新增破坏性产品能力。
-- SemVer 下，向后兼容的 bug/security fix 适合 patch 版本。
-
-先发 `v1.2.2-rc.1` 到 fresh staging；阻断项验收完成后再打不可移动的 `v1.2.2` tag。
+不要发 `1.3.0`：没有新能力。不要发 `2.0.0`：没有破坏契约。
 
 ## 3. `v1.2.2` 建议范围
 
-### 必须包含
+### 必须包含（P0，本版）
 
-1. Admin 日志秘密脱敏，并提供历史排查/清理/轮换 runbook。
-2. Admin super/RBAC 提权修复和并发保护。
-3. 移除 seed 默认管理员密码；生产 Keycloak 移除开发身份。
-4. refresh token 唯一/原子、JWT fail-fast、基础认证限流。
-5. Node `includeDeleted` 严格布尔。
-6. AI/Node/Java 当前协议下的时间兼容修复，Evidence API 8 小时修正。
-7. `pypdf`/`h2` 和 Admin runtime advisory 修复或经批准的有期限豁免。
-8. PDF/图片/视频的直接资源边界与 FFmpeg timeout。
-9. Admin 前端 refresh deadlock、logout/partial-login 竞态和行为测试。
-10. Flyway 空库完整性修复与真 MySQL测试。
-11. detection ID/consumer 幂等的兼容第一阶段。
-12. 生产不可变 image tag、整次部署回滚和真实域名 OIDC 预检。
+1. Admin 日志秘密脱敏（#118）。历史排查/清理/轮换仍是运维项。
+2. Admin super/RBAC 提权修复（#158）。真实 PostgreSQL 并发套件未做。
+3. 移除 seed 默认管理员密码（#157）；生产 Keycloak 导入去掉开发用户（待合入）。
+4. Node `includeDeleted` 严格布尔（#160）。
+5. AI/Node/Java 当前协议下的时间兼容，以及 Evidence Instant 8 小时修正（#161、#162）。
+6. `pypdf >= 6.15.0`（#163，锁到 6.18.1）。`h2` 与 Admin advisory **本版不做**。
+
+### 正式 tag 前仍建议完成（可豁免后进 `1.2.3`）
+
+1. refresh token 唯一/原子、JWT fail-fast、基础认证限流。
+2. PDF/图片/视频的直接资源边界与 FFmpeg timeout。
+3. Admin 前端 refresh deadlock、logout/partial-login 竞态和行为测试。
+4. Flyway 空库完整性修复与真 MySQL测试。
+5. detection ID/consumer 幂等的兼容第一阶段。
+6. 生产不可变 image tag、整次部署回滚和真实域名 OIDC 预检。
+7. `h2` 与 Admin runtime advisory，或书面豁免。
 
 ### 建议包含但可拆到 `v1.2.3`/`v1.3.0`
 
@@ -70,7 +73,7 @@
 
 ## 5. 版本字段对齐
 
-正式 `v1.2.2` release commit 需要统一：
+正式 `1.2.2` 字段已对齐，由 `scripts/ci/assert_version_alignment.py` 守门；AI `/openapi.json` 从包装 metadata 读取，不再写死 `0.1.0`。Git tag 仍先打 `v1.2.2-rc.1`。
 
 | 子项目 | 字段 |
 | --- | --- |
@@ -177,4 +180,4 @@ Friendly tag:  main-<sha7>  # 仅作人类检索，部署以 digest 为准
 
 ## 11. 最终一句话
 
-**今天这批审计文档不发产品版本；先按阻断清单整改并验证，然后发 `v1.2.2-rc.1`，通过 fresh staging 和回滚演练后发布 `v1.2.2`。**
+**先按 P0 清单整改并验证，发 `v1.2.2-rc.1`；通过 fresh staging 且 P1 关闭或豁免后，再发布 `v1.2.2`。今天不要打生产 tag。**
