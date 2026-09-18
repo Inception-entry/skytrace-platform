@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config'
 import { Prisma } from '@prisma/client'
 import * as bcrypt from 'bcryptjs'
 import { AuthService } from './auth.service'
+import { DUMMY_PASSWORD_HASH } from './dummy-password-hash'
 import { PrismaService } from '../prisma/prisma.service'
 
 const mockPrisma: {
@@ -93,14 +94,28 @@ describe('AuthService', () => {
   })
 
   describe('validateUser', () => {
-    it('returns null when user does not exist', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null)
-      expect(await service.validateUser('nobody', 'pass')).toBeNull()
+    afterEach(() => {
+      jest.restoreAllMocks()
     })
 
-    it('throws 401 when user is disabled', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'admin', password: 'hash', status: 0 })
-      await expect(service.validateUser('admin', 'pass')).rejects.toThrow(UnauthorizedException)
+    it('returns null when user does not exist and still runs bcrypt against the dummy hash', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null)
+      const compare = jest.spyOn(bcrypt, 'compare')
+      expect(await service.validateUser('nobody', 'pass')).toBeNull()
+      expect(compare).toHaveBeenCalledWith('pass', DUMMY_PASSWORD_HASH)
+    })
+
+    it('returns null for a disabled user even with the correct password', async () => {
+      const hashed = await bcrypt.hash('correct', 10)
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 1,
+        username: 'admin',
+        password: hashed,
+        status: 0,
+      })
+      const compare = jest.spyOn(bcrypt, 'compare')
+      expect(await service.validateUser('admin', 'correct')).toBeNull()
+      expect(compare).toHaveBeenCalledWith('correct', DUMMY_PASSWORD_HASH)
     })
 
     it('returns null for wrong password', async () => {
