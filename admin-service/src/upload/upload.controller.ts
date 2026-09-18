@@ -2,6 +2,7 @@ import { Controller, Post, UseGuards, UseInterceptors, UploadedFile } from '@nes
 import { FileInterceptor } from '@nestjs/platform-express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CurrentUser, RequestUser } from '../common/decorators/current-user.decorator'
+import { AVATAR_MAX_BYTES } from './avatar-bytes'
 import { UploadService } from './upload.service'
 
 @UseGuards(JwtAuthGuard)
@@ -12,8 +13,8 @@ export class UploadController {
   @Post('avatar')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: undefined, // use memory storage (buffer)
-      limits: { fileSize: 2 * 1024 * 1024 },
+      storage: undefined,
+      limits: { fileSize: AVATAR_MAX_BYTES },
     }),
   )
   async uploadAvatar(

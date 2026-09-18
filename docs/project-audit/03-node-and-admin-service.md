@@ -350,9 +350,10 @@ if (!initialPassword || isKnownDefault(initialPassword) || utf8Length(initialPas
 
 ### AS-09 / P1：头像上传信任客户端元数据并公开读取
 
-`src/upload/upload.service.ts:51-63` 只看客户端 MIME，又使用原扩展名；`:31-43,46-49,81-95` 允许公开 `GetObject`；初始化异常被吞掉。
+实施说明：[as-09-admin-avatar-magic.md](as-09-admin-avatar-magic.md)（private bucket / 签名 URL、AI/Java 上传仍未做）。
 
-建议 magic-byte 白名单、规范扩展名和对象名、空文件/大小二次检查。优先 private bucket + 短期签名 URL；至少返回 `nosniff` 且禁止 inline 活跃内容。bucket 初始化用共享 Promise，正确处理并发 already-exists。
+- 头像已按 magic-byte 白名单入库，对象名用规范扩展名；空文件/2MB 二次检查；桶 init 共享 Promise。
+- 公开 `GetObject` 仍在；管理台 `/files/` 已加 `nosniff`。
 
 ### AS-10 / P2：分页、数组、日期和字符串没有资源边界
 

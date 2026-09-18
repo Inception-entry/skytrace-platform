@@ -67,7 +67,7 @@ immutable release manifest ──> 整栈回滚 ──> 蓝绿切换 ──> 自
 2. Admin runtime dependencies 升级到无当前 advisory 的兼容组合。
 3. 图片/视频/PDF bounded read，像素/page/chunk/frame/time budget。
 4. FFmpeg timeout、协议/stdin、错误脱敏。
-5. Java/Node/Admin 上传 magic-byte、ZIP entry 和文件名安全。
+5. Java/Node/Admin 上传 magic-byte、ZIP entry 和文件名安全。Admin 头像见 [as-09-admin-avatar-magic.md](as-09-admin-avatar-magic.md)；AI/Java 仍未做。
 6. JWKS cooldown/negative cache。
 
 ### Wave 1D：Web 会话
