@@ -39,6 +39,7 @@
 - [AS-06 登录/刷新限流实施说明](as-06-auth-rate-limit.md)：第十四项代码修复（login/refresh 进程内滑动窗口，超限 429）。
 - [AS-06 登录失败路径对齐实施说明](as-06-login-enumeration.md)：第十五项代码修复（不存在/禁用/错密同一 bcrypt 失败路径）。
 - [AS-09 / RB-12 Admin 头像 magic-byte 实施说明](as-09-admin-avatar-magic.md)：第十六项代码修复（头像按文件头识别，对象名用规范扩展名）。
+- [BN-03 / RB-13 JWKS kid 冷却实施说明](bn-03-jwks-kid-cooldown.md)：第十七项代码修复（未知 kid 负缓存、全局 JWKS 冷却、原子替换）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级

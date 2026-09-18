@@ -69,6 +69,6 @@ cd admin-service && npm test -- src/upload/avatar-bytes.spec.ts src/upload/uploa
 
 ## 6. 再下一刀
 
-RB-13：JWKS `kid` 冷却与未知 kid 负缓存。AI/Java 上传、private bucket、`h2`、PDF 限额仍各自独立。
+RB-13：JWKS `kid` 冷却已单独实施，见 [bn-03-jwks-kid-cooldown.md](bn-03-jwks-kid-cooldown.md)。下一刀是 RB-14（AI 读入/FFmpeg 超时）。Java/Node 上传、`h2`、OIDC 仍各自独立。
 
 合入 `main` 后若要再发候选，打 **`v1.2.2-rc.9`**（不要打在本分支上，不要打生产 `v1.2.2`）。
