@@ -7,7 +7,7 @@ from importlib.metadata import PackageNotFoundError, version
 from time import perf_counter
 
 import httpx
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile, status
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile, status
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 from redis.asyncio import Redis
@@ -15,6 +15,7 @@ from starlette.responses import StreamingResponse
 
 from app.chat_history import RedisChatHistory
 from app.config import get_settings
+from app.uploads import UploadEmpty, UploadTooLarge, read_upload_capped
 from app.errors import (
     AiServiceError,
     classify_model_exception,
@@ -54,7 +55,7 @@ from app.schemas import (
 )
 from app.vision import build_vision_detector
 from app.vision.analyze import analyze_image, analyze_video
-from app.vision.video_frames import FrameExtractionError
+from app.vision.video_frames import FrameExtractionError, MAX_FRAMES_CAP
 
 settings = get_settings()
 logger = configure_logging()
@@ -362,8 +363,12 @@ async def analyze_detection(
             },
         )
 
-    image_bytes = await file.read()
-    if not image_bytes:
+    try:
+        image_bytes = await read_upload_capped(
+            file,
+            settings.vision_max_upload_bytes,
+        )
+    except UploadEmpty:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
@@ -372,7 +377,7 @@ async def analyze_detection(
                 "retryable": False,
             },
         )
-    if len(image_bytes) > settings.vision_max_upload_bytes:
+    except UploadTooLarge:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail={
@@ -448,8 +453,8 @@ async def analyze_detection_video(
     longitude: float | None = None,
     publishAlarms: bool = True,
     maxAlarms: int | None = None,
-    frameIntervalSec: float = 2.0,
-    maxFrames: int = 10,
+    frameIntervalSec: float = Query(default=2.0, gt=0, le=60),
+    maxFrames: int = Query(default=10, ge=1, le=MAX_FRAMES_CAP),
 ) -> VisionVideoDetectResponse:
     detector = getattr(request.app.state, "vision_detector", None)
     if detector is None:
@@ -476,8 +481,12 @@ async def analyze_detection_video(
             },
         )
 
-    video_bytes = await file.read()
-    if not video_bytes:
+    try:
+        video_bytes = await read_upload_capped(
+            file,
+            settings.vision_max_video_upload_bytes,
+        )
+    except UploadEmpty:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
@@ -486,9 +495,7 @@ async def analyze_detection_video(
                 "retryable": False,
             },
         )
-    # Allow larger payloads for short clips (50 MB default ceiling)
-    max_video_bytes = max(settings.vision_max_upload_bytes, 50 * 1024 * 1024)
-    if len(video_bytes) > max_video_bytes:
+    except UploadTooLarge:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail={
