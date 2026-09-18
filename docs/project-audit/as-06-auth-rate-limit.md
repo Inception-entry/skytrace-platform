@@ -70,6 +70,6 @@ cd admin-service && npm test -- src/auth/auth-rate-limit.spec.ts src/auth/guards
 
 ## 6. 再下一刀
 
-AS-06 剩余：登录失败路径对齐（用户不存在走 dummy hash，对外同一错误）。family 复用、issuer/audience、`h2`、PDF 限额仍各自独立。
+AS-06 登录失败路径对齐已单独实施，见 [as-06-login-enumeration.md](as-06-login-enumeration.md)。下一刀是 LoginDto 前置校验。family 复用、`h2`、PDF 限额仍各自独立。
 
 合入 `main` 后若要再发候选，打 **`v1.2.2-rc.7`**（不要打在本分支上，不要打生产 `v1.2.2`）。

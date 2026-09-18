@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { buildMenuTree } from '../common/utils/menu-tree'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
+import { DUMMY_PASSWORD_HASH } from './dummy-password-hash'
 import { resolveJwtSecrets, type JwtSecrets } from './jwt-secrets'
 
 interface AccessJwtPayload {
@@ -68,10 +69,9 @@ export class AuthService {
 
   async validateUser(username: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { username } })
-    if (!user) return null
-    if (user.status !== 1) throw new UnauthorizedException('账号已被禁用')
-    const valid = await bcrypt.compare(password, user.password)
-    if (!valid) return null
+    const hash = user && user.status === 1 ? user.password : DUMMY_PASSWORD_HASH
+    const valid = await bcrypt.compare(password, hash)
+    if (!user || user.status !== 1 || !valid) return null
     return user
   }
 

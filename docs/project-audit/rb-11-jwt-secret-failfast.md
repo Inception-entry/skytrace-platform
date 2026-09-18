@@ -71,6 +71,6 @@ cd admin-service && npm test -- src/auth/jwt-secrets.spec.ts src/auth/auth.servi
 
 ## 6. 再下一刀
 
-AS-06 登录/刷新限流已单独实施，见 [as-06-auth-rate-limit.md](as-06-auth-rate-limit.md)。下一刀是登录失败路径对齐（dummy hash）。family 复用、`h2`、PDF 限额仍各自独立。
+AS-06 登录/刷新限流已单独实施，见 [as-06-auth-rate-limit.md](as-06-auth-rate-limit.md)。登录失败路径对齐见 [as-06-login-enumeration.md](as-06-login-enumeration.md)。下一刀是 LoginDto 前置校验。family 复用、`h2`、PDF 限额仍各自独立。
 
 合入 `main` 后若要再发候选，打 **`v1.2.2-rc.6`**（不要打在本分支上，不要打生产 `v1.2.2`）。

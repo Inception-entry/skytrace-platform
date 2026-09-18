@@ -325,9 +325,9 @@ if (!initialPassword || isKnownDefault(initialPassword) || utf8Length(initialPas
 
 ### AS-06 / P1：认证端点与会话生命周期缺口
 
-- 登录/刷新限流已做进程内滑动窗口，见 [as-06-auth-rate-limit.md](as-06-auth-rate-limit.md)。多副本 Redis、LoginDto、用户枚举仍未做。
+- 登录/刷新限流已做进程内滑动窗口，见 [as-06-auth-rate-limit.md](as-06-auth-rate-limit.md)。登录失败路径已对齐 dummy hash，见 [as-06-login-enumeration.md](as-06-login-enumeration.md)。多副本 Redis、LoginDto 前置校验仍未做。
 - 登录 controller 未绑定 `LoginDto`；guard/strategy 在 DTO pipe 前拿到原始 body。
-- 用户不存在与 disabled 返回路径不同，存在枚举/时序差异。
+- 用户不存在与 disabled 已统一失败路径（dummy bcrypt + 同一 401 文案），见 [as-06-login-enumeration.md](as-06-login-enumeration.md)。
 - 密码最短只有 6；bcrypt 只处理前 72 UTF-8 bytes。
 - 改密撤销 refresh，但已签 access token 最长仍有效约 15 分钟。
 - logout 需要未过期 access token；access 过期时无法用 refresh token 撤销会话。
