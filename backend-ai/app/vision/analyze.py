@@ -123,6 +123,7 @@ async def analyze_video(
         video_bytes,
         frame_interval_sec=frame_interval_sec,
         max_frames=max_frames,
+        timeout_seconds=settings.vision_ffmpeg_timeout_seconds,
     )
 
     frame_results: list[VisionFrameDetectResponse] = []

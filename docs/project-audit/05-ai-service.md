@@ -92,26 +92,9 @@ event_time.astimezone(timezone.utc).isoformat(timespec="seconds")
 
 ## 4. AI-03 / P1：图片/视频先读完整内容，后检查大小
 
-- 图片：`backend-ai/app/main.py:357-375`。
-- 视频：`backend-ai/app/main.py:471-491`。
-- 视频默认允许 50 MiB，但 gateway 默认 request body 上限约 20 MiB，形成对外契约不一致；内网直连 AI 又可实际触发更大内存占用。
+实施说明：[ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)。图片/视频已改为 `max+1` 有界读入。像素炸弹、流式落盘仍未做。
 
-使用 bounded read：
-
-```python
-async def read_bounded(upload: UploadFile, limit: int) -> bytes:
-    try:
-        content = await upload.read(limit + 1)
-        if len(content) > limit:
-            raise HTTPException(status_code=413, detail={"code": "UPLOAD_TOO_LARGE"})
-        if not content:
-            raise HTTPException(status_code=400, detail={"code": "UPLOAD_EMPTY"})
-        return content
-    finally:
-        await upload.close()
-```
-
-这仍会把 limit 大小读入内存。视频更适合边读边写到受限临时文件，并在反向代理、FastAPI、临时盘和处理器四层统一上限；并发 semaphore 限制同时进行的解码/推理。
+视频默认 50 MiB，gateway 默认 request body 约 20 MiB，对外契约仍可能不一致。
 
 ## 5. AI-04 / P1：图片像素炸弹在限制前完成解码
 
@@ -141,45 +124,11 @@ with Image.open(BytesIO(image_bytes)) as source:
 
 ## 6. AI-05 / P1：FFmpeg 无 timeout、stdin/protocol 和输出上限
 
-`backend-ai/app/vision/video_frames.py:39-63`：
-
-- 没有 `-nostdin`。
-- 没有限制可用协议。
-- `subprocess.run` 没 timeout。
-- stdout/stderr 全量缓冲，并把原始详情返回客户端。
-- `maxFrames` 虽检查 >0，但上层 query 没有限定合理最大值。
-
-最低改进方向：
-
-```python
-command = [
-    ffmpeg,
-    "-nostdin",
-    "-hide_banner",
-    "-loglevel", "error",
-    "-protocol_whitelist", "file,pipe",
-    "-i", str(video_path),
-    # ...
-]
-
-try:
-    completed = subprocess.run(
-        command,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        timeout=settings.vision_ffmpeg_timeout_seconds,
-        check=False,
-    )
-except subprocess.TimeoutExpired as exc:
-    raise FrameExtractionError("视频处理超时") from exc
-```
-
-普通 `PIPE` 仍可能缓存大量输出；生产 wrapper 应限制 stderr 字节数或写入受配额临时文件。协议白名单需用项目支持的真实视频格式做兼容测试。客户端只收固定错误码；截断后的 FFmpeg 详情仅写内部日志。
+实施说明：[ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)。抽帧已加 timeout、`-nostdin`、协议白名单；失败不回 stderr；`maxFrames` ≤ 30。stderr 仍可能在 PIPE 里到 4KB 日志上限。
 
 ## 7. AI-06 / P1：视觉 query 参数没有边界
 
-`backend-ai/app/main.py:328-333,437-444` 的 device/task/lat/lon/maxAlarms/frameIntervalSec/maxFrames 缺显式 Query 约束。攻击者可以请求巨大 maxFrames、无效坐标、超长 code 或异常间隔。
+`backend-ai/app/main.py` 的 device/task/lat/lon/maxAlarms 仍缺显式 Query 约束。`maxFrames` / `frameIntervalSec` 已随 [ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md) 加上限。
 
 建议使用 `Annotated + Query`，或把 multipart 文本建模为 Pydantic dependency：
 
