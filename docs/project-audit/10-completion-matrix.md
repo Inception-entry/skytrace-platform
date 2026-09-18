@@ -63,7 +63,7 @@
 - [x] 已升级 AI `pypdf` 锁文件；没有升级 h2、Admin npm 或其他依赖。
 - [x] 生产 Keycloak 导入文件已去掉三个开发账号（RB-04）；已部署库内用户仍需运维盘点禁用。redirect URI 未改。
 - [ ] 没有增加 migration、event ID、outbox、DLQ 或索引。
-- [ ] 没有修改上传、FFmpeg、PDF、图片像素或 RAG 逻辑。
+- [x] Admin 头像按 magic-byte 入库（AS-09）。未改 AI/Java 上传、FFmpeg、PDF、图片像素或 RAG 逻辑。
 - [x] Admin 前端无 refresh token 的 401 不再永久挂起（RB-08）。登出带着捕获 token 撤销服务端 refresh（RB-09）。login+`/me` 半登录回滚（FE-05）。refresh 带随机 `jti` 且并发消费只成功一次（RB-10）。JWT secret 启动 fail-fast（RB-11）。登录/刷新进程内限流（AS-06）。登录失败路径 dummy hash 对齐（AS-06）。family 复用撤销、Redis 跨副本限流未做。没有修 Cesium、轮询、SSE 或 Socket。
 - [ ] 没有实施 Caddy 或发布脚本整栈回滚。CI 已加 Keycloak 生产 realm 拆分断言。
 - [ ] 没有运行完整 Docker E2E、恶意文件或压力测试。

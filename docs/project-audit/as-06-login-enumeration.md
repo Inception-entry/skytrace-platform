@@ -66,6 +66,6 @@ cd admin-service && npm test -- src/auth/auth.service.spec.ts src/auth/strategie
 
 ## 6. 再下一刀
 
-AS-06 剩余：`LoginDto` 在认证前校验类型/长度。family 复用、issuer/audience、`h2`、PDF 限额仍各自独立。
+AS-09 / RB-12 Admin 头像 magic-byte 已单独实施，见 [as-09-admin-avatar-magic.md](as-09-admin-avatar-magic.md)。下一刀是 JWKS `kid` 冷却。family 复用、`h2`、AI/Java 上传仍各自独立。
 
 合入 `main` 后若要再发候选，打 **`v1.2.2-rc.8`**（不要打在本分支上，不要打生产 `v1.2.2`）。
