@@ -92,35 +92,13 @@ event_time.astimezone(timezone.utc).isoformat(timespec="seconds")
 
 ## 4. AI-03 / P1：图片/视频先读完整内容，后检查大小
 
-实施说明：[ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)。图片/视频已改为 `max+1` 有界读入。像素炸弹、流式落盘仍未做。
+实施说明：[ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)。图片/视频已改为 `max+1` 有界读入。流式落盘仍未做。
 
 视频默认 50 MiB，gateway 默认 request body 约 20 MiB，对外契约仍可能不一致。
 
 ## 5. AI-04 / P1：图片像素炸弹在限制前完成解码
 
-`backend-ai/app/vision/detector.py:121-127` 执行 `Image.open(...).convert('RGB')`，在业务侧检查宽高/像素前已经解码。
-
-建议先读 header，再检查像素，最后解码；把 Pillow 的 decompression warning 当错误：
-
-```python
-import warnings
-from PIL import Image
-
-with warnings.catch_warnings():
-    warnings.simplefilter("error", Image.DecompressionBombWarning)
-    with Image.open(BytesIO(image_bytes)) as probe:
-        width, height = probe.size
-        if width <= 0 or height <= 0:
-            raise InvalidImage("invalid dimensions")
-        if width > MAX_SIDE or height > MAX_SIDE or width * height > MAX_PIXELS:
-            raise InvalidImage("pixel budget exceeded")
-        probe.verify()
-
-with Image.open(BytesIO(image_bytes)) as source:
-    image = source.convert("RGB")
-```
-
-无效图片/像素超限应返回稳定 400/413，而不是被 `main.py:395-413` 统一包装为 retryable 502。
+实施说明：[ai-04-image-pixel-budget.md](ai-04-image-pixel-budget.md)。解码前检查 header 像素预算；无效图 400。Java/Node 上传仍未做。
 
 ## 6. AI-05 / P1：FFmpeg 无 timeout、stdin/protocol 和输出上限
 

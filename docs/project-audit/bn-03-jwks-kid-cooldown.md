@@ -63,6 +63,6 @@ cd backend-node && npm test
 
 ## 6. 再下一刀
 
-RB-14：AI 有界读入与 FFmpeg 超时已单独实施，见 [ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)。下一刀是 AI-04（像素炸弹）。Java/Node 上传、`h2`、OIDC 仍各自独立。
+RB-14：AI 有界读入与 FFmpeg 超时已单独实施，见 [ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)。AI-04 像素预算见 [ai-04-image-pixel-budget.md](ai-04-image-pixel-budget.md)。下一刀是 RB-15（真实域名 OIDC）。Java/Node 上传、`h2`、整栈回滚仍各自独立。
 
 合入 `main` 后若要再发候选，打 **`v1.2.2-rc.10`**（不要打在本分支上，不要打生产 `v1.2.2`）。

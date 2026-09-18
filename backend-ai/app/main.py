@@ -56,6 +56,7 @@ from app.schemas import (
 from app.vision import build_vision_detector
 from app.vision.analyze import analyze_image, analyze_video
 from app.vision.video_frames import FrameExtractionError, MAX_FRAMES_CAP
+from app.vision.image_bounds import InvalidImage
 
 settings = get_settings()
 logger = configure_logging()
@@ -405,6 +406,15 @@ async def analyze_detection(
             ),
             request_id=request.state.request_id,
         )
+    except InvalidImage as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VISION_INVALID_IMAGE",
+                "message": str(exc),
+                "retryable": False,
+            },
+        ) from exc
     except Exception as exc:
         log_event(
             logger,
@@ -530,6 +540,15 @@ async def analyze_detection_video(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "code": "VISION_FRAME_EXTRACT_FAILED",
+                "message": str(exc),
+                "retryable": False,
+            },
+        ) from exc
+    except InvalidImage as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VISION_INVALID_IMAGE",
                 "message": str(exc),
                 "retryable": False,
             },

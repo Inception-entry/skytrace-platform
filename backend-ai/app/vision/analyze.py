@@ -9,6 +9,7 @@ from app.detection_publisher import (
     publish_detection_alarm,
 )
 from app.vision.detector import VisionDetector
+from app.vision.image_bounds import assert_image_within_budget
 from app.vision.labels import resolve_alarm
 from app.vision.video_frames import extract_video_frames
 from app.schemas import (
@@ -33,6 +34,11 @@ async def analyze_image(
     max_alarms: int,
     request_id: str,
 ) -> VisionDetectResponse:
+    assert_image_within_budget(
+        image_bytes,
+        max_side=settings.vision_max_image_side,
+        max_pixels=settings.vision_max_image_pixels,
+    )
     if detector.backend == "mock":
         result = detector.detect(image_bytes)
     else:
