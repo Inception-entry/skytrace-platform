@@ -5,6 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { PrismaModule } from '../prisma/prisma.module'
 import { AuthService } from './auth.service'
 import { AuthController } from './auth.controller'
+import { AuthRateLimiter } from './auth-rate-limiter'
+import { AuthRateLimitGuard } from './guards/auth-rate-limit.guard'
 import { LocalStrategy } from './strategies/local.strategy'
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { resolveJwtSecrets } from './jwt-secrets'
@@ -29,7 +31,7 @@ import { resolveJwtSecrets } from './jwt-secrets'
       },
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, AuthRateLimiter, AuthRateLimitGuard, LocalStrategy, JwtStrategy],
   controllers: [AuthController],
 })
 export class AuthModule {}

@@ -1,5 +1,7 @@
 import { Controller, Post, Put, Get, Body, UseGuards, HttpCode } from '@nestjs/common'
 import { AuthService } from './auth.service'
+import { AuthRateLimit } from './decorators/auth-rate-limit.decorator'
+import { AuthRateLimitGuard } from './guards/auth-rate-limit.guard'
 import { LocalAuthGuard } from './guards/local-auth.guard'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { CurrentUser, RequestUser } from '../common/decorators/current-user.decorator'
@@ -12,7 +14,8 @@ import { Log } from '../common/decorators/log.decorator'
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @UseGuards(LocalAuthGuard)
+  @AuthRateLimit('login')
+  @UseGuards(AuthRateLimitGuard, LocalAuthGuard)
   @Post('login')
   @HttpCode(200)
   @Log('系统', '登录')
@@ -20,6 +23,8 @@ export class AuthController {
     return this.authService.login(user.id, user.username)
   }
 
+  @AuthRateLimit('refresh')
+  @UseGuards(AuthRateLimitGuard)
   @Post('refresh')
   @Log('系统', '刷新令牌')
   @HttpCode(200)
