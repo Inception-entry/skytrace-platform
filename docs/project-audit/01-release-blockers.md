@@ -25,7 +25,7 @@
 | RB-08 | Admin 前端无 refresh token 的 401 分支永久保持 `isRefreshing=true` | 必须补状态机单测和并发 401 集成测试。实施说明：[rb-08-admin-refresh-hang.md](rb-08-admin-refresh-hang.md) |
 | RB-09 | Admin 登出可能不带 access token，服务端 refresh session 未撤销 | 必须验证登出后旧 refresh token 不可再用。实施说明：[rb-09-admin-logout-revoke.md](rb-09-admin-logout-revoke.md) |
 | RB-10 | Admin refresh token 无随机 `jti` 且并发消费不原子 | 必须验证同秒 token 不同、并发刷新只成功一次。实施说明：[rb-10-admin-refresh-jti.md](rb-10-admin-refresh-jti.md) |
-| RB-11 | Admin JWT secret 启动校验太弱，登录/刷新无分布式限流 | 生产必须 fail-fast 检查强 secret，并配置限流 |
+| RB-11 | Admin JWT secret 启动校验太弱，登录/刷新无分布式限流 | 生产必须 fail-fast 检查强 secret，并配置限流。secret 启动校验见 [rb-11-jwt-secret-failfast.md](rb-11-jwt-secret-failfast.md)；限流仍未做 |
 | RB-12 | 上传链普遍信任 MIME/扩展名，大文件多次内存复制 | 至少对公网入口做 magic-byte、并发和内存上限；AI/Java 仍独立验证 |
 | RB-13 | 任意 JWT `kid` 可持续触发 JWKS refresh | 加全局冷却和未知 kid 负缓存，并验证真实轮换 |
 | RB-14 | AI 图片/视频先完整读取后才检查大小；FFmpeg 无 timeout | 公网或内网可达时必须修；否则要用网关/网络策略明确隔离并书面接受风险 |

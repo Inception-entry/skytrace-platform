@@ -38,13 +38,20 @@ mockPrisma.$transaction.mockImplementation(async (arg: unknown) => {
   return Promise.all(arg as Promise<unknown>[])
 })
 
+const ACCESS_SECRET = 'a'.repeat(32)
+const REFRESH_SECRET = 'b'.repeat(32)
+
 const mockJwt = {
   sign: jest.fn().mockReturnValue('mock-token'),
   verify: jest.fn(),
 }
 
 const mockConfig = {
-  get: jest.fn().mockReturnValue('test-refresh-secret'),
+  get: jest.fn((key: string) => {
+    if (key === 'JWT_SECRET') return ACCESS_SECRET
+    if (key === 'JWT_REFRESH_SECRET') return REFRESH_SECRET
+    return undefined
+  }),
 }
 
 function refreshClaims(overrides?: { sub?: number; username?: string; jti?: string }) {
@@ -72,7 +79,11 @@ describe('AuthService', () => {
     service = module.get(AuthService)
     jest.clearAllMocks()
     mockJwt.sign.mockReturnValue('mock-token')
-    mockConfig.get.mockReturnValue('test-refresh-secret')
+    mockConfig.get.mockImplementation((key: string) => {
+      if (key === 'JWT_SECRET') return ACCESS_SECRET
+      if (key === 'JWT_REFRESH_SECRET') return REFRESH_SECRET
+      return undefined
+    })
     mockPrisma.$transaction.mockImplementation(async (arg: unknown) => {
       if (typeof arg === 'function') {
         return arg(mockPrisma)

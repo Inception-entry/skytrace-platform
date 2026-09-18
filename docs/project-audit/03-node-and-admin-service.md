@@ -336,6 +336,8 @@ if (!initialPassword || isKnownDefault(initialPassword) || utf8Length(initialPas
 
 ### AS-07 / P1：JWT 配置没有启动期强校验
 
+实施说明：[rb-11-jwt-secret-failfast.md](rb-11-jwt-secret-failfast.md)（issuer/audience 与限流仍未做）。
+
 - `admin-service/src/auth/auth.module.ts:18-29` 只拒绝一个默认 access secret，单字符 secret 仍可能启动。
 - refresh secret 到 `auth.service.ts:30-40` 才检查，服务可能健康启动后登录 500。
 - `jwt.strategy.ts:18-36` 没明确算法、issuer、audience、token type，也缺 payload 结构约束。
