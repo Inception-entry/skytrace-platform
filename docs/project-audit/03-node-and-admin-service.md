@@ -70,35 +70,7 @@ includeDeleted?: boolean
 
 ### BN-03 / P1：未知 JWT `kid` 可放大 JWKS 请求
 
-证据：
-
-- `backend-node/src/auth/keycloak-jwt.service.ts:79-103` 读取攻击者控制的 JWT header。
-- `:157-169` 每个未知 `kid` 会触发 refresh。
-- `:172-191` 发起 JWKS 网络请求。
-- `:196-210` 只追加 key，没有原子替换完整 key set。
-
-同时发生的请求虽能合并，但攻击者顺序发送不同 `kid` 仍能持续打 Keycloak。
-
-建议状态机：
-
-```ts
-private readonly unknownKidUntil = new Map<string, number>()
-private nextRefreshAt = 0
-
-if (this.unknownKidUntil.get(kid)! > Date.now()) {
-  throw new UnauthorizedException()
-}
-if (Date.now() < this.nextRefreshAt) {
-  this.unknownKidUntil.set(kid, Date.now() + NEGATIVE_TTL_MS)
-  throw new UnauthorizedException()
-}
-
-this.nextRefreshAt = Date.now() + GLOBAL_REFRESH_COOLDOWN_MS
-const nextKeys = await this.fetchAndValidateBoundedJwks()
-this.keys = nextKeys // 验证完整后原子替换
-```
-
-还应限制响应字节数和 key 数量；单个坏 JWK 应跳过并告警；真实轮换在 cooldown 后必须能刷新。
+实施说明：[bn-03-jwks-kid-cooldown.md](bn-03-jwks-kid-cooldown.md)。Node BFF 已加未知 kid 负缓存、全局 refresh 冷却、JWKS 原子替换和体积/数量上限。Java/Gateway JWKS 仍未做。
 
 ### BN-04 / P1：上传只信任 MIME/文件名，并多次复制大 Buffer
 

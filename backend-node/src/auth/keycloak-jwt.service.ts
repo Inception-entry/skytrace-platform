@@ -7,7 +7,13 @@ import {
 
 const BUSINESS_ROLES = new Set(['ADMIN', 'OPERATOR', 'VIEWER']);
 const CLOCK_TOLERANCE_SECONDS = 5;
-const JWKS_CACHE_MILLISECONDS = 5 * 60 * 1000;
+const DEFAULT_JWKS_CACHE_MILLISECONDS = 5 * 60 * 1000;
+const DEFAULT_UNKNOWN_KID_TTL_MS = 30_000;
+const DEFAULT_REFRESH_COOLDOWN_MS = 10_000;
+const MAX_KID_LENGTH = 128;
+const MAX_JWKS_BYTES = 64 * 1024;
+const MAX_JWKS_KEYS = 16;
+const MAX_UNKNOWN_KID_ENTRIES = 1024;
 
 interface JwtHeader {
   alg?: unknown;
@@ -65,6 +71,15 @@ export class RealtimeAuthorizationError extends Error {
   }
 }
 
+function envPositiveInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) {
+    return fallback;
+  }
+  const value = Number.parseInt(raw, 10);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
 @Injectable()
 export class KeycloakJwtService {
   private readonly logger = new Logger(KeycloakJwtService.name);
@@ -73,7 +88,21 @@ export class KeycloakJwtService {
   private readonly issuer = process.env.AUTH_JWT_ISSUER_URI
     ?? 'http://localhost:8180/realms/skytrace';
   private readonly audience = process.env.AUTH_JWT_AUDIENCE ?? 'skytrace-web';
-  private readonly signingKeys = new Map<string, CachedSigningKey>();
+  private readonly cacheTtlMs = envPositiveInt(
+    'AUTH_JWKS_CACHE_MS',
+    DEFAULT_JWKS_CACHE_MILLISECONDS,
+  );
+  private readonly unknownKidTtlMs = envPositiveInt(
+    'AUTH_JWKS_UNKNOWN_TTL_MS',
+    DEFAULT_UNKNOWN_KID_TTL_MS,
+  );
+  private readonly refreshCooldownMs = envPositiveInt(
+    'AUTH_JWKS_REFRESH_COOLDOWN_MS',
+    DEFAULT_REFRESH_COOLDOWN_MS,
+  );
+  private signingKeys = new Map<string, CachedSigningKey>();
+  private readonly unknownKidUntil = new Map<string, number>();
+  private nextRefreshAt = 0;
   private refreshPromise: Promise<void> | null = null;
 
   async verifyAccessToken(token: string): Promise<RealtimeUser> {
@@ -88,7 +117,8 @@ export class KeycloakJwtService {
 
     const header = this.decodePart<JwtHeader>(parts[0]);
     const payload = this.decodePart<JwtPayload>(parts[1]);
-    if (header.alg !== 'RS256' || typeof header.kid !== 'string') {
+    if (header.alg !== 'RS256' || typeof header.kid !== 'string'
+      || header.kid.length === 0 || header.kid.length > MAX_KID_LENGTH) {
       throw this.unauthorized('访问令牌签名算法无效');
     }
 
@@ -142,17 +172,47 @@ export class KeycloakJwtService {
   }
 
   private async getSigningKey(kid: string): Promise<KeyObject> {
+    const now = Date.now();
     const cached = this.signingKeys.get(kid);
-    if (cached && cached.expiresAt > Date.now()) {
+    if (cached && cached.expiresAt > now) {
+      return cached.key;
+    }
+    if (cached && now < this.nextRefreshAt) {
       return cached.key;
     }
 
-    await this.refreshSigningKeys();
-    const refreshed = this.signingKeys.get(kid);
-    if (!refreshed) {
+    const unknownUntil = this.unknownKidUntil.get(kid);
+    if (unknownUntil && unknownUntil > now) {
       throw this.unauthorized('找不到访问令牌对应的签名公钥');
     }
+
+    if (now < this.nextRefreshAt) {
+      this.rememberUnknownKid(kid, now);
+      throw this.unauthorized('找不到访问令牌对应的签名公钥');
+    }
+
+    this.nextRefreshAt = now + this.refreshCooldownMs;
+    await this.refreshSigningKeys();
+
+    const refreshed = this.signingKeys.get(kid);
+    if (!refreshed) {
+      this.rememberUnknownKid(kid);
+      throw this.unauthorized('找不到访问令牌对应的签名公钥');
+    }
+    this.unknownKidUntil.delete(kid);
     return refreshed.key;
+  }
+
+  private rememberUnknownKid(kid: string, now = Date.now()): void {
+    for (const [knownKid, until] of this.unknownKidUntil) {
+      if (until <= now) {
+        this.unknownKidUntil.delete(knownKid);
+      }
+    }
+    if (this.unknownKidUntil.size >= MAX_UNKNOWN_KID_ENTRIES) {
+      this.unknownKidUntil.clear();
+    }
+    this.unknownKidUntil.set(kid, now + this.unknownKidTtlMs);
   }
 
   private async refreshSigningKeys(): Promise<void> {
@@ -173,12 +233,27 @@ export class KeycloakJwtService {
       if (!response.ok) {
         throw new Error(`JWKS HTTP ${response.status}`);
       }
-      const keySet = await response.json() as JsonWebKeySet;
-      const nextExpiry = Date.now() + JWKS_CACHE_MILLISECONDS;
-      let imported = 0;
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && Number(contentLength) > MAX_JWKS_BYTES) {
+        throw new Error('JWKS 响应过大');
+      }
+      const body = Buffer.from(await response.arrayBuffer());
+      if (body.byteLength > MAX_JWKS_BYTES) {
+        throw new Error('JWKS 响应过大');
+      }
 
-      for (const jwk of keySet.keys ?? []) {
-        if (!jwk.kid || jwk.kty !== 'RSA') {
+      const keySet = JSON.parse(body.toString('utf8')) as JsonWebKeySet;
+      if (!keySet || !Array.isArray(keySet.keys)) {
+        throw new Error('JWKS 格式无效');
+      }
+      if (keySet.keys.length > MAX_JWKS_KEYS) {
+        throw new Error('JWKS key 数量超过限制');
+      }
+
+      const nextExpiry = Date.now() + this.cacheTtlMs;
+      const nextKeys = new Map<string, CachedSigningKey>();
+      for (const jwk of keySet.keys) {
+        if (!jwk.kid || jwk.kid.length > MAX_KID_LENGTH || jwk.kty !== 'RSA') {
           continue;
         }
         if (jwk.alg && jwk.alg !== 'RS256') {
@@ -187,16 +262,24 @@ export class KeycloakJwtService {
         if (jwk.use && jwk.use !== 'sig') {
           continue;
         }
-        this.signingKeys.set(jwk.kid, {
-          key: createPublicKey({ key: jwk, format: 'jwk' }),
-          expiresAt: nextExpiry,
-        });
-        imported += 1;
+        try {
+          nextKeys.set(jwk.kid, {
+            key: createPublicKey({ key: jwk, format: 'jwk' }),
+            expiresAt: nextExpiry,
+          });
+        } catch (error) {
+          this.logger.warn(
+            `跳过无效 JWK kid=${jwk.kid}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
       }
 
-      if (imported === 0) {
+      if (nextKeys.size === 0) {
         throw new Error('JWKS 中没有可用的 RSA 签名公钥');
       }
+      this.signingKeys = nextKeys;
     } catch (error) {
       this.logger.error(
         '无法读取 Keycloak JWKS',
