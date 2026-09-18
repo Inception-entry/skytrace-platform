@@ -50,7 +50,7 @@ immutable release manifest ──> 整栈回滚 ──> 蓝绿切换 ──> 自
 2. super user/role 不变量和权限子集检查。
 3. super 并发保护，真实 PostgreSQL 测试。
 4. 删除公开 seed 密码，改一次性强 secret；已部署账号单独轮换。
-5. refresh token 加 jti、原子消费、family/reuse 基础；JWT fail-fast 和限流。
+5. refresh token 加 jti、原子消费（RB-10，见 [rb-10-admin-refresh-jti.md](rb-10-admin-refresh-jti.md)）；family/reuse、JWT fail-fast 和限流仍未做。
 6. 管理员改密与 session 撤销同事务。
 
 ### Wave 1B：跨服务正确性

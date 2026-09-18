@@ -313,6 +313,8 @@ if (!initialPassword || isKnownDefault(initialPassword) || utf8Length(initialPas
 
 ### AS-05 / P1：refresh token 缺随机 `jti`，轮换竞争错误未稳定映射
 
+实施说明：[rb-10-admin-refresh-jti.md](rb-10-admin-refresh-jti.md)（family 复用撤销仍未做）。
+
 - `admin-service/src/auth/auth.service.ts:52-63` 的 refresh payload 没有随机 `jti`，数据库已只保存 token hash。
 - `admin-service/prisma/schema.prisma:70-78` 的 token 列有 unique。
 - `admin-service/src/auth/auth.service.ts:68-100` 确实用 Prisma transaction 原子执行“删旧+建新”；问题不是缺少事务，而是事务外先查询、新 token 可能在同一秒与旧 token 完全相同，且竞争失败可能向上暴露 Prisma P2025/P2002，而不是稳定 401。

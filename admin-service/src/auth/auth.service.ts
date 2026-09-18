@@ -1,20 +1,47 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
-import { createHash } from 'crypto'
+import { Prisma } from '@prisma/client'
+import { createHash, randomUUID } from 'crypto'
 import * as bcrypt from 'bcryptjs'
 import { PrismaService } from '../prisma/prisma.service'
 import { buildMenuTree } from '../common/utils/menu-tree'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
 
-interface JwtPayload {
+interface AccessJwtPayload {
   sub: number
   username: string
 }
 
+interface RefreshJwtPayload extends AccessJwtPayload {
+  type: 'refresh'
+  jti: string
+}
+
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
+}
+
+function isRefreshPayload(payload: unknown): payload is RefreshJwtPayload {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+  const value = payload as Record<string, unknown>
+  return (
+    value.type === 'refresh'
+    && typeof value.jti === 'string'
+    && value.jti.length > 0
+    && typeof value.sub === 'number'
+    && typeof value.username === 'string'
+  )
+}
+
+function isPrismaConflict(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError
+    && (error.code === 'P2002' || error.code === 'P2025')
+  )
 }
 
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -50,9 +77,8 @@ export class AuthService {
   }
 
   async login(userId: number, username: string) {
-    const payload: JwtPayload = { sub: userId, username }
-    const accessToken = this.jwtService.sign(payload)
-    const refreshToken = this.jwtService.sign(payload, { secret: this.refreshSecret, expiresIn: '7d' })
+    const accessToken = this.jwtService.sign({ sub: userId, username })
+    const refreshToken = this.signRefreshToken(userId, username)
 
     await this.prisma.refreshToken.create({
       data: {
@@ -66,40 +92,58 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    let payload: JwtPayload
-    try {
-      payload = this.jwtService.verify<JwtPayload>(refreshToken, { secret: this.refreshSecret })
-    } catch {
-      throw new UnauthorizedException('无效或已过期的刷新令牌')
-    }
-
+    const payload = this.verifyRefreshToken(refreshToken)
     const tokenHash = hashToken(refreshToken)
-    const stored = await this.prisma.refreshToken.findUnique({ where: { token: tokenHash } })
-    if (!stored) throw new UnauthorizedException('令牌已撤销')
-    if (stored.expiresAt.getTime() <= Date.now()) {
-      await this.prisma.refreshToken.deleteMany({ where: { token: tokenHash } })
-      throw new UnauthorizedException('刷新令牌已过期')
+
+    try {
+      return await this.prisma.$transaction(async tx => {
+        const stored = await tx.refreshToken.findUnique({ where: { token: tokenHash } })
+        if (!stored) {
+          throw new UnauthorizedException('令牌已撤销')
+        }
+        if (stored.expiresAt.getTime() <= Date.now()) {
+          await tx.refreshToken.deleteMany({ where: { token: tokenHash } })
+          throw new UnauthorizedException('刷新令牌已过期')
+        }
+
+        const consumed = await tx.refreshToken.deleteMany({ where: { token: tokenHash } })
+        if (consumed.count !== 1) {
+          throw new UnauthorizedException('令牌已撤销')
+        }
+
+        const user = await tx.user.findUnique({ where: { id: payload.sub } })
+        if (!user || user.status !== 1) {
+          throw new UnauthorizedException('账号不存在或已被禁用')
+        }
+
+        const newAccessToken = this.jwtService.sign({
+          sub: user.id,
+          username: user.username,
+        })
+        const newRefreshToken = this.signRefreshToken(user.id, user.username)
+        await tx.refreshToken.create({
+          data: {
+            token: hashToken(newRefreshToken),
+            userId: user.id,
+            expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+          },
+        })
+
+        return {
+          access_token: newAccessToken,
+          refresh_token: newRefreshToken,
+          expires_in: 900,
+        }
+      })
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error
+      }
+      if (isPrismaConflict(error)) {
+        throw new UnauthorizedException('令牌已撤销')
+      }
+      throw error
     }
-
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } })
-    if (!user || user.status !== 1) throw new UnauthorizedException('账号不存在或已被禁用')
-
-    const newPayload: JwtPayload = { sub: user.id, username: user.username }
-    const newAccessToken = this.jwtService.sign(newPayload)
-    const newRefreshToken = this.jwtService.sign(newPayload, { secret: this.refreshSecret, expiresIn: '7d' })
-
-    await this.prisma.$transaction([
-      this.prisma.refreshToken.delete({ where: { token: tokenHash } }),
-      this.prisma.refreshToken.create({
-        data: {
-          token: hashToken(newRefreshToken),
-          userId: user.id,
-          expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
-        },
-      }),
-    ])
-
-    return { access_token: newAccessToken, refresh_token: newRefreshToken, expires_in: 900 }
   }
 
   async logout(refreshToken: string) {
@@ -175,5 +219,31 @@ export class AuthService {
       permissions,
       menus,
     }
+  }
+
+  private signRefreshToken(userId: number, username: string): string {
+    const payload: RefreshJwtPayload = {
+      sub: userId,
+      username,
+      type: 'refresh',
+      jti: randomUUID(),
+    }
+    return this.jwtService.sign(payload, {
+      secret: this.refreshSecret,
+      expiresIn: '7d',
+    })
+  }
+
+  private verifyRefreshToken(refreshToken: string): RefreshJwtPayload {
+    let payload: unknown
+    try {
+      payload = this.jwtService.verify(refreshToken, { secret: this.refreshSecret })
+    } catch {
+      throw new UnauthorizedException('无效或已过期的刷新令牌')
+    }
+    if (!isRefreshPayload(payload)) {
+      throw new UnauthorizedException('无效或已过期的刷新令牌')
+    }
+    return payload
   }
 }
