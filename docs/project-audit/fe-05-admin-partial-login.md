@@ -73,6 +73,6 @@ cd admin-frontend && npm run build
 
 ## 6. 再下一刀
 
-RB-10：refresh token 加随机 `jti`，并发消费只成功一次。`h2`、PDF 限额、redirect URI 仍各自独立。
+RB-10 已单独实施，见 [rb-10-admin-refresh-jti.md](rb-10-admin-refresh-jti.md)。下一刀是 RB-11（JWT secret fail-fast）。`h2`、PDF 限额、redirect URI 仍各自独立。
 
-合入 `main` 后若要再发候选，打 **`v1.2.2-rc.4`**（不要打在本分支上，不要打生产 `v1.2.2`）。
+合入 `main` 后若要再发候选，打 **`v1.2.2-rc.5`**（不要打在本分支上，不要打生产 `v1.2.2`）。

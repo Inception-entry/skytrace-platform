@@ -2,11 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
+import { Prisma } from '@prisma/client'
 import * as bcrypt from 'bcryptjs'
 import { AuthService } from './auth.service'
 import { PrismaService } from '../prisma/prisma.service'
 
-const mockPrisma = {
+const mockPrisma: {
+  user: { findUnique: jest.Mock; findUniqueOrThrow: jest.Mock; update: jest.Mock }
+  refreshToken: {
+    create: jest.Mock
+    findUnique: jest.Mock
+    delete: jest.Mock
+    deleteMany: jest.Mock
+  }
+  $transaction: jest.Mock
+} = {
   user: {
     findUnique: jest.fn(),
     findUniqueOrThrow: jest.fn(),
@@ -18,8 +28,15 @@ const mockPrisma = {
     delete: jest.fn(),
     deleteMany: jest.fn(),
   },
-  $transaction: jest.fn().mockResolvedValue([undefined, undefined]),
+  $transaction: jest.fn(),
 }
+
+mockPrisma.$transaction.mockImplementation(async (arg: unknown) => {
+  if (typeof arg === 'function') {
+    return arg(mockPrisma)
+  }
+  return Promise.all(arg as Promise<unknown>[])
+})
 
 const mockJwt = {
   sign: jest.fn().mockReturnValue('mock-token'),
@@ -28,6 +45,15 @@ const mockJwt = {
 
 const mockConfig = {
   get: jest.fn().mockReturnValue('test-refresh-secret'),
+}
+
+function refreshClaims(overrides?: { sub?: number; username?: string; jti?: string }) {
+  return {
+    sub: overrides?.sub ?? 1,
+    username: overrides?.username ?? 'admin',
+    type: 'refresh' as const,
+    jti: overrides?.jti ?? 'jti-1',
+  }
 }
 
 describe('AuthService', () => {
@@ -47,6 +73,12 @@ describe('AuthService', () => {
     jest.clearAllMocks()
     mockJwt.sign.mockReturnValue('mock-token')
     mockConfig.get.mockReturnValue('test-refresh-secret')
+    mockPrisma.$transaction.mockImplementation(async (arg: unknown) => {
+      if (typeof arg === 'function') {
+        return arg(mockPrisma)
+      }
+      return Promise.all(arg as Promise<unknown>[])
+    })
   })
 
   describe('validateUser', () => {
@@ -103,6 +135,29 @@ describe('AuthService', () => {
       expect(createCall.data.token).not.toBe('rt-plain')
       expect(createCall.data.token).toHaveLength(64) // SHA-256 hex
     })
+
+    it('signs refresh tokens with unique jti so same-second logins differ', async () => {
+      const refreshJtis: string[] = []
+      mockJwt.sign.mockImplementation((payload: { type?: string; jti?: string }) => {
+        if (payload.type === 'refresh') {
+          refreshJtis.push(payload.jti ?? '')
+          return `rt-${payload.jti}`
+        }
+        return 'access-token'
+      })
+      mockPrisma.refreshToken.create.mockResolvedValue({})
+
+      const first = await service.login(1, 'admin')
+      const second = await service.login(1, 'admin')
+
+      expect(refreshJtis).toHaveLength(2)
+      expect(refreshJtis[0]).not.toBe(refreshJtis[1])
+      expect(first.refresh_token).not.toBe(second.refresh_token)
+      expect(mockJwt.sign).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'refresh', sub: 1, username: 'admin' }),
+        expect.objectContaining({ expiresIn: '7d' }),
+      )
+    })
   })
 
   describe('refresh', () => {
@@ -111,14 +166,19 @@ describe('AuthService', () => {
       await expect(service.refresh('bad-token')).rejects.toThrow(UnauthorizedException)
     })
 
-    it('throws when token is not in DB (revoked)', async () => {
+    it('throws when token is not a refresh JWT', async () => {
       mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
+      await expect(service.refresh('access-looking-token')).rejects.toThrow('无效或已过期的刷新令牌')
+    })
+
+    it('throws when token is not in DB (revoked)', async () => {
+      mockJwt.verify.mockReturnValue(refreshClaims())
       mockPrisma.refreshToken.findUnique.mockResolvedValue(null)
       await expect(service.refresh('valid-jwt-but-revoked')).rejects.toThrow(UnauthorizedException)
     })
 
     it('throws when refresh token row is expired', async () => {
-      mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
+      mockJwt.verify.mockReturnValue(refreshClaims())
       mockPrisma.refreshToken.findUnique.mockResolvedValue({
         id: 1,
         token: 'hash',
@@ -130,37 +190,86 @@ describe('AuthService', () => {
     })
 
     it('throws when user is disabled', async () => {
-      mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
+      mockJwt.verify.mockReturnValue(refreshClaims())
       mockPrisma.refreshToken.findUnique.mockResolvedValue({
         id: 1,
         token: 'hash',
         userId: 1,
         expiresAt: new Date(Date.now() + 60_000),
       })
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
       mockPrisma.user.findUnique.mockResolvedValue({ id: 1, status: 0 })
       await expect(service.refresh('rt')).rejects.toThrow(UnauthorizedException)
     })
 
     it('rotates token and returns new token pair', async () => {
-      mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
+      mockJwt.verify.mockReturnValue(refreshClaims())
       mockPrisma.refreshToken.findUnique.mockResolvedValue({
         id: 1,
         token: 'hash',
         userId: 1,
         expiresAt: new Date(Date.now() + 60_000),
       })
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
       mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'admin', status: 1 })
       mockJwt.sign
         .mockReturnValueOnce('new-access-token')
         .mockReturnValueOnce('new-refresh-token')
-      mockPrisma.$transaction.mockResolvedValue([undefined, undefined])
+      mockPrisma.refreshToken.create.mockResolvedValue({})
 
       const result = await service.refresh('old-refresh-token')
 
       expect(result.access_token).toBe('new-access-token')
       expect(result.refresh_token).toBe('new-refresh-token')
       expect(result.expires_in).toBe(900)
-      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
+      expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledTimes(1)
+      expect(mockPrisma.refreshToken.create).toHaveBeenCalledTimes(1)
+    })
+
+    it('lets only one concurrent refresh of the same token succeed', async () => {
+      mockJwt.verify.mockReturnValue(refreshClaims())
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'hash',
+        userId: 1,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
+      mockPrisma.refreshToken.deleteMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 })
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'admin', status: 1 })
+      mockJwt.sign.mockReturnValueOnce('new-access').mockReturnValueOnce('new-refresh')
+      mockPrisma.refreshToken.create.mockResolvedValue({})
+
+      const winner = service.refresh('shared-refresh')
+      const loser = service.refresh('shared-refresh')
+
+      await expect(winner).resolves.toMatchObject({
+        access_token: 'new-access',
+        refresh_token: 'new-refresh',
+      })
+      await expect(loser).rejects.toThrow('令牌已撤销')
+    })
+
+    it('maps unique-constraint races to 401', async () => {
+      mockJwt.verify.mockReturnValue(refreshClaims())
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'hash',
+        userId: 1,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'admin', status: 1 })
+      mockJwt.sign.mockReturnValueOnce('new-access').mockReturnValueOnce('new-refresh')
+      mockPrisma.refreshToken.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '6.1.0',
+        }),
+      )
+
+      await expect(service.refresh('rt')).rejects.toThrow('令牌已撤销')
     })
   })
 
@@ -178,7 +287,7 @@ describe('AuthService', () => {
       expect(deletedHash).toHaveLength(64)
       expect(deletedHash).not.toBe('plain-refresh')
 
-      mockJwt.verify.mockReturnValue({ sub: 1, username: 'admin' })
+      mockJwt.verify.mockReturnValue(refreshClaims())
       mockPrisma.refreshToken.findUnique.mockResolvedValue(null)
       await expect(service.refresh('plain-refresh')).rejects.toThrow('令牌已撤销')
       expect(mockPrisma.refreshToken.findUnique).toHaveBeenCalledWith({
