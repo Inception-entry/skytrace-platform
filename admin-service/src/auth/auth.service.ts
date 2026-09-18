@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { buildMenuTree } from '../common/utils/menu-tree'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
+import { resolveJwtSecrets, type JwtSecrets } from './jwt-secrets'
 
 interface AccessJwtPayload {
   sub: number
@@ -48,23 +49,21 @@ const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 @Injectable()
 export class AuthService {
+  private readonly secrets: JwtSecrets
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private config: ConfigService,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.secrets = resolveJwtSecrets({
+      JWT_SECRET: config.get<string>('JWT_SECRET'),
+      JWT_REFRESH_SECRET: config.get<string>('JWT_REFRESH_SECRET'),
+    })
+  }
 
   private get refreshSecret() {
-    const secret = this.config.get<string>('JWT_REFRESH_SECRET')
-    if (
-      !secret
-      || secret === 'dev-jwt-refresh-secret-change-in-production'
-    ) {
-      throw new Error(
-        'JWT_REFRESH_SECRET must be set to a non-default value',
-      )
-    }
-    return secret
+    return this.secrets.refreshSecret
   }
 
   async validateUser(username: string, password: string) {
@@ -231,13 +230,17 @@ export class AuthService {
     return this.jwtService.sign(payload, {
       secret: this.refreshSecret,
       expiresIn: '7d',
+      algorithm: 'HS256',
     })
   }
 
   private verifyRefreshToken(refreshToken: string): RefreshJwtPayload {
     let payload: unknown
     try {
-      payload = this.jwtService.verify(refreshToken, { secret: this.refreshSecret })
+      payload = this.jwtService.verify(refreshToken, {
+        secret: this.refreshSecret,
+        algorithms: ['HS256'],
+      })
     } catch {
       throw new UnauthorizedException('无效或已过期的刷新令牌')
     }

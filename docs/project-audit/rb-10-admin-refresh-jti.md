@@ -72,6 +72,6 @@ cd admin-service && npm test -- src/auth/auth.service.spec.ts
 
 ## 6. 再下一刀
 
-RB-11 / AS-07：JWT secret 启动 fail-fast（长度、互不相同）。family 复用撤销、限流、`h2`、PDF 限额仍各自独立。
+RB-11 / AS-07 已单独实施，见 [rb-11-jwt-secret-failfast.md](rb-11-jwt-secret-failfast.md)。下一刀是登录/刷新限流（AS-06）。family 复用、`h2`、PDF 限额仍各自独立。
 
-合入 `main` 后若要再发候选，打 **`v1.2.2-rc.5`**（不要打在本分支上，不要打生产 `v1.2.2`）。
+合入 `main` 后若要再发候选，打 **`v1.2.2-rc.6`**（不要打在本分支上，不要打生产 `v1.2.2`）。

@@ -7,6 +7,7 @@ import { AuthService } from './auth.service'
 import { AuthController } from './auth.controller'
 import { LocalStrategy } from './strategies/local.strategy'
 import { JwtStrategy } from './strategies/jwt.strategy'
+import { resolveJwtSecrets } from './jwt-secrets'
 
 @Module({
   imports: [
@@ -15,18 +16,17 @@ import { JwtStrategy } from './strategies/jwt.strategy'
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: (() => {
-          const secret = config.get<string>('JWT_SECRET')
-          if (!secret || secret === 'dev-jwt-secret-change-in-production') {
-            throw new Error(
-              'JWT_SECRET must be set to a non-default value before starting admin-service',
-            )
-          }
-          return secret
-        })(),
-        signOptions: { expiresIn: '15m' },
-      }),
+      useFactory: (config: ConfigService) => {
+        const { accessSecret } = resolveJwtSecrets({
+          JWT_SECRET: config.get<string>('JWT_SECRET'),
+          JWT_REFRESH_SECRET: config.get<string>('JWT_REFRESH_SECRET'),
+        })
+        return {
+          secret: accessSecret,
+          signOptions: { expiresIn: '15m', algorithm: 'HS256' },
+          verifyOptions: { algorithms: ['HS256'] },
+        }
+      },
     }),
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy],

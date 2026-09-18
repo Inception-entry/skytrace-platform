@@ -3,10 +3,12 @@ import { PassportStrategy } from '@nestjs/passport'
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../prisma/prisma.service'
+import { resolveJwtSecrets } from '../jwt-secrets'
 
 interface JwtPayload {
   sub: number
   username: string
+  type?: string
 }
 
 @Injectable()
@@ -15,20 +17,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    const secret = config.get<string>('JWT_SECRET')
-    if (!secret || secret === 'dev-jwt-secret-change-in-production') {
-      throw new Error(
-        'JWT_SECRET must be set to a non-default value before starting admin-service',
-      )
-    }
+    const { accessSecret } = resolveJwtSecrets({
+      JWT_SECRET: config.get<string>('JWT_SECRET'),
+      JWT_REFRESH_SECRET: config.get<string>('JWT_REFRESH_SECRET'),
+    })
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret,
+      secretOrKey: accessSecret,
+      algorithms: ['HS256'],
     })
   }
 
   async validate(payload: JwtPayload) {
+    if (payload.type === 'refresh') {
+      throw new UnauthorizedException('无效的访问令牌')
+    }
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } })
     if (!user || user.status !== 1) {
       throw new UnauthorizedException('账号不存在或已被禁用')
