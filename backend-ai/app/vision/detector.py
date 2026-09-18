@@ -89,6 +89,8 @@ class Yolo26VisionDetector:
         *,
         confidence_threshold: float,
         device: str,
+        max_image_side: int,
+        max_image_pixels: int,
     ) -> None:
         try:
             from ultralytics import YOLO
@@ -100,6 +102,8 @@ class Yolo26VisionDetector:
         self._model_name = model_name
         self._confidence_threshold = confidence_threshold
         self._device = device
+        self._max_image_side = max_image_side
+        self._max_image_pixels = max_image_pixels
         self._model = YOLO(model_name)
         log_event(
             logger,
@@ -119,11 +123,13 @@ class Yolo26VisionDetector:
         return self._model_name
 
     def detect(self, image_bytes: bytes) -> VisionDetectResult:
-        from io import BytesIO
+        from app.vision.image_bounds import decode_rgb_image
 
-        from PIL import Image
-
-        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        image = decode_rgb_image(
+            image_bytes,
+            max_side=self._max_image_side,
+            max_pixels=self._max_image_pixels,
+        )
         results = self._model.predict(
             source=image,
             conf=self._confidence_threshold,
@@ -180,5 +186,7 @@ def build_vision_detector(settings: Settings) -> VisionDetector | None:
             settings.vision_model,
             confidence_threshold=settings.vision_confidence_threshold,
             device=settings.vision_device,
+            max_image_side=settings.vision_max_image_side,
+            max_image_pixels=settings.vision_max_image_pixels,
         )
     raise ValueError(f"不支持的视觉后端: {settings.vision_backend}")

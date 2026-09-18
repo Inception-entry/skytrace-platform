@@ -41,6 +41,7 @@
 - [AS-09 / RB-12 Admin 头像 magic-byte 实施说明](as-09-admin-avatar-magic.md)：第十六项代码修复（头像按文件头识别，对象名用规范扩展名）。
 - [BN-03 / RB-13 JWKS kid 冷却实施说明](bn-03-jwks-kid-cooldown.md)：第十七项代码修复（未知 kid 负缓存、全局 JWKS 冷却、原子替换）。
 - [AI-03 / AI-05 / RB-14 有界读入与 FFmpeg 超时实施说明](ai-03-upload-ffmpeg-bounds.md)：第十八项代码修复（视觉上传有界读、抽帧 timeout）。
+- [AI-04 图片像素炸弹实施说明](ai-04-image-pixel-budget.md)：第十九项代码修复（解码前检查 header 像素预算）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级

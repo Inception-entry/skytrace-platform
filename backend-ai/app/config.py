@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     )
     vision_ffmpeg_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
     vision_max_frames: int = Field(default=30, ge=1, le=30)
+    vision_max_image_side: int = Field(default=4096, ge=256, le=8192)
+    vision_max_image_pixels: int = Field(default=8_388_608, ge=10_000)
     vision_default_max_alarms: int = Field(default=3, ge=1, le=20)
     evidence_thumb_max_size: int = Field(default=320, ge=64, le=1024)
     evidence_video_poster_second: float = Field(default=1.0, ge=0)
