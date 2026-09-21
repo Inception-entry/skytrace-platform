@@ -2,9 +2,32 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 COPY pom.xml .
-RUN mvn -q -DskipTests dependency:go-offline
+# 生产镜像不拉 test 依赖；Maven Central 502 时重试。
+RUN --mount=type=cache,target=/root/.m2 \
+    set -eu; \
+    mvn_retry() { \
+      i=0; \
+      until "$@"; do \
+        i=$((i + 1)); \
+        [ "$i" -ge 5 ] && exit 1; \
+        echo "Maven Central flake (attempt $i/5), retrying..." >&2; \
+        sleep $((i * 8)); \
+      done; \
+    }; \
+    mvn_retry mvn -B -ntp -Dmaven.test.skip=true -DexcludeScope=test dependency:go-offline
 COPY src ./src
-RUN mvn -q clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 \
+    set -eu; \
+    mvn_retry() { \
+      i=0; \
+      until "$@"; do \
+        i=$((i + 1)); \
+        [ "$i" -ge 5 ] && exit 1; \
+        echo "Maven Central flake (attempt $i/5), retrying..." >&2; \
+        sleep $((i * 8)); \
+      done; \
+    }; \
+    mvn_retry mvn -B -ntp clean package -Dmaven.test.skip=true
 
 FROM eclipse-temurin:21-jre
 
