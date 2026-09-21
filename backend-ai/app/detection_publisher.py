@@ -93,7 +93,7 @@ async def publish_detection_alarm(
         body["detectionId"] = payload.detection_id
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     try:
-        channel = await connection.channel()
+        channel = await connection.channel(publisher_confirms=True)
         exchange = await channel.declare_exchange(
             "skytrace.detection",
             aio_pika.ExchangeType.DIRECT,
@@ -106,6 +106,7 @@ async def publish_detection_alarm(
                 delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
             ),
             routing_key="alarm",
+            mandatory=True,
         )
         log_event(
             logger,

@@ -76,6 +76,6 @@ cd backend-ai && uv run pytest tests/test_detection_publisher.py tests/test_visi
 
 ## 6. 再下一刀
 
-Detection 毒消息 DLQ 已单独实施，见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。下一刀是 outbox/confirm 或整栈回滚。Admin 头像落盘、vitest mocker 仍各自独立。
+Detection 毒消息 DLQ 已单独实施，见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。publisher confirm 见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。下一刀是 outbox 或整栈回滚。Admin 头像落盘、vitest mocker 仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.24`**（不要打在本分支上，不要打生产 `v1.2.2`）。
