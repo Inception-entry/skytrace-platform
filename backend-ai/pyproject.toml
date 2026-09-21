@@ -4,6 +4,7 @@ version = "1.2.2"
 description = "SkyTrace AI service powered by LangChain and Ollama"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "anyio>=4.14.2",
     "fastapi>=0.116,<1",
     "httpx>=0.28,<1",
     "langchain-ollama>=1,<2",
