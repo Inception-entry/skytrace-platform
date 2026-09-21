@@ -21,6 +21,8 @@
         <!-- CVE-2026-75595: Boot 3.5.16 仍锁 4.1.136.Final -->
         <netty.version>4.1.137.Final</netty.version>
         <spring-cloud.version>2025.0.3</spring-cloud.version>
+        <!-- CVE-2026-8763 / CVE-2026-13506: spring-cloud-starter 传递锁 1.80.2，修复线 1.85+ -->
+        <bouncycastle.version>1.86</bouncycastle.version>
     </properties>
 
     <dependencyManagement>
@@ -31,6 +33,11 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

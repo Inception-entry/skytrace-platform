@@ -34,10 +34,9 @@ if [[ ! -f "$ENV_FILE" ]]; then
   echo ""
   echo "Created $ENV_FILE from example. IMPORTANT: edit it now:"
   echo "  - Set real passwords for MySQL, RabbitMQ, MinIO, Keycloak."
-  echo "  - Set KEYCLOAK_PUBLIC_URL=https://\$YOUR_DOMAIN"
-  echo "  - Set GATEWAY_ALLOWED_ORIGIN=https://\$YOUR_DOMAIN"
-  echo "  - Set GATEWAY_JWT_ISSUER_URI=https://\$YOUR_DOMAIN/realms/skytrace"
-  echo "  - Set GATEWAY_JWT_JWK_SET_URI=https://\$YOUR_DOMAIN/realms/skytrace/protocol/openid-connect/certs"
+  echo "  - Staging/production overlay 会从 SKYTRACE_DOMAIN 派生 Keycloak/CORS/issuer；"
+  echo "    不要再把 KEYCLOAK_PUBLIC_URL / GATEWAY_ALLOWED_ORIGIN / GATEWAY_JWT_ISSUER_URI"
+  echo "    留在 localhost。内部 JWKS 继续走 http://keycloak:8080 。"
 fi
 
 # --- Permissions ---

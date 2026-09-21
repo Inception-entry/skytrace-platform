@@ -27,43 +27,11 @@
 
 ### DP-02 / P1：realm 只允许 localhost redirect URI
 
-`deploy/keycloak/skytrace-realm.json:35-42` 只有 `localhost:8888` 和 `127.0.0.1:8888`。fresh staging/production realm 使用真实域名时，浏览器 redirect 会被拒绝，除非运维手工改过 realm。
-
-建议把公开 URL 纳入环境专属 realm 配置/幂等 kcadm job。生产 URI 应精确到应用路径，避免宽泛 `https://*.example.com/*`。CI 在 fresh Keycloak 数据卷上完成真实域名替代后的 OIDC authorization-code + PKCE 流。
+实施说明：[rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。realm 已改为 `${SKYTRACE_WEB_ORIGIN}` 占位；staging/production 从 `SKYTRACE_DOMAIN` 注入。已有 Keycloak 数据卷仍需 fresh 导入或手工改 client。
 
 ### DP-03 / P1：staging overlay 没有完整覆盖认证/CORS URL
 
-`deploy/docker-compose.staging.yml:18-50` 只覆盖 MinIO public endpoint、Nginx server name 和 Keycloak hostname。下列值仍主要依赖宿主机 `.env` 手工保持一致：
-
-- frontend `KEYCLOAK_PUBLIC_URL`
-- Gateway/Java/Node issuer
-- Gateway CORS origin
-- Node WebSocket origin
-- Keycloak realm redirect/webOrigins
-
-`deploy/.env.example:54,56,61,75` 全是 localhost。漏改任一项都可能造成混合内容、401 issuer mismatch、CORS 或 WebSocket 失败。
-
-建议 overlay 从一个经校验的 domain 派生完整配置：
-
-```yaml
-services:
-  frontend:
-    environment:
-      KEYCLOAK_PUBLIC_URL: https://${SKYTRACE_DOMAIN:?SKYTRACE_DOMAIN is required}
-  gateway:
-    environment:
-      GATEWAY_ALLOWED_ORIGIN: https://${SKYTRACE_DOMAIN:?}
-      GATEWAY_JWT_ISSUER_URI: https://${SKYTRACE_DOMAIN:?}/realms/skytrace
-  backend-java:
-    environment:
-      AUTH_JWT_ISSUER_URI: https://${SKYTRACE_DOMAIN:?}/realms/skytrace
-  backend-node:
-    environment:
-      AUTH_JWT_ISSUER_URI: https://${SKYTRACE_DOMAIN:?}/realms/skytrace
-      WS_ALLOWED_ORIGIN: https://${SKYTRACE_DOMAIN:?}
-```
-
-内部 JWK URL 可以继续走容器网络，但 token issuer 必须和外部签发值严格一致。
+实施说明：[rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。staging overlay 已覆盖前端 Keycloak URL、Gateway CORS/issuer、Java/Node issuer 与 WS origin。内部 JWKS 仍走容器网络。Admin 公网入口（DP-04）未做。
 
 ### DP-04 / P2：Admin UI 在远端环境没有公开入口
 
