@@ -6,7 +6,7 @@
 
 - `.venv/bin/pytest tests -q`：17 passed。
 - `uv lock --check`：通过。
-- 在线 pip advisory 扫描：锁定的 `pypdf 6.14.2` 有 2 个恶意 PDF 资源耗尽漏洞；`h2 4.3.0` 有 1 个重复 Host/request-smuggling primitive；均已有修复版本。
+- 在线 pip advisory 扫描（审计当时）：锁定的 `pypdf 6.14.2` 有 2 个恶意 PDF 资源耗尽漏洞；`h2 4.3.0` 有 1 个重复 Host/request-smuggling primitive。pypdf 已升到 6.18.1；h2 已升到 4.4.1，见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
 - 当前测试没有覆盖非可信 PDF、图片压缩炸弹、FFmpeg 卡死、上传并发、Rabbit 重投、RAG 注入和多用户会话隔离。
 
 最高优先顺序：升级并约束 PDF 解析 → 修告警时间协议 → 上传/像素/FFmpeg 资源边界 → Rabbit 幂等/连接复用 → 会话和知识库隔离 → 生命周期/健康检查。
@@ -256,9 +256,7 @@ Compose 将 8000 绑定在 loopback，公网常规路径经 Gateway 鉴权，这
 
 ## 17. AI-16 / P1/P2：`h2 4.3.0` 当前 advisory
 
-`backend-ai/uv.lock:312-313` 锁定 `h2 4.3.0`；扫描报告 `PYSEC-2026-3628` / `CVE-2026-71554`，修复于 `4.4.1`。它涉及重复 Host header 在 HTTP/2 降级时形成 request-smuggling primitive。
-
-当前 Uvicorn 是否实际以 HTTP/2 暴露、哪一条依赖链使用 h2，需要用部署拓扑确认，因此适用性没有 pypdf 那么直接；仍建议升级到修复版本、重新锁定和运行 HTTP client/SSE 回归。
+实施说明：[ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。锁文件已升到 `h2 4.4.1`，关闭 `CVE-2026-71554`。Admin npm advisory 仍未做。
 
 ## 18. AI-17 / P2：容器 root 与构建可复现性
 
