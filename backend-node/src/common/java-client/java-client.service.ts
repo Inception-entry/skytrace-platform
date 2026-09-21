@@ -10,6 +10,7 @@ import { isAxiosError } from 'axios';
 import { Readable } from 'node:stream';
 import { firstValueFrom } from 'rxjs';
 import type { AuthenticatedHttpRequest } from '../../auth/http-auth.types';
+import { blobFromUpload } from '../upload-magic';
 
 @Injectable({ scope: Scope.REQUEST })
 export class JavaClientService {
@@ -145,13 +146,7 @@ export class JavaClientService {
     timeout = 180_000,
   ): Promise<T> {
     const formData = new FormData();
-    formData.append(
-      'file',
-      new Blob([new Uint8Array(file.buffer)], {
-        type: file.mimetype || 'application/octet-stream',
-      }),
-      file.originalname,
-    );
+    formData.append('file', blobFromUpload(file), file.originalname);
     for (const [key, value] of Object.entries(fields)) {
       if (value) {
         formData.append(key, value);

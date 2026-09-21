@@ -4,9 +4,9 @@ import com.skytrace.backend.ai.dto.KnowledgeDeleteResponse;
 import com.skytrace.backend.ai.dto.KnowledgeDocumentResponse;
 import com.skytrace.backend.ai.dto.KnowledgeSearchRequest;
 import com.skytrace.backend.ai.dto.KnowledgeSearchResult;
+import com.skytrace.backend.common.upload.UploadForwarding;
 import com.skytrace.backend.common.upload.UploadMagic;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
@@ -51,40 +51,39 @@ public class AiKnowledgeClient {
             throw new IllegalArgumentException("请选择需要上传的文档");
         }
 
-        byte[] bytes;
+        UploadMagic.Detected detected;
         try {
-            bytes = file.getBytes();
+            detected = UploadForwarding.sniff(file, UploadMagic.Kind.KNOWLEDGE);
         } catch (IOException ex) {
             throw new IllegalArgumentException("无法读取上传的文档", ex);
         }
-        UploadMagic.Detected detected = UploadMagic.inspect(
-                bytes,
-                UploadMagic.Kind.KNOWLEDGE,
-                file.getOriginalFilename()
-        );
-
-        MultipartBodyBuilder body = new MultipartBodyBuilder();
-        body.part(
-                        "file",
-                        new NamedByteArrayResource(
-                                bytes,
-                                "document" + detected.extension()
-                        )
-                )
-                .contentType(MediaType.parseMediaType(detected.contentType()));
+        String filename = "document" + detected.extension();
+        MediaType fileType = MediaType.parseMediaType(detected.contentType());
 
         String requestId = UUID.randomUUID().toString();
         KnowledgeDocumentResponse response = callExecutor.execute(
                 "knowledge_upload",
                 requestId,
                 null,
-                () -> restClient.post()
-                        .uri("/api/knowledge/documents")
-                        .header("X-Request-Id", requestId)
-                        .contentType(MediaType.MULTIPART_FORM_DATA)
-                        .body(body.build())
-                        .retrieve()
-                        .body(KnowledgeDocumentResponse.class)
+                () -> {
+                    MultipartBodyBuilder body = new MultipartBodyBuilder();
+                    try {
+                        body.part(
+                                        "file",
+                                        UploadForwarding.streamedBody(file, filename)
+                                )
+                                .contentType(fileType);
+                    } catch (IOException ex) {
+                        throw new IllegalArgumentException("无法读取上传的文档", ex);
+                    }
+                    return restClient.post()
+                            .uri("/api/knowledge/documents")
+                            .header("X-Request-Id", requestId)
+                            .contentType(MediaType.MULTIPART_FORM_DATA)
+                            .body(body.build())
+                            .retrieve()
+                            .body(KnowledgeDocumentResponse.class);
+                }
         );
         if (response == null) {
             throw new AiClientException(AiErrorCode.INVALID_RESPONSE);
@@ -130,21 +129,5 @@ public class AiKnowledgeClient {
             throw new AiClientException(AiErrorCode.INVALID_RESPONSE);
         }
         return response;
-    }
-
-    private static final class NamedByteArrayResource
-            extends ByteArrayResource {
-
-        private final String filename;
-
-        private NamedByteArrayResource(byte[] bytes, String filename) {
-            super(bytes);
-            this.filename = filename == null ? "unnamed.txt" : filename;
-        }
-
-        @Override
-        public String getFilename() {
-            return filename;
-        }
     }
 }

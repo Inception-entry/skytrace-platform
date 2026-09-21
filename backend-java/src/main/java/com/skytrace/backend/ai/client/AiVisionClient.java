@@ -1,7 +1,7 @@
 package com.skytrace.backend.ai.client;
 
+import com.skytrace.backend.common.upload.UploadForwarding;
 import com.skytrace.backend.common.upload.UploadMagic;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
@@ -102,77 +102,69 @@ public class AiVisionClient {
             throw new IllegalArgumentException(emptyMessage);
         }
 
-        byte[] bytes;
+        UploadMagic.Detected detected;
         try {
-            bytes = file.getBytes();
+            detected = UploadForwarding.sniff(file, kind);
         } catch (IOException ex) {
             throw new IllegalArgumentException(readErrorMessage, ex);
         }
-        UploadMagic.Detected detected = UploadMagic.inspect(bytes, kind);
-
-        MultipartBodyBuilder body = new MultipartBodyBuilder();
-        body.part(
-                        "file",
-                        new NamedByteArrayResource(
-                                bytes,
-                                defaultStem + detected.extension()
-                        )
-                )
-                .contentType(MediaType.parseMediaType(detected.contentType()));
-
-        body.part("deviceCode", deviceCode == null ? "UAV-001" : deviceCode);
-        if (taskCode != null && !taskCode.isBlank()) {
-            body.part("taskCode", taskCode);
-        }
-        if (latitude != null) {
-            body.part("latitude", String.valueOf(latitude));
-        }
-        if (longitude != null) {
-            body.part("longitude", String.valueOf(longitude));
-        }
-        body.part("publishAlarms", String.valueOf(publishAlarms));
-        if (maxAlarms != null) {
-            body.part("maxAlarms", String.valueOf(maxAlarms));
-        }
-        if (frameIntervalSec != null) {
-            body.part("frameIntervalSec", String.valueOf(frameIntervalSec));
-        }
-        if (maxFrames != null) {
-            body.part("maxFrames", String.valueOf(maxFrames));
-        }
+        String filename = defaultStem + detected.extension();
+        MediaType fileType = MediaType.parseMediaType(detected.contentType());
 
         String requestId = UUID.randomUUID().toString();
         Map<String, Object> response = callExecutor.execute(
                 operation,
                 requestId,
                 null,
-                () -> restClient.post()
-                        .uri(uri)
-                        .header("X-Request-Id", requestId)
-                        .contentType(MediaType.MULTIPART_FORM_DATA)
-                        .body(body.build())
-                        .retrieve()
-                        .body(LinkedHashMap.class)
+                () -> {
+                    MultipartBodyBuilder body = new MultipartBodyBuilder();
+                    try {
+                        body.part(
+                                        "file",
+                                        UploadForwarding.streamedBody(file, filename)
+                                )
+                                .contentType(fileType);
+                    } catch (IOException ex) {
+                        throw new IllegalArgumentException(readErrorMessage, ex);
+                    }
+                    body.part(
+                            "deviceCode",
+                            deviceCode == null ? "UAV-001" : deviceCode
+                    );
+                    if (taskCode != null && !taskCode.isBlank()) {
+                        body.part("taskCode", taskCode);
+                    }
+                    if (latitude != null) {
+                        body.part("latitude", String.valueOf(latitude));
+                    }
+                    if (longitude != null) {
+                        body.part("longitude", String.valueOf(longitude));
+                    }
+                    body.part("publishAlarms", String.valueOf(publishAlarms));
+                    if (maxAlarms != null) {
+                        body.part("maxAlarms", String.valueOf(maxAlarms));
+                    }
+                    if (frameIntervalSec != null) {
+                        body.part(
+                                "frameIntervalSec",
+                                String.valueOf(frameIntervalSec)
+                        );
+                    }
+                    if (maxFrames != null) {
+                        body.part("maxFrames", String.valueOf(maxFrames));
+                    }
+                    return restClient.post()
+                            .uri(uri)
+                            .header("X-Request-Id", requestId)
+                            .contentType(MediaType.MULTIPART_FORM_DATA)
+                            .body(body.build())
+                            .retrieve()
+                            .body(LinkedHashMap.class);
+                }
         );
         if (response == null) {
             throw new AiClientException(AiErrorCode.INVALID_RESPONSE);
         }
         return response;
-    }
-
-    private static final class NamedByteArrayResource
-            extends ByteArrayResource {
-
-        private final String filename;
-
-        private NamedByteArrayResource(byte[] bytes, String filename) {
-            super(bytes);
-            this.filename = filename == null ? "frame.jpg" : filename;
-        }
-
-        @Override
-        public String getFilename() {
-            return filename;
-        }
     }
 }

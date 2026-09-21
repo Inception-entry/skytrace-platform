@@ -6,6 +6,7 @@ const { BadRequestException } = require('@nestjs/common');
 const {
   inspectUpload,
   inspectedMultipart,
+  blobFromUpload,
 } = require('../dist/common/upload-magic.js');
 
 function jpegBytes() {
@@ -88,4 +89,12 @@ test('empty buffer is rejected', () => {
     () => inspectUpload(Buffer.alloc(0), 'image'),
     (error) => error instanceof BadRequestException,
   );
+});
+
+test('upload blob wraps the original buffer without Uint8Array copy', async () => {
+  const buffer = Buffer.alloc(2048, 7);
+  const blob = blobFromUpload({ buffer, mimetype: 'video/mp4' });
+  assert.equal(blob.size, buffer.length);
+  assert.equal(blob.type, 'video/mp4');
+  assert.deepEqual(Buffer.from(await blob.arrayBuffer()), buffer);
 });
