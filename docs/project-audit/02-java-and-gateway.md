@@ -119,6 +119,8 @@ CREATE UNIQUE INDEX uk_alarm_source_detection
 
 消费端以唯一键/inbox 实现幂等；实时事件只能在“首次插入成功”时发布。配置 DLQ、最大尝试、`default-requeue-rejected=false`；发布端启用 confirms/returns，并让 API 的 `queued` 真正代表 broker 接受。
 
+实施说明：[jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。第一阶段：可选 `detectionId` + `source_detection_id` 唯一键；重复消费不插第二行、不发 realtime。outbox / confirm / DLQ 仍未做。
+
 ### JV-04：数据库事务内执行 Temporal/MinIO 副作用，并保留事务内实时发布分支
 
 证据：
