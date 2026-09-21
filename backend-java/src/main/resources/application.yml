@@ -28,6 +28,10 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:admin}
     password: ${RABBITMQ_PASSWORD:admin123}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
     listener:
       simple:
         default-requeue-rejected: false
