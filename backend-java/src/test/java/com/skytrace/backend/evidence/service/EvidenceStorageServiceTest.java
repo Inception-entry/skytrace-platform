@@ -3,6 +3,7 @@ package com.skytrace.backend.evidence.service;
 import com.skytrace.backend.evidence.MinioProperties;
 import io.minio.BucketExistsArgs;
 import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.StatObjectArgs;
 import io.minio.UploadObjectArgs;
@@ -10,13 +11,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -149,5 +153,53 @@ class EvidenceStorageServiceTest {
         )
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("清理任务禁止删除归档产物");
+    }
+
+    @Test
+    void storeUsesMagicBytesInsteadOfClientFilename() throws Exception {
+        when(minioClient.bucketExists(any(BucketExistsArgs.class)))
+                .thenReturn(true);
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "x.php.jpg",
+                "image/jpeg",
+                jpegBytes()
+        );
+
+        EvidenceStorageService.StoredObject stored =
+                service.store(file, "TASK-001");
+
+        ArgumentCaptor<PutObjectArgs> argumentCaptor =
+                ArgumentCaptor.forClass(PutObjectArgs.class);
+        verify(minioClient).putObject(argumentCaptor.capture());
+        PutObjectArgs putArgs = argumentCaptor.getValue();
+        assertThat(putArgs.contentType()).isEqualTo("image/jpeg");
+        assertThat(putArgs.object()).startsWith("TASK-001/");
+        assertThat(putArgs.object()).endsWith(".jpg");
+        assertThat(putArgs.object()).doesNotContain(".php");
+        assertThat(stored.contentType()).isEqualTo("image/jpeg");
+        assertThat(stored.originalFilename()).isEqualTo("x.php.jpg");
+    }
+
+    @Test
+    void storeRejectsHtmlClaimingToBeJpeg() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "avatar.jpg",
+                "image/jpeg",
+                "<html>not an image</html>".getBytes()
+        );
+
+        assertThatThrownBy(() -> service.store(file, "TASK-001"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("仅支持 jpg/png/webp 截图或 mp4/webm 视频");
+        verify(minioClient, never()).putObject(any());
+    }
+
+    private static byte[] jpegBytes() {
+        return new byte[] {
+                (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+                0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1
+        };
     }
 }

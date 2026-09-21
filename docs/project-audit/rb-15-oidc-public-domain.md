@@ -73,6 +73,6 @@ python3 scripts/ci/assert_staging_oidc_urls.py
 
 ## 6. 再下一刀
 
-Java/Node 上传（RB-12 尾巴）。`h2`、整栈回滚、Flyway 空库、detection 幂等仍各自独立。
+Java/Node 上传 magic-byte 已单独实施，见 [rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)。`h2`、整栈回滚、Flyway 空库、detection 幂等仍各自独立。
 
 合入 `main` 后若要再发候选，打 **`v1.2.2-rc.13`**（不要打在本分支上，不要打生产 `v1.2.2`）。

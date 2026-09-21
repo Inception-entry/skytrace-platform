@@ -10,6 +10,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JavaClientService } from '../common/java-client/java-client.service';
 import { toJavaLocalDateTime } from '../common/java-local-date-time';
+import { inspectedMultipart } from '../common/upload-magic';
 import { AlarmRealtimeGateway } from '../realtime/alarm-realtime.gateway';
 import { CreateAlarmDto } from './dto/create-alarm.dto';
 import { Roles } from '../auth/http-auth.decorators';
@@ -83,7 +84,7 @@ export class AlarmController {
     }
     return this.javaClient.postMultipart(
       '/detections/analyze',
-      file,
+      inspectedMultipart(file, 'image', '请选择需要识别的图片'),
       {
         deviceCode: deviceCode || 'UAV-001',
         taskCode,
@@ -119,7 +120,7 @@ export class AlarmController {
     }
     return this.javaClient.postMultipart(
       '/detections/analyze-video',
-      file,
+      inspectedMultipart(file, 'video', '请选择需要识别的视频'),
       {
         deviceCode: deviceCode || 'UAV-001',
         taskCode,

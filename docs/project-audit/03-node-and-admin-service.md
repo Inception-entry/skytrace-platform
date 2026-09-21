@@ -74,6 +74,8 @@ includeDeleted?: boolean
 
 ### BN-04 / P1：上传只信任 MIME/文件名，并多次复制大 Buffer
 
+实施说明：[rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)。BFF 证据/知识库/视觉已按 magic-byte 拒绝伪装文件，并把规范 MIME 转给 Java。多层 `Buffer`/`Blob` 复制仍未改。
+
 证据：
 
 - 图片/视频：`backend-node/src/alarm/alarm.controller.ts:64-133`。
@@ -322,7 +324,7 @@ if (!initialPassword || isKnownDefault(initialPassword) || utf8Length(initialPas
 
 ### AS-09 / P1：头像上传信任客户端元数据并公开读取
 
-实施说明：[as-09-admin-avatar-magic.md](as-09-admin-avatar-magic.md)（private bucket / 签名 URL、AI/Java 上传仍未做）。
+实施说明：[as-09-admin-avatar-magic.md](as-09-admin-avatar-magic.md)（private bucket / 签名 URL 仍未做；Java/Node 上传见 [rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)）。
 
 - 头像已按 magic-byte 白名单入库，对象名用规范扩展名；空文件/2MB 二次检查；桶 init 共享 Promise。
 - 公开 `GetObject` 仍在；管理台 `/files/` 已加 `nosniff`。

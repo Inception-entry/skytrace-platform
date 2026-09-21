@@ -182,14 +182,14 @@ scheduled = scheduler.schedule(this::connectOnce, clock.instant().plus(jittered)
 
 ### JV-07：原始扩展名未规范化就进入 ZIP entry，内容类型未验证
 
-证据：
+实施说明：[rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)。`store()` 已按 magic-byte 识别 jpeg/png/webp/mp4/webm；对象键和归档 `archivePath` 用检测扩展名。Content-Disposition / 完整 Zip Slip 消毒仍未做。
 
-- `EvidenceStorageService.java:82-106,347-357` 信任 `getContentType()`，扩展名取自原始文件名。
-- `EvidenceManifestService.java:52-53,109-113` 再取原扩展名。
-- `EvidenceArchivePackageService.java:276-281` 直接构造 `ZipEntry`。
+证据（剩余项）：
+
+- `EvidenceArchivePackageService.java` 仍直接构造 `ZipEntry(archivePath)`；路径现在来自 `evidenceCode + contentType`。
 - `EvidenceAccessService.java:43-56` 下载名只删双引号，没有统一处理 CR/LF、斜杠和反斜杠。
 
-当前 ZIP 路径有固定 `files/` 前缀，且主文件名使用内部 `evidenceCode`，因此现有证据不足以直接断定存在可逃离解压根目录的经典 Zip Slip。已确认的问题是：取自原文件名最后一个点之后的未受控后缀，仍可把斜杠、反斜杠、控制字符或过长片段带入 entry。
+当前 ZIP 路径有固定 `files/` 前缀，主文件名使用内部 `evidenceCode`，后缀来自入库 `contentType`。Content-Disposition 下载名仍只删双引号。
 
 建议：
 
