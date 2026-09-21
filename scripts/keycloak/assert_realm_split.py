@@ -48,6 +48,27 @@ def emails(realm: dict) -> list[str]:
     ]
 
 
+def web_client(realm: dict, path: Path) -> dict:
+    for client in realm.get("clients", []):
+        if client.get("clientId") == "skytrace-web":
+            return client
+    fail(f"{path} 缺少 skytrace-web client")
+
+
+def assert_web_origin_placeholders(client: dict, path: Path) -> None:
+    redirects = [str(item) for item in client.get("redirectUris") or []]
+    origins = [str(item) for item in client.get("webOrigins") or []]
+    blob = " ".join(redirects + origins)
+    if "${SKYTRACE_WEB_ORIGIN}" not in blob:
+        fail(f"{path} skytrace-web 必须用 SKYTRACE_WEB_ORIGIN 占位，不能写死 localhost")
+    if "${SKYTRACE_WEB_ORIGIN_LOOPBACK}" not in blob:
+        fail(f"{path} skytrace-web 必须用 SKYTRACE_WEB_ORIGIN_LOOPBACK 占位")
+    if any("*." in item for item in redirects + origins):
+        fail(f"{path} 不得使用 https://*.example.com 这类主机通配")
+    if any("localhost" in item and "${" not in item for item in redirects + origins):
+        fail(f"{path} 不得硬编码 localhost redirect/webOrigin")
+
+
 def dump_without_users(realm: dict) -> str:
     payload = dict(realm)
     payload.pop("users", None)
@@ -81,6 +102,9 @@ def main() -> None:
         fail("本地 realm 缺少 service account")
     if dump_without_users(production) != dump_without_users(local):
         fail("本地/生产 realm 除 users 外不一致，避免只改其中一个")
+
+    assert_web_origin_placeholders(web_client(production, PRODUCTION_REALM), PRODUCTION_REALM)
+    assert_web_origin_placeholders(web_client(local, LOCAL_REALM), LOCAL_REALM)
 
     base_compose = BASE_COMPOSE.read_text(encoding="utf-8")
     production_compose = PRODUCTION_COMPOSE.read_text(encoding="utf-8")

@@ -29,7 +29,7 @@
 | RB-12 | 上传链普遍信任 MIME/扩展名，大文件多次内存复制 | 至少对公网入口做 magic-byte、并发和内存上限；Admin 头像见 [as-09-admin-avatar-magic.md](as-09-admin-avatar-magic.md)；AI 像素预算见 [ai-04-image-pixel-budget.md](ai-04-image-pixel-budget.md)。Java/Node 仍独立验证 |
 | RB-13 | 任意 JWT `kid` 可持续触发 JWKS refresh | 加全局冷却和未知 kid 负缓存，并验证真实轮换。实施说明：[bn-03-jwks-kid-cooldown.md](bn-03-jwks-kid-cooldown.md) |
 | RB-14 | AI 图片/视频先完整读取后才检查大小；FFmpeg 无 timeout | 公网或内网可达时必须修。有界读入与 FFmpeg 超时见 [ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)；像素预算见 [ai-04-image-pixel-budget.md](ai-04-image-pixel-budget.md) |
-| RB-15 | Keycloak 只含 localhost redirect URI，staging overlay 未完整覆盖 issuer/CORS/前端 URL | release candidate 必须在真实域名完成登录和 token 验证 |
+| RB-15 | Keycloak 只含 localhost redirect URI，staging overlay 未完整覆盖 issuer/CORS/前端 URL | release candidate 必须在真实域名完成登录和 token 验证。实施说明：[rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md) |
 | RB-16 | Admin Service 存在 7 个生产依赖 advisory，Admin 前端存在 2 个 | 更新锁文件、复审 advisory 适用性、全部回归；不能只把 CI 阈值设为 high 来忽略 moderate |
 | RB-17 | 生产发布失败只回滚当前服务，会留下混合版本 | 发布脚本必须能回滚本次已更新的全部服务，或采用蓝绿/双栈切换 |
 

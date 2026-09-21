@@ -65,6 +65,6 @@ cd backend-ai && .venv/bin/python -m pytest tests/test_image_bounds.py tests/tes
 
 ## 6. 再下一刀
 
-RB-15：真实域名 OIDC redirect。Java/Node 上传、`h2`、整栈回滚仍各自独立。
+RB-15：真实域名 OIDC 已单独实施，见 [rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。下一刀是 Java/Node 上传。`h2`、整栈回滚仍各自独立。
 
 合入 `main` 后若要再发候选，打 **`v1.2.2-rc.12`**（不要打在本分支上，不要打生产 `v1.2.2`）。

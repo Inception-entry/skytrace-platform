@@ -89,7 +89,7 @@ immutable release manifest ──> 整栈回滚 ──> 蓝绿切换 ──> 自
 - Knowledge generation 切换，不先删后写。
 - 发布脚本整次回滚，强制不可变 tag，输出 release manifest。
 - Keycloak local/prod realm 分离；真实域名 fresh-volume OIDC test。
-- staging/production 公共 URL/CORS/issuer 从一个 domain 派生并 fail-fast。
+- staging/production 公共 URL/CORS/issuer 从一个 domain 派生并 fail-fast。见 [rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。
 - 移除 fixed container/network names，为蓝绿和扩容准备。
 - 非 root、cap drop、read-only rootfs、资源/临时盘/log 限额。
 
