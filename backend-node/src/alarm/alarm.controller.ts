@@ -56,6 +56,7 @@ export class AlarmController {
       imageObjectKey: dto.imageObjectKey ?? dto.imageUrl,
       videoObjectKey: dto.videoObjectKey ?? dto.videoUrl,
       eventTime: toJavaLocalDateTime(dto.eventTime),
+      detectionId: dto.detectionId,
     };
     return this.javaClient.post('/detections/alarms', payload);
   }

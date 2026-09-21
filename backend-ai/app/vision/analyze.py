@@ -7,6 +7,7 @@ from app.config import Settings
 from app.detection_publisher import (
     DetectionAlarmPayload,
     publish_detection_alarm,
+    stable_detection_id,
 )
 from app.vision.detector import VisionDetector
 from app.vision.image_bounds import assert_image_within_budget
@@ -81,16 +82,37 @@ async def analyze_image(
         and candidates
     ):
         event_time = datetime.now(timezone.utc)
-        for candidate in candidates[: max(1, max_alarms)]:
+        count = 0
+        for box in sorted(
+            result.detections,
+            key=lambda item: item.confidence,
+            reverse=True,
+        ):
+            mapped = resolve_alarm(box.class_name)
+            if mapped is None:
+                continue
+            if count >= max(1, max_alarms):
+                break
+            event_type, weapon_type = mapped
             await publish_detection_alarm(
                 settings,
                 DetectionAlarmPayload.model_validate(
                     {
+                        "schemaVersion": 2,
+                        "detectionId": stable_detection_id(
+                            request_id,
+                            frame=0,
+                            class_name=box.class_name,
+                            x1=box.x1,
+                            y1=box.y1,
+                            x2=box.x2,
+                            y2=box.y2,
+                        ),
                         "deviceCode": device_code,
                         "taskCode": task_code,
-                        "eventType": candidate.event_type,
-                        "weaponType": candidate.weapon_type,
-                        "confidence": candidate.confidence,
+                        "eventType": event_type,
+                        "weaponType": weapon_type,
+                        "confidence": box.confidence,
                         "latitude": latitude,
                         "longitude": longitude,
                         "eventTime": event_time,
@@ -98,7 +120,15 @@ async def analyze_image(
                 ),
                 request_id=request_id,
             )
-            published.append(candidate)
+            published.append(
+                VisionAlarmCandidate(
+                    event_type=event_type,
+                    weapon_type=weapon_type,
+                    class_name=box.class_name,
+                    confidence=box.confidence,
+                )
+            )
+            count += 1
 
     return VisionDetectResponse(
         backend=result.backend,

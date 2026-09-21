@@ -45,6 +45,21 @@ public class AlarmService {
             CreateAlarmRequest request,
             boolean signalWorkflow,
             boolean publishRealtime) {
+        return createResult(request, signalWorkflow, publishRealtime).alarm();
+    }
+
+    @Transactional
+    public AlarmCreateResult createResult(
+            CreateAlarmRequest request,
+            boolean signalWorkflow,
+            boolean publishRealtime) {
+        String detectionId = normalizeDetectionId(request.detectionId());
+        if (detectionId != null) {
+            var existing = alarmEventRepository.findBySourceDetectionId(detectionId);
+            if (existing.isPresent()) {
+                return new AlarmCreateResult(toResponse(existing.get()), false);
+            }
+        }
         AlarmEvent event = new AlarmEvent();
         event.setEventCode(
                 "ALARM-"
@@ -65,6 +80,7 @@ public class AlarmService {
         event.setPrimaryEvidenceCode(request.primaryEvidenceCode());
         event.setPrimaryVideoEvidenceCode(request.primaryVideoEvidenceCode());
         event.setEventTime(request.eventTime());
+        event.setSourceDetectionId(detectionId);
         AlarmResponse response = toResponse(alarmEventRepository.save(event));
         evictAlarmCacheAfterCommit();
         if (signalWorkflow) {
@@ -80,7 +96,14 @@ public class AlarmService {
                     publisher.publishCreated(response)
             );
         }
-        return response;
+        return new AlarmCreateResult(response, true);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByDetectionId(String detectionId) {
+        String normalized = normalizeDetectionId(detectionId);
+        return normalized != null
+                && alarmEventRepository.existsBySourceDetectionId(normalized);
     }
 
     @Transactional(readOnly = true)
@@ -120,6 +143,18 @@ public class AlarmService {
                     }
                 }
         );
+    }
+
+    private static String normalizeDetectionId(String detectionId) {
+        if (detectionId == null || detectionId.isBlank()) {
+            return null;
+        }
+        String trimmed = detectionId.trim();
+        try {
+            return UUID.fromString(trimmed).toString();
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private AlarmResponse toResponse(AlarmEvent event) {

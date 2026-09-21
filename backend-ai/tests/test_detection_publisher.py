@@ -3,7 +3,11 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.detection_publisher import DetectionAlarmPayload, to_legacy_java_local
+from app.detection_publisher import (
+    DetectionAlarmPayload,
+    stable_detection_id,
+    to_legacy_java_local,
+)
 
 
 def test_detection_payload_aliases() -> None:
@@ -42,6 +46,51 @@ def test_legacy_java_local_crosses_utc_date() -> None:
 def test_legacy_java_local_rejects_naive_datetime() -> None:
     with pytest.raises(ValueError, match="timezone offset"):
         to_legacy_java_local(datetime(2026, 8, 24, 10, 0))
+
+
+def test_stable_detection_id_is_deterministic() -> None:
+    first = stable_detection_id(
+        "req-1",
+        frame=0,
+        class_name="knife",
+        x1=0.52,
+        y1=0.40,
+        x2=0.70,
+        y2=0.62,
+    )
+    second = stable_detection_id(
+        "req-1",
+        frame=0,
+        class_name="knife",
+        x1=0.52,
+        y1=0.40,
+        x2=0.70,
+        y2=0.62,
+    )
+    other = stable_detection_id(
+        "req-1",
+        frame=1,
+        class_name="knife",
+        x1=0.52,
+        y1=0.40,
+        x2=0.70,
+        y2=0.62,
+    )
+    assert first == second
+    assert first != other
+
+
+def test_detection_payload_keeps_optional_detection_id() -> None:
+    payload = DetectionAlarmPayload.model_validate(
+        {
+            "deviceCode": "UAV-1",
+            "eventType": "WEAPON_DETECTED",
+            "detectionId": "550e8400-e29b-41d4-a716-446655440000",
+        }
+    )
+    assert payload.detection_id == "550e8400-e29b-41d4-a716-446655440000"
+    assert payload.schema_version == 2
+
 
 
 

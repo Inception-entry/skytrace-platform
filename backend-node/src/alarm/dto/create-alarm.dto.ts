@@ -65,4 +65,8 @@ export class CreateAlarmDto {
   @IsOptional()
   @IsString()
   eventTime?: string;
+
+  @IsOptional()
+  @IsString()
+  detectionId?: string;
 }

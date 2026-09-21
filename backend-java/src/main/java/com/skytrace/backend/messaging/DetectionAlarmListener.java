@@ -2,6 +2,7 @@ package com.skytrace.backend.messaging;
 
 import com.skytrace.backend.alarm.dto.AlarmResponse;
 import com.skytrace.backend.alarm.dto.CreateAlarmRequest;
+import com.skytrace.backend.alarm.service.AlarmCreateResult;
 import com.skytrace.backend.alarm.service.AlarmService;
 import com.skytrace.backend.evidence.MinioProperties;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -46,6 +48,15 @@ public class DetectionAlarmListener {
 
     @RabbitListener(queues = MessagingProperties.DETECTION_QUEUE)
     public void onDetection(DetectionAlarmMessage message) {
+        if (alarmService.existsByDetectionId(message.detectionId())) {
+            log.info(
+                    "event=detection_alarm_duplicate detectionId={} taskCode={}",
+                    message.detectionId(),
+                    message.taskCode()
+            );
+            return;
+        }
+
         LocalDateTime eventTime = message.eventTime() == null
                 ? LocalDateTime.now()
                 : message.eventTime();
@@ -106,26 +117,44 @@ public class DetectionAlarmListener {
             }
         }
 
-        AlarmResponse alarm = alarmService.create(new CreateAlarmRequest(
-                message.deviceCode(),
-                message.taskCode(),
-                message.eventType(),
-                message.weaponType(),
-                message.confidence(),
-                message.latitude(),
-                message.longitude(),
-                message.imageObjectKey(),
-                message.videoObjectKey(),
-                primaryEvidenceCode,
-                primaryVideoEvidenceCode,
-                eventTime
-        ), true, false);
-        realtimePublisher.publishCreated(alarm);
-        log.info(
-                "event=detection_alarm_consumed eventCode={} taskCode={} evidence={}",
-                alarm.eventCode(),
-                alarm.taskCode(),
-                primaryEvidenceCode
-        );
+        try {
+            AlarmCreateResult result = alarmService.createResult(new CreateAlarmRequest(
+                    message.deviceCode(),
+                    message.taskCode(),
+                    message.eventType(),
+                    message.weaponType(),
+                    message.confidence(),
+                    message.latitude(),
+                    message.longitude(),
+                    message.imageObjectKey(),
+                    message.videoObjectKey(),
+                    primaryEvidenceCode,
+                    primaryVideoEvidenceCode,
+                    eventTime,
+                    message.detectionId()
+            ), true, false);
+            if (!result.inserted()) {
+                log.info(
+                        "event=detection_alarm_duplicate detectionId={} eventCode={}",
+                        message.detectionId(),
+                        result.alarm().eventCode()
+                );
+                return;
+            }
+            AlarmResponse alarm = result.alarm();
+            realtimePublisher.publishCreated(alarm);
+            log.info(
+                    "event=detection_alarm_consumed eventCode={} taskCode={} evidence={}",
+                    alarm.eventCode(),
+                    alarm.taskCode(),
+                    primaryEvidenceCode
+            );
+        } catch (DataIntegrityViolationException ex) {
+            log.info(
+                    "event=detection_alarm_duplicate detectionId={} taskCode={}",
+                    message.detectionId(),
+                    message.taskCode()
+            );
+        }
     }
 }
