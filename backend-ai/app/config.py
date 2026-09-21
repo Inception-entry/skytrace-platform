@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     knowledge_top_k: int = 4
     knowledge_score_threshold: float = 0.25
     knowledge_max_file_size_bytes: int = 10 * 1024 * 1024
+    knowledge_max_pages: int = Field(default=80, ge=1, le=500)
+    knowledge_max_chunks: int = Field(default=400, ge=1, le=5000)
+    knowledge_max_extract_chars: int = Field(
+        default=400_000,
+        ge=1,
+        le=2_000_000,
+    )
+    knowledge_parse_timeout_seconds: float = Field(default=20.0, gt=0, le=120)
     rabbitmq_url: str = "amqp://admin:admin123@127.0.0.1:5672/"
     messaging_enabled: bool = True
     vision_enabled: bool = True

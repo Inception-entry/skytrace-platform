@@ -52,10 +52,10 @@ AI_QDRANT_COLLECTION=skytrace_knowledge
 - 文件类型：PDF、Markdown、TXT。
 - 文本编码：Markdown 和 TXT 使用 UTF-8。
 - 文件大小：默认最大 10 MB。
-- 分段：默认 800 字符、120 字符重叠。
+- 分段：默认 800 字符、120 字符重叠；默认最多 400 个切片。
 - 检索：默认返回 4 个片段，相似度阈值 0.25。
 - 去重：文件内容的 SHA-256 作为文档 ID；重复上传相同内容会覆盖原向量。
-- PDF：当前只提取文本层；扫描版 PDF 需要后续增加 OCR。
+- PDF：当前只提取文本层；默认最多 80 页、40 万提取字符、解析超时 20 秒。扫描版 PDF 需要后续增加 OCR。超限返回 400。
 
 相关参数均可通过 `deploy/.env` 中的 `AI_KNOWLEDGE_*` 和 `AI_QDRANT_COLLECTION` 调整。
 

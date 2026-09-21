@@ -72,12 +72,19 @@ class KnowledgeBase:
             raise ValueError(f"文档不能超过 {max_megabytes:g} MB")
 
         try:
-            sections = self._parse_document(extension, content)
+            sections = await asyncio.wait_for(
+                asyncio.to_thread(self._parse_document, extension, content),
+                timeout=self.settings.knowledge_parse_timeout_seconds,
+            )
+        except TimeoutError as exc:
+            raise ValueError("文档解析超时") from exc
         except PdfReadError as exc:
             raise ValueError("PDF 文件损坏或无法解析") from exc
         chunks = self._split_sections(sections)
         if not chunks:
             raise ValueError("文档中没有可提取的文字内容")
+        if len(chunks) > self.settings.knowledge_max_chunks:
+            raise ValueError("文档切片数量超过限制")
 
         texts = [text for text, _ in chunks]
         vectors = await self.embeddings.aembed_documents(texts)
@@ -272,17 +279,26 @@ class KnowledgeBase:
     ) -> list[ParsedSection]:
         if extension == ".pdf":
             reader = PdfReader(io.BytesIO(content))
+            if len(reader.pages) > self.settings.knowledge_max_pages:
+                raise ValueError("文档页数超过限制")
             sections = []
+            extracted = 0
             for index, page in enumerate(reader.pages, start=1):
                 text = (page.extract_text() or "").strip()
-                if text:
-                    sections.append(ParsedSection(text=text, page=index))
+                if not text:
+                    continue
+                extracted += len(text)
+                if extracted > self.settings.knowledge_max_extract_chars:
+                    raise ValueError("文档提取文字超过限制")
+                sections.append(ParsedSection(text=text, page=index))
             return sections
 
         try:
             text = content.decode("utf-8-sig").strip()
         except UnicodeDecodeError as exc:
             raise ValueError("文本文件必须使用 UTF-8 编码") from exc
+        if len(text) > self.settings.knowledge_max_extract_chars:
+            raise ValueError("文档提取文字超过限制")
         return [ParsedSection(text=text, page=None)] if text else []
 
     def _split_sections(
