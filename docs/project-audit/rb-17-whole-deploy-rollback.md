@@ -78,6 +78,6 @@ python3 scripts/ci/assert_staging_oidc_urls.py
 
 ## 6. 再下一刀
 
-Evidence MinIO/workflow outbox，或 DP-08（生产拒绝 `latest`）。Admin 头像落盘、vitest mocker、蓝绿仍各自独立。
+生产/预发拒绝 `latest` 已单独实施，见 [dp-08-immutable-image-tag.md](dp-08-immutable-image-tag.md)。下一刀是 Evidence MinIO/workflow outbox，或 digest manifest。Admin 头像落盘、vitest mocker、蓝绿仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.28`**（不要打在本分支上，不要打生产 `v1.2.2`）。

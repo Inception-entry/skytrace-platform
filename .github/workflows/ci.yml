@@ -25,6 +25,8 @@ jobs:
         run: python3 scripts/ci/assert_staging_oidc_urls.py
       - name: Assert production deploy rolls back the whole release
         run: python3 scripts/ci/assert_production_deploy_rollback.py
+      - name: Assert deploy IMAGE_TAG is immutable main-sha
+        run: python3 scripts/ci/assert_immutable_image_tag.py
       - name: Assert platform versions align
         run: python3 scripts/ci/assert_version_alignment.py
 

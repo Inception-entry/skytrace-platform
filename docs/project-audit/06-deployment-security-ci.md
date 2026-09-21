@@ -116,6 +116,8 @@ fi
 
 更强方案是 Publish 生成 release manifest，记录每个服务的 OCI digest；生产按 digest 部署并保存上一份 manifest。
 
+预发/生产脚本与生产 workflow 已拒绝 `latest`，见 [dp-08-immutable-image-tag.md](dp-08-immutable-image-tag.md)。Compose overlay 本地默认值和 digest 部署未做。
+
 ### DP-09 / P1：数据库 migration 与代码回滚没有兼容门禁
 
 Java Flyway 在启动时前进；Admin 容器启动时执行 `prisma migrate deploy`。若新版本先做破坏性 migration，再回滚旧镜像，旧代码不一定兼容。
