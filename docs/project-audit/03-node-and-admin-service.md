@@ -74,7 +74,7 @@ includeDeleted?: boolean
 
 ### BN-04 / P1：上传只信任 MIME/文件名，并多次复制大 Buffer
 
-实施说明：[rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)。BFF 证据/知识库/视觉已按 magic-byte 拒绝伪装文件，并把规范 MIME 转给 Java。多层 `Buffer`/`Blob` 复制仍未改。
+实施说明：[rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)。BFF 证据/知识库/视觉已按 magic-byte 拒绝伪装文件，并把规范 MIME 转给 Java。流转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。
 
 证据：
 

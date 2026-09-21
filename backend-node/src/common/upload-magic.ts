@@ -68,6 +68,21 @@ export function inspectedMultipart(
   }
 }
 
+export function blobFromUpload(file: {
+  buffer: Buffer
+  mimetype: string
+}): Blob {
+  const { buffer } = file
+  const view = new Uint8Array(
+    buffer.buffer,
+    buffer.byteOffset,
+    buffer.byteLength,
+  )
+  return new Blob([view as BlobPart], {
+    type: file.mimetype || 'application/octet-stream',
+  })
+}
+
 function firstMatch(
   primary: DetectedUpload | undefined,
   secondary: DetectedUpload | undefined,

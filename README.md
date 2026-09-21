@@ -2,7 +2,7 @@
 
 SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台，中文产品名为“天巡智控”。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
 
-当前平台版本：**1.2.2**（候选 tag `v1.2.2-rc.17`，发版说明见 `[docs/releases/v1.2.2.md](docs/releases/v1.2.2.md)`；正式 tag 仍为 `v1.2.1`，见 `[v1.2.1.md](docs/releases/v1.2.1.md)`。历史见 `[v1.2.0.md](docs/releases/v1.2.0.md)`、`[v1.1.0.md](docs/releases/v1.1.0.md)`、`[v1.0.0.md](docs/releases/v1.0.0.md)`）。
+当前平台版本：**1.2.2**（候选 tag `v1.2.2-rc.18`，发版说明见 `[docs/releases/v1.2.2.md](docs/releases/v1.2.2.md)`；正式 tag 仍为 `v1.2.1`，见 `[v1.2.1.md](docs/releases/v1.2.1.md)`。历史见 `[v1.2.0.md](docs/releases/v1.2.0.md)`、`[v1.1.0.md](docs/releases/v1.1.0.md)`、`[v1.0.0.md](docs/releases/v1.0.0.md)`）。
 
 运维速查见 `[docs/ops.md](docs/ops.md)`。
 数据治理（MySQL 备份、MinIO 生命周期、Qdrant 重建）见 `[docs/data-governance.md](docs/data-governance.md)`。

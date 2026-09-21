@@ -211,7 +211,7 @@ if (!SAFE_ZIP_ENTRY.matcher(archiveEntry).matches()) {
 
 - `EvidenceStorageService.java:180-187` 对 MinIO 对象 `readAllBytes()`。
 - `EvidenceDerivativeActivitiesImpl.java:54-59,83-104` 全量加载后才 `ImageIO.read`，没有先限制宽高/像素。
-- `AiVisionClient.java:101-112`、`AiKnowledgeClient.java:53-62` 通过 `getBytes()` 整体复制 multipart。
+- `AiVisionClient` / `AiKnowledgeClient` 转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)，已改为嗅探文件头后流式转发。证据衍生 `readAllBytes()` 仍未做。
 
 建议先用 `ImageReader` 读 metadata，限制单边和 `width * height`，再解码；服务层再次检查 byte limit；AI 转发用 streaming Resource；为 derivative task queue 设置并发和 JVM memory budget。
 
