@@ -12,6 +12,7 @@ from qdrant_client import AsyncQdrantClient, models
 
 from app.config import Settings
 from app.knowledge_parse import ParsedSection, parse_document
+from app.cgroup_memory import MemoryLimitError
 from app.process_timeout import run_in_killable_process
 from app.schemas import (
     KnowledgeDocumentResponse,
@@ -77,6 +78,7 @@ class KnowledgeBase:
                         self.settings.knowledge_max_pages,
                         self.settings.knowledge_max_extract_chars,
                         timeout=self.settings.knowledge_parse_timeout_seconds,
+                        memory_bytes=self.settings.knowledge_parse_memory_bytes,
                     )
             else:
                 sections = await asyncio.wait_for(
@@ -85,6 +87,8 @@ class KnowledgeBase:
                 )
         except TimeoutError as exc:
             raise ValueError("文档解析超时") from exc
+        except MemoryLimitError as exc:
+            raise ValueError("文档解析超出内存上限") from exc
         except PdfReadError as exc:
             raise ValueError("PDF 文件损坏或无法解析") from exc
         chunks = self._split_sections(sections)

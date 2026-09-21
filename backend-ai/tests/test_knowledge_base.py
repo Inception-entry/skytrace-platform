@@ -227,3 +227,44 @@ def test_killable_process_terminates_hung_worker() -> None:
     time.sleep(0.2)
     assert multiprocessing.active_children() == []
 
+
+def test_killable_process_maps_sigkill_to_memory_limit() -> None:
+    import multiprocessing
+
+    from app.cgroup_memory import MemoryLimitError
+    from app.process_timeout import kill_self_for_tests, run_in_killable_process
+
+    with pytest.raises(MemoryLimitError, match="内存上限"):
+        asyncio.run(
+            run_in_killable_process(
+                kill_self_for_tests,
+                timeout=5,
+                memory_bytes=64 * 1024 * 1024,
+            )
+        )
+    time.sleep(0.2)
+    assert multiprocessing.active_children() == []
+
+
+def test_pdf_memory_limit_is_mapped_to_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app import knowledge_base as knowledge_base_module
+    from app.cgroup_memory import MemoryLimitError
+
+    async def boom(*_args: object, **_kwargs: object) -> list:
+        raise MemoryLimitError("文档解析超出内存上限")
+
+    monkeypatch.setattr(knowledge_base_module, "run_in_killable_process", boom)
+    knowledge_base = KnowledgeBase(
+        Settings(),
+        client=SimpleNamespace(),
+        embeddings=FakeEmbeddings(),
+    )
+    with pytest.raises(ValueError, match="超出内存上限"):
+        asyncio.run(
+            knowledge_base.import_document(
+                "bomb.pdf",
+                "application/pdf",
+                b"%PDF-1.4 x",
+            )
+        )
+
