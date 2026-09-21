@@ -53,6 +53,7 @@
 - [AI-01 PDF 解析 cgroup 内存上限实施说明](ai-01-pdf-cgroup-memory.md)：第二十八项代码修复（PDF 解析子进程 memory.max，超限 400）。
 - [JV-01 Flyway 空库 Schema 实施说明](jv-01-flyway-empty-schema.md)：第二十九项代码修复（V20 建 `inspection_task`，空 MySQL validate 能启动）。
 - [JV-03 Detection 消费幂等实施说明](jv-03-detection-idempotency.md)：第三十项代码修复（可选 `detectionId` + `source_detection_id` 唯一键去重）。
+- [JV-03 Detection 毒消息 DLQ 实施说明](jv-03-detection-dlq.md)：第三十一项代码修复（detection 队列死信 + 有限重试后拒绝）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级
