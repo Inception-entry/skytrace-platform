@@ -1,0 +1,30 @@
+{
+  "last_reminder": 0,
+  "cached_at": 1789962188373,
+  "version": "6.19.3",
+  "cli_path": "/home/xdeg/workspace/skytrace-platform/admin-service/node_modules/.bin/prisma",
+  "output": {
+    "product": "prisma",
+    "previous_version": "6.19.3",
+    "checkpoint_version": 4,
+    "local_timestamp_without_timezone": "2026-09-21T11:43:07Z",
+    "current_version": "8.0.0-rc.15",
+    "current_release_date": 1789369295,
+    "client_event_id": "875e7135-f356-42c3-9e19-286d5f740e65",
+    "current_download_url": "https://github.com/prisma/prisma",
+    "package": "prisma",
+    "release_tag": "latest",
+    "install_command": "npm install --save-dev prisma",
+    "schema_providers": [
+      "postgresql"
+    ],
+    "schema_preview_features": [],
+    "schema_generators_providers": [
+      "prisma-client-js"
+    ],
+    "current_changelog_url": "https://github.com/prisma/prisma",
+    "outdated": true,
+    "project_website": "https://prisma.io",
+    "alerts": []
+  }
+}

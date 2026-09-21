@@ -64,7 +64,7 @@ immutable release manifest ──> 整栈回滚 ──> 蓝绿切换 ──> 自
 ### Wave 1C：直接攻击面
 
 1. 升级 `pypdf >= 6.15.0`、`h2 >= 4.4.1`，回归 lock。pypdf 见 [ai-01-pypdf-upgrade.md](ai-01-pypdf-upgrade.md)；h2 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
-2. Admin runtime dependencies 升级到无当前 advisory 的兼容组合。
+2. Admin runtime dependencies 升级到无当前 advisory 的兼容组合。见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。
 3. 图片/视频/PDF bounded read，像素/page/chunk/frame/time budget。图片/视频有界读入见 [ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)；像素预算见 [ai-04-image-pixel-budget.md](ai-04-image-pixel-budget.md)。
 4. FFmpeg timeout、协议/stdin、错误脱敏。见 [ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)。
 5. Java/Node/Admin 上传 magic-byte、ZIP entry 和文件名安全。Admin 头像见 [as-09-admin-avatar-magic.md](as-09-admin-avatar-magic.md)；Java/Node 见 [rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)；ZIP 全量消毒仍未做。

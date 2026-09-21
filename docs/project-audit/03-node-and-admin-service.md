@@ -7,7 +7,7 @@
 | 模块 | 严重/高优先问题 | 中优先问题 | 当前验证 |
 | --- | --- | --- | --- |
 | Node BFF | 时间契约、`includeDeleted`、JWKS 放大、上传内存、Rabbit/Socket 生命周期、root 容器 | path 参数、代理 IP、HTTP 错误、CORS/配置、DTO 边界 | build/lint/13 tests 通过；生产 npm advisory 0 |
-| Admin Service | 明文秘密日志、RBAC 提权、默认管理员、super 并发、refresh token、认证限流/JWT、上传、root/PID1 | DTO 分页、唯一性竞态、健康检查、审计完整性、权限查询 | build/lint/24 tests 通过；生产 npm advisory 7 moderate |
+| Admin Service | 明文秘密日志、RBAC 提权、默认管理员、super 并发、refresh token、认证限流/JWT、上传、root/PID1 | DTO 分页、唯一性竞态、健康检查、审计完整性、权限查询 | build/lint/24 tests 通过；生产 npm advisory 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md) |
 
 ## 2. Node BFF
 
@@ -373,6 +373,8 @@ if (!initialPassword || isKnownDefault(initialPassword) || utf8Length(initialPas
 - 处理：升级锁文件并在 CI 扫描 dev dependencies；它不是线上运行时远程漏洞，但会影响开发/CI 输入处理。
 
 ### 4.2 Admin Service
+
+实施说明：[rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。生产 `npm audit --omit=dev` 已为 0。Nest 已对齐 `11.2.3`。
 
 2026-08-24 的 `npm audit --omit=dev` 报告 7 个 moderate 节点，涉及：
 

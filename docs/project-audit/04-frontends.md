@@ -7,7 +7,7 @@
 | 模块 | lint | build | tests | 生产依赖审计 |
 | --- | --- | --- | --- | --- |
 | Vue 业务前端 | 通过 | 通过；主 JS 约 691.88 kB，超过 500 kB 告警 | 4 个源代码契约测试文件通过 | 0 advisory |
-| React 管理前端 | 通过；package type 告警 | 通过；主 JS 约 1,389.03 kB | RB-08/RB-09 后有 refresh/logout vitest | 2 moderate advisory |
+| React 管理前端 | 通过；package type 告警 | 通过；主 JS 约 1,389.03 kB | RB-08/RB-09 后有 refresh/logout vitest | 生产 0；见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md) |
 
 构建产物大并不自动等于用户一定慢，但当前同步路由导入和 Cesium/Ant Design 体积说明已经有明确拆包空间。
 

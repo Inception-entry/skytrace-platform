@@ -45,6 +45,7 @@
 - [RB-15 / DP-02 / DP-03 真实域名 OIDC 实施说明](rb-15-oidc-public-domain.md)：第二十项代码修复（staging/production 从 SKYTRACE_DOMAIN 派生 redirect、CORS、issuer）。
 - [RB-12 Java/Node 上传 magic-byte 实施说明](rb-12-java-node-upload-magic.md)：第二十一项代码修复（证据/知识库/视觉按文件头识别，对象名用规范扩展名）。
 - [AI-16 升级 h2 实施说明](ai-16-h2-upgrade.md)：第二十二项代码修复（`h2` 升到 4.4.1，关闭 CVE-2026-71554）。
+- [RB-16 Admin npm advisory 实施说明](rb-16-admin-npm-advisories.md)：第二十三项代码修复（Admin Nest 11.2.3、react-router 7.18.4，生产 audit 为 0）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级
