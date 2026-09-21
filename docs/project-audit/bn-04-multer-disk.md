@@ -12,7 +12,7 @@
 
 50 MB 视频会先整份进 multer `memoryStorage`，再拷进 `Blob`/`FormData`。生产 Node 只有 256 MiB，这一条就能把 BFF 顶满。
 
-本分支 multer 写到 `UPLOAD_TEMP_DIR`（默认 `os.tmpdir()/skytrace-uploads`），文件名用 UUID。magic 只读前 512 字节。转发给 Java 用 `form-data` + `createReadStream`。`finally` 里 `unlink`。
+本分支 multer 写到 `UPLOAD_TEMP_DIR`（默认 `os.tmpdir()/skytrace-uploads`），文件名用 UUID。读写前用 `resolvedUploadPath` 丢掉调用方目录，只拼接临时目录 + UUID。magic 只读前 512 字节。转发给 Java 用 `form-data` + `createReadStream`。`finally` 里 `unlink`。
 
 ---
 
@@ -50,8 +50,8 @@ axios 整包 POST 给 Java
 
 | 文件 | 做什么 |
 | --- | --- |
-| `backend-node/src/common/upload-disk.ts` | `diskStorage`、UUID 文件名、`withDiskUpload` 结束时 unlink |
-| `backend-node/src/common/upload-magic.ts` | `sniffFileHeader` 512 字节；`inspectedDiskUpload` |
+| `backend-node/src/common/upload-disk.ts` | `diskStorage`、UUID 文件名、`resolvedUploadPath`、结束时 unlink |
+| `backend-node/src/common/upload-magic.ts` | 仍只做 buffer magic；落盘嗅探改到 `upload-disk.ts` |
 | `backend-node/src/common/java-client/java-client.service.ts` | `form-data` + `createReadStream` |
 | evidence / knowledge / alarm 控制器 | `diskUploadOptions` + `withDiskUpload` |
 | `deploy/docker-compose.yml`、`deploy/.env.example` | `UPLOAD_TEMP_DIR` |
@@ -68,6 +68,7 @@ cd backend-node && npm test
 - 大于 sniff 窗口的 JPEG 仍识别为 jpeg，嗅探长度是 512
 - 知识库 PDF 仍把文件名改成 `document.pdf`
 - `withDiskUpload` 成功和失败都会删临时文件
+- 临时目录外的路径、非 UUID 文件名必须 400
 - HTML 冒充 jpeg/pdf 仍 400
 
 ---

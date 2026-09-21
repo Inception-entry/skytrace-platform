@@ -1,5 +1,4 @@
 import { BadRequestException } from '@nestjs/common'
-import { closeSync, openSync, readSync, statSync } from 'node:fs'
 
 export type UploadKind = 'evidence' | 'knowledge' | 'image' | 'video'
 
@@ -48,49 +47,6 @@ export function inspectUpload(
       return firstMatch(detectVideo(buffer), undefined, '仅支持 mp4/webm 视频')
     case 'knowledge':
       return detectKnowledge(buffer, originalname)
-  }
-}
-
-export function sniffFileHeader(filePath: string): Buffer {
-  const fd = openSync(filePath, 'r')
-  try {
-    const header = Buffer.alloc(UPLOAD_SNIFF_BYTES)
-    const bytesRead = readSync(fd, header, 0, UPLOAD_SNIFF_BYTES, 0)
-    return header.subarray(0, bytesRead)
-  } finally {
-    closeSync(fd)
-  }
-}
-
-export function inspectedDiskUpload(
-  file:
-    | {
-        path?: string
-        originalname: string
-        size?: number
-      }
-    | undefined,
-  kind: UploadKind,
-  emptyMessage: string,
-): DiskUpload {
-  if (!file?.path) {
-    throw new BadRequestException(emptyMessage)
-  }
-  const size = file.size ?? statSync(file.path).size
-  if (size === 0) {
-    throw new BadRequestException('文件为空')
-  }
-  const detected = inspectUpload(
-    sniffFileHeader(file.path),
-    kind,
-    file.originalname,
-  )
-  return {
-    path: file.path,
-    originalname:
-      kind === 'knowledge' ? `document${detected.ext}` : file.originalname,
-    mimetype: detected.contentType,
-    size,
   }
 }
 

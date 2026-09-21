@@ -3,17 +3,20 @@ require('reflect-metadata');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
 const { BadRequestException } = require('@nestjs/common');
 const {
   inspectUpload,
-  inspectedDiskUpload,
-  sniffFileHeader,
   UPLOAD_SNIFF_BYTES,
 } = require('../dist/common/upload-magic.js');
-const { withDiskUpload } = require('../dist/common/upload-disk.js');
+const {
+  inspectedDiskUpload,
+  resolvedUploadPath,
+  sniffFileHeader,
+  uploadTempDir,
+  withDiskUpload,
+} = require('../dist/common/upload-disk.js');
 
 function jpegBytes() {
   return Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46]);
@@ -28,7 +31,8 @@ function mp4Bytes() {
 }
 
 function writeTemp(bytes) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skytrace-upload-test-'));
+  const dir = uploadTempDir();
+  fs.mkdirSync(dir, { recursive: true });
   const filePath = path.join(dir, randomUUID());
   fs.writeFileSync(filePath, bytes);
   return filePath;
@@ -97,7 +101,7 @@ test('knowledge disk upload rewrites filename to document.pdf', () => {
     );
     assert.equal(rewritten.originalname, 'document.pdf');
     assert.equal(rewritten.mimetype, 'application/pdf');
-    assert.equal(rewritten.path, filePath);
+    assert.equal(rewritten.path, path.resolve(filePath));
   } finally {
     fs.unlinkSync(filePath);
   }
@@ -186,4 +190,24 @@ test('withDiskUpload deletes the temp file after failure', async () => {
     ),
   );
   assert.equal(fs.existsSync(filePath), false);
+});
+
+test('rejects non-uuid upload filenames', () => {
+  assert.throws(
+    () => resolvedUploadPath(path.join(uploadTempDir(), 'passwd')),
+    (error) => error instanceof BadRequestException,
+  );
+});
+
+test('rejects path traversal in upload paths', () => {
+  assert.throws(
+    () => resolvedUploadPath(path.join(uploadTempDir(), '..', 'passwd')),
+    (error) => error instanceof BadRequestException,
+  );
+});
+
+test('ignores caller directory and stays in the upload temp dir', () => {
+  const name = randomUUID();
+  const safePath = resolvedUploadPath(path.join('/etc', name));
+  assert.equal(safePath, path.resolve(uploadTempDir(), name));
 });

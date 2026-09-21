@@ -14,6 +14,7 @@ import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { firstValueFrom } from 'rxjs';
 import type { AuthenticatedHttpRequest } from '../../auth/http-auth.types';
+import { resolvedUploadPath } from '../upload-disk';
 import type { DiskUpload } from '../upload-magic';
 
 @Injectable({ scope: Scope.REQUEST })
@@ -146,7 +147,7 @@ export class JavaClientService {
     timeout = 180_000,
   ): Promise<T> {
     const formData = new FormData();
-    formData.append('file', createReadStream(file.path), {
+    formData.append('file', createReadStream(resolvedUploadPath(file.path)), {
       filename: file.originalname,
       contentType: file.mimetype || 'application/octet-stream',
       knownLength: file.size,
