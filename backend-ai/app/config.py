@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     )
     knowledge_parse_timeout_seconds: float = Field(default=20.0, gt=0, le=120)
     knowledge_parse_concurrency: int = Field(default=2, ge=1, le=8)
+    knowledge_parse_memory_bytes: int = Field(
+        default=256 * 1024 * 1024,
+        ge=0,
+        le=2 * 1024 * 1024 * 1024,
+    )
     rabbitmq_url: str = "amqp://admin:admin123@127.0.0.1:5672/"
     messaging_enabled: bool = True
     vision_enabled: bool = True

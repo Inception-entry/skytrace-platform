@@ -50,7 +50,7 @@ if len(chunks) > self.settings.knowledge_max_chunks:
     raise ValueError("文档切片数量超过限制")
 ```
 
-线程 timeout 只会停止等待，不能杀死正在运行的 CPU 解析；可终止进程见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。cgroup 内存上限仍未做。
+线程 timeout 只会停止等待，不能杀死正在运行的 CPU 解析；可终止进程见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。cgroup 内存上限见 [ai-01-pdf-cgroup-memory.md](ai-01-pdf-cgroup-memory.md)。
 
 ## 3. AI-02 / P0：告警时间丢弃 timezone，产生 8 小时偏移
 
