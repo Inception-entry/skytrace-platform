@@ -10,7 +10,7 @@ attempt=1
 
 is_network_flake() {
   grep -Eqi \
-    'Temporary failure in name resolution|Could not transfer artifact|UnknownHostException|Unknown host|Connection reset|Connection timed out|Connection refused' \
+    'Temporary failure in name resolution|Could not transfer artifact|UnknownHostException|Unknown host|Connection reset|Connection timed out|Connection refused|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout|status code: 502|status code: 503|status code: 504' \
     "$1"
 }
 
