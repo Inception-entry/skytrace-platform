@@ -79,6 +79,6 @@ cd backend-java && ../scripts/ci/mvn-with-retry.sh -Dtest=AlarmServiceTest,Alarm
 
 ## 6. 再下一刀
 
-整栈回滚，或 Evidence MinIO/workflow outbox。Admin 头像落盘、vitest mocker 仍各自独立。
+生产整次部署回滚已单独实施，见 [rb-17-whole-deploy-rollback.md](rb-17-whole-deploy-rollback.md)。下一刀是 Evidence MinIO/workflow outbox，或 DP-08（拒绝 `latest`）。Admin 头像落盘、vitest mocker、蓝绿仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.27`**（不要打在本分支上，不要打生产 `v1.2.2`）。

@@ -23,6 +23,8 @@ jobs:
         run: python3 scripts/keycloak/assert_realm_split.py
       - name: Assert staging OIDC URLs derive from SKYTRACE_DOMAIN
         run: python3 scripts/ci/assert_staging_oidc_urls.py
+      - name: Assert production deploy rolls back the whole release
+        run: python3 scripts/ci/assert_production_deploy_rollback.py
       - name: Assert platform versions align
         run: python3 scripts/ci/assert_version_alignment.py
 

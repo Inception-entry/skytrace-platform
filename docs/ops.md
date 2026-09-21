@@ -91,7 +91,7 @@ export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform SKYTRACE_DO
 ./scripts/deploy-production.sh
 ```
 
-逐服务重启并健康检查；单服务失败则回滚该服务到上一 `IMAGE_TAG`。
+逐服务重启并健康检查；任一服务失败则把**本次已经更新的服务**逆序退回上一 `IMAGE_TAG`，不留下新旧混跑。
 
 ### 手动回滚
 

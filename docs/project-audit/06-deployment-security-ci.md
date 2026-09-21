@@ -99,6 +99,8 @@ done
 
 这仍不是原子发布。更稳的是蓝绿 Compose project/主机、先完成整栈健康和冒烟，再让 Caddy 切 upstream。
 
+整次部署逆序回滚已实施，见 [rb-17-whole-deploy-rollback.md](rb-17-whole-deploy-rollback.md)。蓝绿 / Caddy 切流量未做。
+
 ### DP-08 / P1：生产 workflow 与 staging overlay 默认允许 `latest`
 
 `.github/workflows/deploy-production.yml:4-9` 描述允许 `main-abc1234 or latest`，默认就是 `latest`；staging overlay 的七个应用镜像也都使用 `${IMAGE_TAG:-latest}`（`deploy/docker-compose.staging.yml:16,19,25,28,31,39,42`）。
