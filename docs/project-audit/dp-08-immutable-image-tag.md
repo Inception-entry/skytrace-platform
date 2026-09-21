@@ -77,6 +77,6 @@ python3 scripts/ci/assert_production_deploy_rollback.py
 
 ## 6. 再下一刀
 
-Evidence MinIO/workflow outbox，或 digest manifest。Admin 头像落盘、vitest mocker、蓝绿仍各自独立。
+Evidence MinIO/workflow outbox 已单独实施，见 [jv-04-evidence-outbox.md](jv-04-evidence-outbox.md)。digest manifest 见 [dp-08-digest-manifest.md](dp-08-digest-manifest.md)。Admin 头像落盘见 [as-09-admin-avatar-disk.md](as-09-admin-avatar-disk.md)。蓝绿仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.29`**（不要打在本分支上，不要打生产 `v1.2.2`）。

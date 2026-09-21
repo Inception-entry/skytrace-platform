@@ -88,6 +88,11 @@ app:
     write-timeout: ${MINIO_WRITE_TIMEOUT:5m}
     archive-temp-dir: ${MINIO_ARCHIVE_TEMP_DIR:${java.io.tmpdir}/skytrace-evidence-archives}
   evidence:
+    outbox:
+      enabled: ${EVIDENCE_OUTBOX_ENABLED:true}
+      drain-ms: ${EVIDENCE_OUTBOX_DRAIN_MS:2000}
+      batch-size: ${EVIDENCE_OUTBOX_BATCH_SIZE:50}
+      max-attempts: ${EVIDENCE_OUTBOX_MAX_ATTEMPTS:8}
     maintenance:
       hash-backfill-enabled: ${EVIDENCE_HASH_BACKFILL_ENABLED:false}
       hash-backfill-batch-size: ${EVIDENCE_HASH_BACKFILL_BATCH_SIZE:25}

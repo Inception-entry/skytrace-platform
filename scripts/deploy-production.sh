@@ -10,6 +10,9 @@ set -euo pipefail
 SERVICES=(backend-ai backend-java backend-node gateway frontend admin-service admin-frontend)
 updated_services=()
 PREV_TAG=""
+PREV_OVERLAY=""
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST_HELPER="${REPO_ROOT}/scripts/release_manifest.py"
 
 require_domain() {
   if [[ -z "${SKYTRACE_DOMAIN:-}" ]]; then
@@ -37,15 +40,47 @@ require_image_tag() {
   fi
 }
 
+prepare_overlay() {
+  local tag="$1"
+  local overlay="$2"
+  local manifest_out="$3"
+  local source_manifest="${4:-}"
+  if [[ -z "${REGISTRY:-}" ]]; then
+    echo "REGISTRY is required to pin image digests" >&2
+    exit 1
+  fi
+  if [[ -z "$source_manifest" ]]; then
+    source_manifest="${RELEASE_MANIFEST:-}"
+  fi
+  if [[ -n "$source_manifest" ]]; then
+    python3 "$MANIFEST_HELPER" validate --manifest "$source_manifest" --expect-tag "$tag"
+    cp "$source_manifest" "$manifest_out"
+  else
+    python3 "$MANIFEST_HELPER" inspect --registry "$REGISTRY" --tag "$tag" --output "$manifest_out"
+  fi
+  python3 "$MANIFEST_HELPER" overlay \
+    --registry "$REGISTRY" \
+    --manifest "$manifest_out" \
+    --output "$overlay" \
+    --expect-tag "$tag"
+}
+
 compose() {
   # vision overlay forces AI_VISION_BACKEND=yolo26 on published images
-  # (INSTALL_VISION=1 is baked at Publish time).
+  # (INSTALL_VISION=1 is baked at Publish time). Digest overlay pins
+  # the seven app images to sha256 so a retagged IMAGE_TAG cannot drift.
+  local files=(
+    -f deploy/docker-compose.yml
+    -f deploy/docker-compose.vision.yml
+    -f deploy/docker-compose.staging.yml
+    -f deploy/docker-compose.production.yml
+  )
+  if [[ -n "${DIGEST_OVERLAY:-}" && -f "${DIGEST_OVERLAY}" ]]; then
+    files+=(-f "${DIGEST_OVERLAY}")
+  fi
   docker compose \
     --env-file deploy/.env \
-    -f deploy/docker-compose.yml \
-    -f deploy/docker-compose.vision.yml \
-    -f deploy/docker-compose.staging.yml \
-    -f deploy/docker-compose.production.yml \
+    "${files[@]}" \
     "$@"
 }
 
@@ -84,7 +119,7 @@ wait_healthy() {
 rollback_service() {
   local service="$1"
   echo "  Rolling back $service to ${PREV_TAG}..."
-  if ! IMAGE_TAG="${PREV_TAG}" compose up -d --no-deps --no-build "$service"; then
+  if ! DIGEST_OVERLAY="${PREV_OVERLAY:-}" IMAGE_TAG="${PREV_TAG}" compose up -d --no-deps --no-build "$service"; then
     echo "  rollback compose failed for $service" >&2
     return 1
   fi
@@ -126,9 +161,25 @@ main() {
   local app_dir="${APP_DIR:-/opt/skytrace}"
   cd "$app_dir"
   PREV_TAG="$(cat .current-image-tag 2>/dev/null || true)"
+  PREV_OVERLAY=""
   updated_services=()
 
-  echo "=== Production deploy: ${IMAGE_TAG} ==="
+  if [[ -n "${PREV_TAG}" && -f .current-release-manifest ]]; then
+    prepare_overlay \
+      "${PREV_TAG}" \
+      "${app_dir}/.previous-release-images.yml" \
+      "${app_dir}/.previous-release-manifest" \
+      "${app_dir}/.current-release-manifest"
+    PREV_OVERLAY="${app_dir}/.previous-release-images.yml"
+  fi
+
+  prepare_overlay \
+    "${IMAGE_TAG}" \
+    "${app_dir}/.release-images.yml" \
+    "${app_dir}/.release-manifest.json"
+  DIGEST_OVERLAY="${app_dir}/.release-images.yml"
+
+  echo "=== Production deploy: ${IMAGE_TAG} (digest pinned) ==="
 
   # Pull all new images first (fail-fast before touching any running container)
   compose pull
@@ -147,6 +198,7 @@ main() {
   done
 
   echo "${IMAGE_TAG}" > .current-image-tag
+  cp "${app_dir}/.release-manifest.json" .current-release-manifest
   echo "=== Production deploy complete: ${IMAGE_TAG} ==="
 }
 

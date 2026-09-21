@@ -8,6 +8,11 @@
 #   SKYTRACE_DOMAIN e.g. test.example.com
 set -euo pipefail
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST_HELPER="${REPO_ROOT}/scripts/release_manifest.py"
+PREV_OVERLAY=""
+DIGEST_OVERLAY=""
+
 if [[ -z "${SKYTRACE_DOMAIN:-}" ]]; then
   echo "SKYTRACE_DOMAIN is required (hostname like test.example.com)" >&2
   exit 1
@@ -34,27 +39,73 @@ cd "$APP_DIR"
 
 PREV_TAG="$(cat .current-image-tag 2>/dev/null || true)"
 
+prepare_overlay() {
+  local tag="$1"
+  local overlay="$2"
+  local manifest_out="$3"
+  local source_manifest="${4:-}"
+  if [[ -z "${REGISTRY:-}" ]]; then
+    echo "REGISTRY is required to pin image digests" >&2
+    exit 1
+  fi
+  if [[ -z "$source_manifest" ]]; then
+    source_manifest="${RELEASE_MANIFEST:-}"
+  fi
+  if [[ -n "$source_manifest" ]]; then
+    python3 "$MANIFEST_HELPER" validate --manifest "$source_manifest" --expect-tag "$tag"
+    cp "$source_manifest" "$manifest_out"
+  else
+    python3 "$MANIFEST_HELPER" inspect --registry "$REGISTRY" --tag "$tag" --output "$manifest_out"
+  fi
+  python3 "$MANIFEST_HELPER" overlay \
+    --registry "$REGISTRY" \
+    --manifest "$manifest_out" \
+    --output "$overlay" \
+    --expect-tag "$tag"
+}
+
 compose() {
   # vision overlay forces AI_VISION_BACKEND=yolo26 on published images
   # (INSTALL_VISION=1 is baked at Publish time).
+  local files=(
+    -f deploy/docker-compose.yml
+    -f deploy/docker-compose.vision.yml
+    -f deploy/docker-compose.staging.yml
+  )
+  if [[ -n "${DIGEST_OVERLAY:-}" && -f "${DIGEST_OVERLAY}" ]]; then
+    files+=(-f "${DIGEST_OVERLAY}")
+  fi
   docker compose \
     --env-file deploy/.env \
-    -f deploy/docker-compose.yml \
-    -f deploy/docker-compose.vision.yml \
-    -f deploy/docker-compose.staging.yml \
+    "${files[@]}" \
     "$@"
 }
 
 rollback() {
   if [[ -n "${PREV_TAG:-}" ]]; then
     echo "=== Health check failed — rolling back to ${PREV_TAG} ==="
-    IMAGE_TAG="${PREV_TAG}" compose up -d --no-build --remove-orphans || true
+    DIGEST_OVERLAY="${PREV_OVERLAY:-}" IMAGE_TAG="${PREV_TAG}" compose up -d --no-build --remove-orphans || true
   fi
 }
 
 trap rollback ERR
 
-echo "=== Deploying ${IMAGE_TAG} ==="
+if [[ -n "${PREV_TAG}" && -f .current-release-manifest ]]; then
+  prepare_overlay \
+    "${PREV_TAG}" \
+    "${APP_DIR}/.previous-release-images.yml" \
+    "${APP_DIR}/.previous-release-manifest" \
+    "${APP_DIR}/.current-release-manifest"
+  PREV_OVERLAY="${APP_DIR}/.previous-release-images.yml"
+fi
+
+prepare_overlay \
+  "${IMAGE_TAG}" \
+  "${APP_DIR}/.release-images.yml" \
+  "${APP_DIR}/.release-manifest.json"
+DIGEST_OVERLAY="${APP_DIR}/.release-images.yml"
+
+echo "=== Deploying ${IMAGE_TAG} (digest pinned) ==="
 compose pull
 compose up -d --no-build --remove-orphans
 
@@ -73,5 +124,6 @@ for i in $(seq 1 36); do
 done
 
 echo "${IMAGE_TAG}" > .current-image-tag
+cp "${APP_DIR}/.release-manifest.json" .current-release-manifest
 trap - ERR
 echo "=== Deployment complete: ${IMAGE_TAG} ==="

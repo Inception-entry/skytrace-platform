@@ -149,9 +149,9 @@ public AlarmEvent createAlarm(CreateAlarm command) {
 // 独立 dispatcher 在 commit 后投递；event_id 唯一；失败可重试。
 ```
 
-告警 Temporal/realtime 半边已实施，见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。Evidence MinIO/workflow 仍在事务内，本刀未做。
+告警 Temporal/realtime 半边已实施，见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。Evidence Temporal/MinIO outbox 见 [jv-04-evidence-outbox.md](jv-04-evidence-outbox.md)。
 
-MinIO 需要显式状态机，例如 `PENDING_UPLOAD -> AVAILABLE | FAILED` 和可重试补偿记录。单纯 catch 后删除对象仍可能因删除失败留下孤儿。
+完整 `PENDING_UPLOAD -> AVAILABLE | FAILED` 证据状态机仍未做；当前补偿是事务外 put、persist 失败 `removeObject`，删失败再记 `MINIO_DELETE`。
 
 ### JV-05：Temporal task queue 在 Controller 中写死
 

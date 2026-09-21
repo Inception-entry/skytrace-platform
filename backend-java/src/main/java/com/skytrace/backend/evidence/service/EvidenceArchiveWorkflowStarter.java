@@ -1,23 +1,25 @@
 package com.skytrace.backend.evidence.service;
 
-import com.skytrace.backend.temporal.workflow.EvidenceDerivativeWorkflow;
+import com.skytrace.backend.temporal.workflow.EvidenceArchiveWorkflow;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 @Service
-public class EvidenceDerivativeJobService {
+@ConditionalOnProperty(name = "app.minio.enabled", havingValue = "true")
+public class EvidenceArchiveWorkflowStarter {
 
     private static final Logger log =
-            LoggerFactory.getLogger(EvidenceDerivativeJobService.class);
+            LoggerFactory.getLogger(EvidenceArchiveWorkflowStarter.class);
 
     private final WorkflowClient workflowClient;
     private final String taskQueue;
 
-    public EvidenceDerivativeJobService(
+    public EvidenceArchiveWorkflowStarter(
             WorkflowClient workflowClient,
             @Value("${TEMPORAL_TASK_QUEUE:skytrace-inspection-task-queue}")
             String taskQueue) {
@@ -25,27 +27,24 @@ public class EvidenceDerivativeJobService {
         this.taskQueue = taskQueue;
     }
 
-    public void start(String evidenceCode) {
+    public void start(String jobCode) {
         try {
-            EvidenceDerivativeWorkflow workflow = workflowClient.newWorkflowStub(
-                    EvidenceDerivativeWorkflow.class,
+            EvidenceArchiveWorkflow workflow = workflowClient.newWorkflowStub(
+                    EvidenceArchiveWorkflow.class,
                     WorkflowOptions.newBuilder()
                             .setTaskQueue(taskQueue)
-                            .setWorkflowId("evidence-derivative-" + evidenceCode)
+                            .setWorkflowId("evidence-archive-" + jobCode)
                             .build()
             );
-            WorkflowClient.start(workflow::enrich, evidenceCode);
+            WorkflowClient.start(workflow::archive, jobCode);
         } catch (RuntimeException exception) {
             if (EvidenceWorkflowStarts.alreadyStarted(exception)) {
-                log.info(
-                        "event=evidence_derivative_already_started evidenceCode={}",
-                        evidenceCode
-                );
+                log.info("event=evidence_archive_already_started jobCode={}", jobCode);
                 return;
             }
             log.warn(
-                    "event=evidence_derivative_start_failed evidenceCode={} reason={}",
-                    evidenceCode,
+                    "event=evidence_archive_start_failed jobCode={} reason={}",
+                    jobCode,
                     exception.getMessage()
             );
             throw exception;

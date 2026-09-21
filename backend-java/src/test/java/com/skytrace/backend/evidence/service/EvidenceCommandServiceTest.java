@@ -2,14 +2,20 @@ package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
+import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,19 +31,24 @@ class EvidenceCommandServiceTest {
             mock(EvidenceAccessLogService.class);
     private final EvidenceQueryService queryService =
             mock(EvidenceQueryService.class);
-    private final EvidenceDerivativeJobService derivativeJobService =
-            mock(EvidenceDerivativeJobService.class);
+    private final EvidenceOutboxWriter outboxWriter =
+            mock(EvidenceOutboxWriter.class);
+    private final PlatformTransactionManager transactionManager =
+            mock(PlatformTransactionManager.class);
     private EvidenceCommandService service;
 
     @BeforeEach
     void setUp() {
+        when(transactionManager.getTransaction(any()))
+                .thenReturn(mock(TransactionStatus.class));
         service = new EvidenceCommandService(
                 repository,
                 storageService,
                 actorContextService,
                 accessLogService,
                 queryService,
-                derivativeJobService
+                outboxWriter,
+                transactionManager
         );
         when(actorContextService.current()).thenReturn(
                 new EvidenceActorContext(
@@ -106,5 +117,72 @@ class EvidenceCommandServiceTest {
         assertThatThrownBy(() -> service.restore("EV-PURGING"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("证据正在物理清理，暂时不能恢复");
+    }
+
+    @Test
+    void uploadStoresOutsideTransactionThenEnqueuesDerivative() {
+        stubStoredObject();
+        when(repository.save(any(EvidenceAsset.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(storageService.legacyPublicPath("skytrace-evidence", "tasks/a.jpg"))
+                .thenReturn("/files/skytrace-evidence/tasks/a.jpg");
+
+        var response = service.upload(sampleFile(), "TASK-1", null, "UAV-1");
+
+        assertThat(response.evidenceCode()).startsWith("EV-");
+        verify(outboxWriter).enqueueDerivative(response.evidenceCode());
+        verify(storageService, never()).removeEvidenceObject(any(), any());
+        verify(outboxWriter, never()).recordOrphanDelete(any(), any());
+    }
+
+    @Test
+    void uploadDeletesObjectWhenPersistFails() {
+        stubStoredObject();
+        when(repository.save(any(EvidenceAsset.class)))
+                .thenThrow(new RuntimeException("db down"));
+
+        assertThatThrownBy(() -> service.upload(sampleFile(), "TASK-1", null, null))
+                .hasMessage("db down");
+
+        verify(storageService).removeEvidenceObject("skytrace-evidence", "tasks/a.jpg");
+        verify(outboxWriter, never()).enqueueDerivative(any());
+        verify(outboxWriter, never()).recordOrphanDelete(any(), any());
+    }
+
+    @Test
+    void uploadRecordsOrphanWhenPersistAndDeleteFail() {
+        stubStoredObject();
+        when(repository.save(any(EvidenceAsset.class)))
+                .thenThrow(new RuntimeException("db down"));
+        doThrow(new RuntimeException("minio down"))
+                .when(storageService)
+                .removeEvidenceObject("skytrace-evidence", "tasks/a.jpg");
+
+        assertThatThrownBy(() -> service.upload(sampleFile(), "TASK-1", null, null))
+                .hasMessage("db down");
+
+        verify(outboxWriter).recordOrphanDelete("skytrace-evidence", "tasks/a.jpg");
+    }
+
+    private void stubStoredObject() {
+        when(storageService.store(any(), any())).thenReturn(
+                new EvidenceStorageService.StoredObject(
+                        "tasks/a.jpg",
+                        "skytrace-evidence",
+                        "image/jpeg",
+                        12L,
+                        "a.jpg",
+                        EvidenceAssetType.IMAGE
+                )
+        );
+    }
+
+    private static MockMultipartFile sampleFile() {
+        return new MockMultipartFile(
+                "file",
+                "a.jpg",
+                "image/jpeg",
+                new byte[] {(byte) 0xff, (byte) 0xd8, (byte) 0xff}
+        );
     }
 }

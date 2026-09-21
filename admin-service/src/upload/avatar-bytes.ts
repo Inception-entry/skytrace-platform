@@ -16,6 +16,33 @@ const GIF89A = Buffer.from('GIF89a')
 const RIFF = Buffer.from('RIFF')
 const WEBP = Buffer.from('WEBP')
 
+export function inspectAvatarMagic(header: Buffer | undefined): InspectedAvatar {
+  if (!header || header.length === 0) {
+    throw new BadRequestException('文件为空')
+  }
+  if (header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
+    return { contentType: 'image/jpeg', ext: '.jpg' }
+  }
+  if (header.length >= PNG.length && header.subarray(0, PNG.length).equals(PNG)) {
+    return { contentType: 'image/png', ext: '.png' }
+  }
+  if (
+    header.length >= 6
+    && (header.subarray(0, 6).equals(GIF87A) || header.subarray(0, 6).equals(GIF89A))
+  ) {
+    return { contentType: 'image/gif', ext: '.gif' }
+  }
+  if (
+    header.length >= 12
+    && header.subarray(0, 4).equals(RIFF)
+    && header.subarray(8, 12).equals(WEBP)
+  ) {
+    return { contentType: 'image/webp', ext: '.webp' }
+  }
+
+  throw new BadRequestException('仅支持 jpg/png/gif/webp 格式')
+}
+
 export function inspectAvatarBuffer(buffer: Buffer | undefined): InspectedAvatar {
   if (!buffer || buffer.length === 0) {
     throw new BadRequestException('文件为空')
@@ -23,28 +50,7 @@ export function inspectAvatarBuffer(buffer: Buffer | undefined): InspectedAvatar
   if (buffer.length > AVATAR_MAX_BYTES) {
     throw new BadRequestException('文件超过 2MB')
   }
-
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return { contentType: 'image/jpeg', ext: '.jpg' }
-  }
-  if (buffer.length >= PNG.length && buffer.subarray(0, PNG.length).equals(PNG)) {
-    return { contentType: 'image/png', ext: '.png' }
-  }
-  if (
-    buffer.length >= 6
-    && (buffer.subarray(0, 6).equals(GIF87A) || buffer.subarray(0, 6).equals(GIF89A))
-  ) {
-    return { contentType: 'image/gif', ext: '.gif' }
-  }
-  if (
-    buffer.length >= 12
-    && buffer.subarray(0, 4).equals(RIFF)
-    && buffer.subarray(8, 12).equals(WEBP)
-  ) {
-    return { contentType: 'image/webp', ext: '.webp' }
-  }
-
-  throw new BadRequestException('仅支持 jpg/png/gif/webp 格式')
+  return inspectAvatarMagic(buffer)
 }
 
 export function avatarObjectName(userId: number, ext: AvatarExt, id: string): string {

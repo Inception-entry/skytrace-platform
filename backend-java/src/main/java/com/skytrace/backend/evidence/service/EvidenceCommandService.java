@@ -7,9 +7,13 @@ import com.skytrace.backend.evidence.domain.EvidenceReviewStatus;
 import com.skytrace.backend.evidence.domain.EvidenceSourceType;
 import com.skytrace.backend.evidence.dto.EvidenceUploadResponse;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -22,6 +26,7 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "app.minio.enabled", havingValue = "true")
 public class EvidenceCommandService {
 
+    private static final Logger log = LoggerFactory.getLogger(EvidenceCommandService.class);
     private static final DateTimeFormatter DAY =
             DateTimeFormatter.BASIC_ISO_DATE;
 
@@ -30,7 +35,8 @@ public class EvidenceCommandService {
     private final EvidenceActorContextService actorContextService;
     private final EvidenceAccessLogService accessLogService;
     private final EvidenceQueryService queryService;
-    private final EvidenceDerivativeJobService derivativeJobService;
+    private final EvidenceOutboxWriter outboxWriter;
+    private final TransactionTemplate transactionTemplate;
 
     public EvidenceCommandService(
             EvidenceAssetRepository repository,
@@ -38,16 +44,17 @@ public class EvidenceCommandService {
             EvidenceActorContextService actorContextService,
             EvidenceAccessLogService accessLogService,
             EvidenceQueryService queryService,
-            EvidenceDerivativeJobService derivativeJobService) {
+            EvidenceOutboxWriter outboxWriter,
+            PlatformTransactionManager transactionManager) {
         this.repository = repository;
         this.storageService = storageService;
         this.actorContextService = actorContextService;
         this.accessLogService = accessLogService;
         this.queryService = queryService;
-        this.derivativeJobService = derivativeJobService;
+        this.outboxWriter = outboxWriter;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public EvidenceUploadResponse upload(
             MultipartFile file,
             String taskCode,
@@ -55,6 +62,21 @@ public class EvidenceCommandService {
             String deviceCode) {
         EvidenceStorageService.StoredObject stored =
                 storageService.store(file, taskCode);
+        try {
+            return transactionTemplate.execute(status ->
+                    persistUpload(stored, taskCode, alarmEventCode, deviceCode)
+            );
+        } catch (RuntimeException exception) {
+            compensateStoredObject(stored);
+            throw exception;
+        }
+    }
+
+    private EvidenceUploadResponse persistUpload(
+            EvidenceStorageService.StoredObject stored,
+            String taskCode,
+            String alarmEventCode,
+            String deviceCode) {
         EvidenceActorContext actor = actorContextService.current();
 
         EvidenceAsset asset = new EvidenceAsset();
@@ -75,7 +97,7 @@ public class EvidenceCommandService {
         asset.setDerivativeStatus(EvidenceDerivativeStatus.PENDING);
         repository.save(asset);
         accessLogService.recordUpload(asset);
-        derivativeJobService.start(asset.getEvidenceCode());
+        outboxWriter.enqueueDerivative(asset.getEvidenceCode());
 
         return new EvidenceUploadResponse(
                 asset.getEvidenceCode(),
@@ -90,6 +112,24 @@ public class EvidenceCommandService {
                         asset.getObjectKey()
                 )
         );
+    }
+
+    private void compensateStoredObject(EvidenceStorageService.StoredObject stored) {
+        try {
+            storageService.removeEvidenceObject(stored.bucket(), stored.objectKey());
+        } catch (RuntimeException deleteException) {
+            try {
+                outboxWriter.recordOrphanDelete(stored.bucket(), stored.objectKey());
+            } catch (RuntimeException outboxException) {
+                log.warn(
+                        "event=evidence_minio_orphan bucket={} objectKey={} deleteReason={} outboxReason={}",
+                        stored.bucket(),
+                        stored.objectKey(),
+                        deleteException.toString(),
+                        outboxException.toString()
+                );
+            }
+        }
     }
 
     @Transactional

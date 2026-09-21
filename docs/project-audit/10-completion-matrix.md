@@ -60,12 +60,12 @@
 - [x] 服务端已加 super 不变量（非 super 不能提权/改 super 边界；最后一名 super 带 advisory lock）。未做真实 PostgreSQL 并发套件。
 - [x] seed 固定密码已移除（首次建号用 `ADMIN_INITIAL_PASSWORD`）。
 - [x] Node `includeDeleted` 已改为严格布尔。告警 `eventTime` 已按上海 DATETIME 兼容转换（AI/Node 写入、Java 兼容读取）。证据查询/归档 Instant 已按 `DatabaseTimes.ZONE` 解释上海 DATETIME（JV-02）。AI `pypdf` 已升到 `>= 6.15.0`（RB-07）；AI `h2` 已升到 `>= 4.4.1`（AI-16）。
-- [x] 已升级 AI `pypdf` 锁文件；已升级 AI `h2` 到 4.4.1。Admin 生产 npm audit 已为 0（RB-16）。vitest mocker 仍是开发链。
+- [x] 已升级 AI `pypdf` 锁文件；已升级 AI `h2` 到 4.4.1。Admin 生产 npm audit 已为 0（RB-16）。Admin 前端 vitest 已升到 4.1.11（RB-16 mocker）。
 - [x] 生产 Keycloak 导入文件已去掉三个开发账号（RB-04）；已部署库内用户仍需运维盘点禁用。staging/production 公开 OIDC URL 从 `SKYTRACE_DOMAIN` 派生（RB-15）。已有 Keycloak 数据卷的 redirect 不会自动覆盖。
-- [x] Flyway V20 补 `inspection_task`（JV-01）。detection 可选 `detectionId` + `source_detection_id` 唯一键（JV-03）。detection 队列 DLQ + 有限重试后拒绝（JV-03）。detection 发布等 broker confirm（JV-03）。告警 Temporal/realtime outbox（JV-04）。Evidence MinIO/workflow outbox 未做。
-- [x] Admin 头像按 magic-byte 入库（AS-09）。AI 图片/视频有界读入与 FFmpeg 超时（RB-14）。AI 解码前像素预算（AI-04）。Java/Node 证据、知识库、视觉上传按 magic-byte（RB-12）。知识库 PDF 页数/字数/切片/超时（AI-01）。Java 知识库/视觉流转发、Node 去掉额外 Uint8Array（BN-04）。PDF 解析超时会杀掉子进程（AI-01）。Node BFF 证据/知识库/视觉 multer 落盘（BN-04）。PDF 解析子进程 cgroup 内存上限（AI-01）。未改 RAG、Admin 头像落盘。
+- [x] Flyway V20 补 `inspection_task`（JV-01）。detection 可选 `detectionId` + `source_detection_id` 唯一键（JV-03）。detection 队列 DLQ + 有限重试后拒绝（JV-03）。detection 发布等 broker confirm（JV-03）。告警 Temporal/realtime outbox（JV-04）。Evidence Temporal/MinIO outbox（JV-04）。
+- [x] Admin 头像按 magic-byte 入库（AS-09）。Admin 头像 multer 落盘（AS-09）。AI 图片/视频有界读入与 FFmpeg 超时（RB-14）。AI 解码前像素预算（AI-04）。Java/Node 证据、知识库、视觉上传按 magic-byte（RB-12）。知识库 PDF 页数/字数/切片/超时（AI-01）。Java 知识库/视觉流转发、Node 去掉额外 Uint8Array（BN-04）。PDF 解析超时会杀掉子进程（AI-01）。Node BFF 证据/知识库/视觉 multer 落盘（BN-04）。PDF 解析子进程 cgroup 内存上限（AI-01）。未改 RAG。
 - [x] Admin 前端无 refresh token 的 401 不再永久挂起（RB-08）。登出带着捕获 token 撤销服务端 refresh（RB-09）。login+`/me` 半登录回滚（FE-05）。refresh 带随机 `jti` 且并发消费只成功一次（RB-10）。JWT secret 启动 fail-fast（RB-11）。登录/刷新进程内限流（AS-06）。登录失败路径 dummy hash 对齐（AS-06）。Node BFF JWKS 未知 kid 冷却（RB-13）。family 复用撤销、Redis 跨副本限流未做。没有修 Cesium、轮询、SSE 或 Socket。
-- [x] 生产滚动失败时逆序回滚本次已更新服务（RB-17 / DP-07）。预发/生产拒绝可变 `latest`（DP-08）。未做 Caddy 蓝绿切换、digest 部署。CI 已加 Keycloak 生产 realm 拆分断言。
+- [x] 生产滚动失败时逆序回滚本次已更新服务（RB-17 / DP-07）。预发/生产拒绝可变 `latest`（DP-08）。预发/生产按 OCI digest 钉七个应用镜像（DP-08）。未做 Caddy 蓝绿切换。CI 已加 Keycloak 生产 realm 拆分断言。
 - [ ] 没有运行完整 Docker E2E、恶意文件或压力测试。
 - [ ] 没有改任何版本字段、创建 release note、打 tag 或部署。
 
