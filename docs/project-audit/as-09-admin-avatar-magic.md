@@ -32,7 +32,7 @@ originalname=x.php.jpg                 → 对象名带着 .php.jpg
 | 不要做 | 原因 |
 | --- | --- |
 | 改成 private bucket + 签名 URL | 会打断现有 `/files/` 契约，另开一刀 |
-| AI / Java / Node 证据上传 | RB-12 其余入口，独立验证 |
+| AI / Java / Node 证据上传 | 已拆出；Java/Node 见 [rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md) |
 | 像素/解压炸弹、FFmpeg | RB-14 |
 | JWKS、h2、打生产 `v1.2.2` | 别的事 |
 

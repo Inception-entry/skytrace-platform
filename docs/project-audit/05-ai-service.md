@@ -98,7 +98,7 @@ event_time.astimezone(timezone.utc).isoformat(timespec="seconds")
 
 ## 5. AI-04 / P1：图片像素炸弹在限制前完成解码
 
-实施说明：[ai-04-image-pixel-budget.md](ai-04-image-pixel-budget.md)。解码前检查 header 像素预算；无效图 400。Java/Node 上传仍未做。
+实施说明：[ai-04-image-pixel-budget.md](ai-04-image-pixel-budget.md)。解码前检查 header 像素预算；无效图 400。Java/Node 上传见 [rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)。
 
 ## 6. AI-05 / P1：FFmpeg 无 timeout、stdin/protocol 和输出上限
 

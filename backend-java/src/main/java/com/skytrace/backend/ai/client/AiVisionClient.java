@@ -1,5 +1,6 @@
 package com.skytrace.backend.ai.client;
 
+import com.skytrace.backend.common.upload.UploadMagic;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
@@ -39,7 +40,8 @@ public class AiVisionClient {
                 file,
                 "请选择需要识别的图片",
                 "无法读取上传图片",
-                "frame.jpg",
+                UploadMagic.Kind.IMAGE,
+                "frame",
                 deviceCode,
                 taskCode,
                 latitude,
@@ -67,7 +69,8 @@ public class AiVisionClient {
                 file,
                 "请选择需要识别的视频",
                 "无法读取上传视频",
-                "clip.mp4",
+                UploadMagic.Kind.VIDEO,
+                "clip",
                 deviceCode,
                 taskCode,
                 latitude,
@@ -85,7 +88,8 @@ public class AiVisionClient {
             MultipartFile file,
             String emptyMessage,
             String readErrorMessage,
-            String defaultFilename,
+            UploadMagic.Kind kind,
+            String defaultStem,
             String deviceCode,
             String taskCode,
             Double latitude,
@@ -98,21 +102,23 @@ public class AiVisionClient {
             throw new IllegalArgumentException(emptyMessage);
         }
 
-        MultipartBodyBuilder body = new MultipartBodyBuilder();
+        byte[] bytes;
         try {
-            body.part(
-                            "file",
-                            new NamedByteArrayResource(
-                                    file.getBytes(),
-                                    file.getOriginalFilename() == null
-                                            ? defaultFilename
-                                            : file.getOriginalFilename()
-                            )
-                    )
-                    .contentType(resolveContentType(file));
+            bytes = file.getBytes();
         } catch (IOException ex) {
             throw new IllegalArgumentException(readErrorMessage, ex);
         }
+        UploadMagic.Detected detected = UploadMagic.inspect(bytes, kind);
+
+        MultipartBodyBuilder body = new MultipartBodyBuilder();
+        body.part(
+                        "file",
+                        new NamedByteArrayResource(
+                                bytes,
+                                defaultStem + detected.extension()
+                        )
+                )
+                .contentType(MediaType.parseMediaType(detected.contentType()));
 
         body.part("deviceCode", deviceCode == null ? "UAV-001" : deviceCode);
         if (taskCode != null && !taskCode.isBlank()) {
@@ -152,13 +158,6 @@ public class AiVisionClient {
             throw new AiClientException(AiErrorCode.INVALID_RESPONSE);
         }
         return response;
-    }
-
-    private MediaType resolveContentType(MultipartFile file) {
-        String contentType = file.getContentType();
-        return contentType == null
-                ? MediaType.APPLICATION_OCTET_STREAM
-                : MediaType.parseMediaType(contentType);
     }
 
     private static final class NamedByteArrayResource

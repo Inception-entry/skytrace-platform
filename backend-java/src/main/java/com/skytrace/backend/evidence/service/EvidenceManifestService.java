@@ -1,6 +1,7 @@
 package com.skytrace.backend.evidence.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skytrace.backend.common.upload.UploadMagic;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJob;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import org.springframework.stereotype.Service;
@@ -10,7 +11,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -107,19 +107,8 @@ public class EvidenceManifestService {
     }
 
     private static String resolveExtension(EvidenceAsset asset) {
-        String filename = asset.getOriginalFilename();
-        if (filename != null && filename.contains(".")) {
-            return filename.substring(filename.lastIndexOf('.'))
-                    .toLowerCase(Locale.ROOT);
-        }
-        // 原始文件名缺失扩展名时，回退到 contentType 推断，保证归档文件仍可识别。
-        return switch (asset.getContentType()) {
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            case "video/mp4" -> ".mp4";
-            case "video/webm" -> ".webm";
-            default -> ".jpg";
-        };
+        // ZIP 路径只用入库后的 contentType，不把原始文件名后缀带进 entry。
+        return UploadMagic.extensionForContentType(asset.getContentType());
     }
 
     private static String stripPrefix(String value) {

@@ -1,6 +1,7 @@
 package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.common.ConflictException;
+import com.skytrace.backend.common.upload.UploadMagic;
 import com.skytrace.backend.evidence.MinioProperties;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import io.minio.BucketExistsArgs;
@@ -21,26 +22,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @ConditionalOnBean(MinioClient.class)
 public class EvidenceStorageService {
-
-    private static final Set<String> ALLOWED_TYPES = Set.of(
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "video/mp4",
-            "video/webm"
-    );
 
     private final MinioClient minioClient;
     private final MinioClient presignClient;
@@ -85,45 +78,44 @@ public class EvidenceStorageService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("未上传证据文件");
         }
-        String contentType = file.getContentType() == null
-                ? "application/octet-stream"
-                : file.getContentType();
-        if (!ALLOWED_TYPES.contains(contentType)) {
-            throw new IllegalArgumentException(
-                    "仅支持 jpg/png/webp 截图或 mp4/webm 视频"
-            );
-        }
 
         try {
-            ensureBucket();
-            String extension = extensionFor(
-                    contentType,
-                    file.getOriginalFilename()
-            );
             String prefix = (taskCode == null || taskCode.isBlank())
                     ? "unassigned"
                     : taskCode.trim();
-            String objectKey = prefix + "/" + UUID.randomUUID() + extension;
 
             try (InputStream inputStream = file.getInputStream()) {
+                byte[] header = inputStream.readNBytes(16);
+                UploadMagic.Detected detected = UploadMagic.inspect(
+                        header,
+                        UploadMagic.Kind.EVIDENCE
+                );
+                ensureBucket();
+                String objectKey = prefix
+                        + "/"
+                        + UUID.randomUUID()
+                        + detected.extension();
+                InputStream body = new SequenceInputStream(
+                        new ByteArrayInputStream(header),
+                        inputStream
+                );
                 minioClient.putObject(
                         PutObjectArgs.builder()
                                 .bucket(properties.getEvidenceBucket())
                                 .object(objectKey)
-                                .stream(inputStream, file.getSize(), -1)
-                                .contentType(contentType)
+                                .stream(body, file.getSize(), -1)
+                                .contentType(detected.contentType())
                                 .build()
                 );
+                return new StoredObject(
+                        objectKey,
+                        properties.getEvidenceBucket(),
+                        detected.contentType(),
+                        file.getSize(),
+                        file.getOriginalFilename(),
+                        EvidenceAssetType.fromContentType(detected.contentType())
+                );
             }
-
-            return new StoredObject(
-                    objectKey,
-                    properties.getEvidenceBucket(),
-                    contentType,
-                    file.getSize(),
-                    file.getOriginalFilename(),
-                    EvidenceAssetType.fromContentType(contentType)
-            );
         } catch (IllegalArgumentException exception) {
             throw exception;
         } catch (Exception exception) {
@@ -342,19 +334,6 @@ public class EvidenceStorageService {
                             .build()
             );
         }
-    }
-
-    private static String extensionFor(String contentType, String filename) {
-        if (filename != null && filename.contains(".")) {
-            return filename.substring(filename.lastIndexOf('.'));
-        }
-        return switch (contentType) {
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            case "video/mp4" -> ".mp4";
-            case "video/webm" -> ".webm";
-            default -> ".jpg";
-        };
     }
 
     private static boolean sameEndpoint(String internal, String external) {

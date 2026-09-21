@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JavaClientService } from '../common/java-client/java-client.service';
+import { inspectedMultipart } from '../common/upload-magic';
 import { SearchKnowledgeDto } from './dto/search-knowledge.dto';
 import { Roles } from '../auth/http-auth.decorators';
 
@@ -44,7 +45,7 @@ export class KnowledgeController {
     }
     return this.javaClient.postMultipart(
       '/knowledge/documents',
-      file,
+      inspectedMultipart(file, 'knowledge', '请选择需要上传的文档'),
     );
   }
 

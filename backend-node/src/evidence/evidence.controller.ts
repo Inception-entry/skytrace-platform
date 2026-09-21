@@ -14,6 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Roles } from '../auth/http-auth.decorators'
 import { JavaClientService } from '../common/java-client/java-client.service'
+import { inspectedMultipart } from '../common/upload-magic'
 import { BatchReviewEvidenceDto } from './dto/batch-review-evidence.dto'
 import { BatchTagEvidenceDto } from './dto/batch-tag-evidence.dto'
 import { CreateEvidenceArchiveJobDto } from './dto/create-evidence-archive-job.dto'
@@ -117,11 +118,15 @@ export class EvidenceController {
     if (!file) {
       throw new BadRequestException('请选择需要上传的证据文件')
     }
-    return this.javaClient.postMultipart('/evidence', file, {
-      taskCode,
-      alarmEventCode,
-      deviceCode,
-    })
+    return this.javaClient.postMultipart(
+      '/evidence',
+      inspectedMultipart(file, 'evidence', '请选择需要上传的证据文件'),
+      {
+        taskCode,
+        alarmEventCode,
+        deviceCode,
+      },
+    )
   }
 
   @Patch(':evidenceCode/metadata')

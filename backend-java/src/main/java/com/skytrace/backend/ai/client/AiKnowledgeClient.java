@@ -4,6 +4,7 @@ import com.skytrace.backend.ai.dto.KnowledgeDeleteResponse;
 import com.skytrace.backend.ai.dto.KnowledgeDocumentResponse;
 import com.skytrace.backend.ai.dto.KnowledgeSearchRequest;
 import com.skytrace.backend.ai.dto.KnowledgeSearchResult;
+import com.skytrace.backend.common.upload.UploadMagic;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
@@ -50,19 +51,27 @@ public class AiKnowledgeClient {
             throw new IllegalArgumentException("请选择需要上传的文档");
         }
 
-        MultipartBodyBuilder body = new MultipartBodyBuilder();
+        byte[] bytes;
         try {
-            body.part(
-                            "file",
-                            new NamedByteArrayResource(
-                                    file.getBytes(),
-                                    file.getOriginalFilename()
-                            )
-                    )
-                    .contentType(resolveContentType(file));
+            bytes = file.getBytes();
         } catch (IOException ex) {
             throw new IllegalArgumentException("无法读取上传的文档", ex);
         }
+        UploadMagic.Detected detected = UploadMagic.inspect(
+                bytes,
+                UploadMagic.Kind.KNOWLEDGE,
+                file.getOriginalFilename()
+        );
+
+        MultipartBodyBuilder body = new MultipartBodyBuilder();
+        body.part(
+                        "file",
+                        new NamedByteArrayResource(
+                                bytes,
+                                "document" + detected.extension()
+                        )
+                )
+                .contentType(MediaType.parseMediaType(detected.contentType()));
 
         String requestId = UUID.randomUUID().toString();
         KnowledgeDocumentResponse response = callExecutor.execute(
@@ -121,13 +130,6 @@ public class AiKnowledgeClient {
             throw new AiClientException(AiErrorCode.INVALID_RESPONSE);
         }
         return response;
-    }
-
-    private MediaType resolveContentType(MultipartFile file) {
-        String contentType = file.getContentType();
-        return contentType == null
-                ? MediaType.APPLICATION_OCTET_STREAM
-                : MediaType.parseMediaType(contentType);
     }
 
     private static final class NamedByteArrayResource
