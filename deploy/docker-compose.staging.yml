@@ -20,12 +20,19 @@ services:
     environment:
       # Caddy 将同一公共域名转发到 frontend，Nginx 再代理证据桶路径到 MinIO。
       MINIO_PUBLIC_ENDPOINT: https://${SKYTRACE_DOMAIN}
+      AUTH_JWT_ISSUER_URI: https://${SKYTRACE_DOMAIN}/realms/skytrace
 
   backend-node:
     image: ${REGISTRY}/backend-node:${IMAGE_TAG:-latest}
+    environment:
+      AUTH_JWT_ISSUER_URI: https://${SKYTRACE_DOMAIN}/realms/skytrace
+      WS_ALLOWED_ORIGIN: https://${SKYTRACE_DOMAIN}
 
   gateway:
     image: ${REGISTRY}/gateway:${IMAGE_TAG:-latest}
+    environment:
+      GATEWAY_ALLOWED_ORIGIN: https://${SKYTRACE_DOMAIN}
+      GATEWAY_JWT_ISSUER_URI: https://${SKYTRACE_DOMAIN}/realms/skytrace
 
   frontend:
     image: ${REGISTRY}/frontend:${IMAGE_TAG:-latest}
@@ -34,6 +41,7 @@ services:
       - "127.0.0.1:${FRONTEND_PORT:-8888}:80"
     environment:
       NGINX_SERVER_NAME: ${SKYTRACE_DOMAIN:-localhost}
+      KEYCLOAK_PUBLIC_URL: https://${SKYTRACE_DOMAIN}
 
   admin-service:
     image: ${REGISTRY}/admin-service:${IMAGE_TAG:-latest}
@@ -48,6 +56,8 @@ services:
   keycloak:
     environment:
       KC_HOSTNAME: https://${SKYTRACE_DOMAIN}
+      SKYTRACE_WEB_ORIGIN: https://${SKYTRACE_DOMAIN}
+      SKYTRACE_WEB_ORIGIN_LOOPBACK: https://${SKYTRACE_DOMAIN}
 
   caddy:
     image: caddy:2-alpine

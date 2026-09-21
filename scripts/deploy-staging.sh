@@ -8,6 +8,19 @@
 #   SKYTRACE_DOMAIN e.g. test.example.com
 set -euo pipefail
 
+if [[ -z "${SKYTRACE_DOMAIN:-}" ]]; then
+  echo "SKYTRACE_DOMAIN is required (hostname like test.example.com)" >&2
+  exit 1
+fi
+if [[ "$SKYTRACE_DOMAIN" == *"://"* || "$SKYTRACE_DOMAIN" == *"/"* || "$SKYTRACE_DOMAIN" == *"*"* ]]; then
+  echo "SKYTRACE_DOMAIN must be a hostname, not a URL or wildcard" >&2
+  exit 1
+fi
+if [[ "$SKYTRACE_DOMAIN" == "localhost" || "$SKYTRACE_DOMAIN" == "127.0.0.1" ]]; then
+  echo "SKYTRACE_DOMAIN cannot be localhost" >&2
+  exit 1
+fi
+
 APP_DIR="${APP_DIR:-/opt/skytrace}"
 cd "$APP_DIR"
 

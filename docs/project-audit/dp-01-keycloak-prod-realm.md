@@ -45,7 +45,7 @@ keycloak: start --import-realm
 
 | 不要做 | 原因 |
 | --- | --- |
-| 改 localhost redirect URI | DP-02 / RB-15，独立 P1 |
+| 改 localhost redirect URI | DP-02 / RB-15，独立 P1。现已实施，见 [rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md) |
 | 停 `--import-realm`、上 kcadm/Terraform 迁移 | 认证方案 2.2，不是这一刀 |
 | 自动删除生产库里已有用户 | 要有权限的人盘点后手工禁用 |
 | AUTH-004 Admin refresh、h2、PDF 限额 | 别的 PR |
