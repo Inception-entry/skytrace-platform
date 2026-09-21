@@ -73,6 +73,6 @@ cd admin-frontend && npm audit --omit=dev && npm test && npm run build
 
 ## 6. 再下一刀
 
-PDF 页数/超时。上传链多层内存复制、Flyway 空库、detection 幂等、整栈回滚、vitest mocker 仍各自独立。
+PDF 页数/超时已单独实施，见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。上传链多层内存复制、Flyway 空库、detection 幂等、整栈回滚、vitest mocker 仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.17`**（不要打在本分支上，不要打生产 `v1.2.2`）。

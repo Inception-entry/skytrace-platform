@@ -74,4 +74,4 @@ uv run pytest tests/test_knowledge_base.py -v
 
 ## 6. 再下一刀
 
-RB-04 / DP-01 已单独实施，见 [dp-01-keycloak-prod-realm.md](dp-01-keycloak-prod-realm.md)。下一刀是 P1 AUTH-004 / RB-08。`h2` 和 PDF 解析限额另开 PR。
+RB-04 / DP-01 已单独实施，见 [dp-01-keycloak-prod-realm.md](dp-01-keycloak-prod-realm.md)。PDF 页数/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。

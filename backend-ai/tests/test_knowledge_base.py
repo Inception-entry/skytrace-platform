@@ -1,4 +1,5 @@
 import asyncio
+import time
 from importlib.metadata import version
 from io import BytesIO
 from types import SimpleNamespace
@@ -92,10 +93,11 @@ def test_pypdf_lock_is_at_least_advisory_fix() -> None:
     assert (major, minor, patch) >= (6, 15, 0)
 
 
-def _blank_pdf_bytes() -> bytes:
+def _blank_pdf_bytes(pages: int = 1) -> bytes:
     buffer = BytesIO()
     writer = PdfWriter()
-    writer.add_blank_page(width=72, height=72)
+    for _ in range(pages):
+        writer.add_blank_page(width=72, height=72)
     writer.write(buffer)
     return buffer.getvalue()
 
@@ -130,6 +132,84 @@ def test_corrupt_pdf_is_rejected() -> None:
                 "broken.pdf",
                 "application/pdf",
                 b"%PDF-1.4 this is not a valid pdf",
+            )
+        )
+
+
+def test_pdf_page_limit_is_enforced() -> None:
+    knowledge_base = KnowledgeBase(
+        Settings(knowledge_max_pages=2),
+        client=SimpleNamespace(),
+        embeddings=FakeEmbeddings(),
+    )
+
+    with pytest.raises(ValueError, match="页数超过限制"):
+        asyncio.run(
+            knowledge_base.import_document(
+                "too-many-pages.pdf",
+                "application/pdf",
+                _blank_pdf_bytes(pages=3),
+            )
+        )
+
+
+def test_chunk_limit_is_enforced() -> None:
+    knowledge_base = KnowledgeBase(
+        Settings(
+            knowledge_chunk_size=10,
+            knowledge_chunk_overlap=0,
+            knowledge_max_chunks=1,
+        ),
+        client=SimpleNamespace(),
+        embeddings=FakeEmbeddings(),
+    )
+
+    with pytest.raises(ValueError, match="切片数量超过限制"):
+        asyncio.run(
+            knowledge_base.import_document(
+                "long.md",
+                "text/markdown",
+                ("低电量告警后应立即返航检查。\n" * 8).encode(),
+            )
+        )
+
+
+def test_extract_char_limit_is_enforced() -> None:
+    knowledge_base = KnowledgeBase(
+        Settings(knowledge_max_extract_chars=20),
+        client=SimpleNamespace(),
+        embeddings=FakeEmbeddings(),
+    )
+
+    with pytest.raises(ValueError, match="提取文字超过限制"):
+        asyncio.run(
+            knowledge_base.import_document(
+                "long.md",
+                "text/markdown",
+                "低电量告警后应确认返航点并检查剩余电量，不要继续飞行。".encode(),
+            )
+        )
+
+
+def test_parse_timeout_is_enforced() -> None:
+    knowledge_base = KnowledgeBase(
+        Settings(knowledge_parse_timeout_seconds=0.1),
+        client=SimpleNamespace(),
+        embeddings=FakeEmbeddings(),
+    )
+
+    def slow(_extension: str, _content: bytes) -> list:
+        time.sleep(0.4)
+        return []
+
+    knowledge_base._parse_document = slow  # type: ignore[method-assign]
+
+    with pytest.raises(ValueError, match="解析超时"):
+        asyncio.run(
+            knowledge_base.import_document(
+                "slow.md",
+                "text/markdown",
+                "低电量告警后应确认返航点。".encode(),
             )
         )
 

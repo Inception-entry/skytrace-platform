@@ -13,7 +13,7 @@
 
 ## 2. AI-01 / P0：非可信 PDF 解析路径命中已知漏洞
 
-动手修复请看单独说明：[ai-01-pypdf-upgrade.md](ai-01-pypdf-upgrade.md)。下面是审计当时的证据和草稿。本升级 PR **没有**做页数/超时治理。
+动手修复请看单独说明：[ai-01-pypdf-upgrade.md](ai-01-pypdf-upgrade.md)。页数/切片/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。下面是审计当时的证据和草稿。pypdf 升级 PR **没有**做页数/超时治理。
 
 证据：
 
