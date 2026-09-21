@@ -7,10 +7,14 @@ import {
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { isAxiosError } from 'axios';
+// form-data 是 CJS；没有 esModuleInterop 时 default import 运行时是 undefined
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import FormData = require('form-data');
+import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { firstValueFrom } from 'rxjs';
 import type { AuthenticatedHttpRequest } from '../../auth/http-auth.types';
-import { blobFromUpload } from '../upload-magic';
+import type { DiskUpload } from '../upload-magic';
 
 @Injectable({ scope: Scope.REQUEST })
 export class JavaClientService {
@@ -137,16 +141,16 @@ export class JavaClientService {
 
   async postMultipart<T>(
     path: string,
-    file: {
-      buffer: Buffer;
-      originalname: string;
-      mimetype: string;
-    },
+    file: DiskUpload,
     fields: Record<string, string | undefined> = {},
     timeout = 180_000,
   ): Promise<T> {
     const formData = new FormData();
-    formData.append('file', blobFromUpload(file), file.originalname);
+    formData.append('file', createReadStream(file.path), {
+      filename: file.originalname,
+      contentType: file.mimetype || 'application/octet-stream',
+      knownLength: file.size,
+    });
     for (const [key, value] of Object.entries(fields)) {
       if (value) {
         formData.append(key, value);
@@ -160,7 +164,12 @@ export class JavaClientService {
           formData,
           {
             timeout,
-            headers: this.downstreamHeaders(),
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
+            headers: {
+              ...this.downstreamHeaders(),
+              ...formData.getHeaders(),
+            },
           },
         ),
       );

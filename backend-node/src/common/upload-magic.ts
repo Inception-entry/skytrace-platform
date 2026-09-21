@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
+import { closeSync, openSync, readSync, statSync } from 'node:fs'
 
 export type UploadKind = 'evidence' | 'knowledge' | 'image' | 'video'
 
@@ -6,6 +7,15 @@ export type DetectedUpload = {
   contentType: string
   ext: string
 }
+
+export type DiskUpload = {
+  path: string
+  originalname: string
+  mimetype: string
+  size: number
+}
+
+export const UPLOAD_SNIFF_BYTES = 512
 
 const JPEG = Buffer.from([0xff, 0xd8, 0xff])
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -41,46 +51,47 @@ export function inspectUpload(
   }
 }
 
-export function inspectedMultipart(
+export function sniffFileHeader(filePath: string): Buffer {
+  const fd = openSync(filePath, 'r')
+  try {
+    const header = Buffer.alloc(UPLOAD_SNIFF_BYTES)
+    const bytesRead = readSync(fd, header, 0, UPLOAD_SNIFF_BYTES, 0)
+    return header.subarray(0, bytesRead)
+  } finally {
+    closeSync(fd)
+  }
+}
+
+export function inspectedDiskUpload(
   file:
     | {
-        buffer: Buffer
+        path?: string
         originalname: string
-        mimetype: string
+        size?: number
       }
     | undefined,
   kind: UploadKind,
   emptyMessage: string,
-): {
-  buffer: Buffer
-  originalname: string
-  mimetype: string
-} {
-  if (!file) {
+): DiskUpload {
+  if (!file?.path) {
     throw new BadRequestException(emptyMessage)
   }
-  const detected = inspectUpload(file.buffer, kind, file.originalname)
+  const size = file.size ?? statSync(file.path).size
+  if (size === 0) {
+    throw new BadRequestException('文件为空')
+  }
+  const detected = inspectUpload(
+    sniffFileHeader(file.path),
+    kind,
+    file.originalname,
+  )
   return {
-    buffer: file.buffer,
+    path: file.path,
     originalname:
       kind === 'knowledge' ? `document${detected.ext}` : file.originalname,
     mimetype: detected.contentType,
+    size,
   }
-}
-
-export function blobFromUpload(file: {
-  buffer: Buffer
-  mimetype: string
-}): Blob {
-  const { buffer } = file
-  const view = new Uint8Array(
-    buffer.buffer,
-    buffer.byteOffset,
-    buffer.byteLength,
-  )
-  return new Blob([view as BlobPart], {
-    type: file.mimetype || 'application/octet-stream',
-  })
 }
 
 function firstMatch(

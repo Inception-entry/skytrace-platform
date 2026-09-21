@@ -74,14 +74,14 @@ includeDeleted?: boolean
 
 ### BN-04 / P1：上传只信任 MIME/文件名，并多次复制大 Buffer
 
-实施说明：[rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)。BFF 证据/知识库/视觉已按 magic-byte 拒绝伪装文件，并把规范 MIME 转给 Java。流转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。
+实施说明：[rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)。BFF 证据/知识库/视觉已按 magic-byte 拒绝伪装文件，并把规范 MIME 转给 Java。流转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。multer 落盘见 [bn-04-multer-disk.md](bn-04-multer-disk.md)。
 
 证据：
 
-- 图片/视频：`backend-node/src/alarm/alarm.controller.ts:64-133`。
-- 证据：`backend-node/src/evidence/evidence.controller.ts:104-124`。
-- 知识库：`backend-node/src/knowledge/knowledge.controller.ts:32-48`。
-- 转发：`backend-node/src/common/java-client/java-client.service.ts:137-154` 创建 `Uint8Array`、`Blob`，大文件形成额外副本。
+- 图片/视频：`backend-node/src/alarm/alarm.controller.ts` 已改 diskStorage。
+- 证据：`backend-node/src/evidence/evidence.controller.ts` 已改 diskStorage。
+- 知识库：`backend-node/src/knowledge/knowledge.controller.ts` 已改 diskStorage。
+- 转发：`backend-node/src/common/java-client/java-client.service.ts` 按 `createReadStream` 送给 Java。Admin 头像仍走内存。
 
 建议：
 

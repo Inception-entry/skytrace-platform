@@ -76,6 +76,6 @@ cd backend-node && npm test
 
 ## 6. 再下一刀
 
-可终止 PDF 解析进程已单独实施，见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。multer 落盘、Flyway 空库、detection 幂等、整栈回滚、vitest mocker 仍各自独立。
+可终止 PDF 解析进程已单独实施，见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。multer 落盘见 [bn-04-multer-disk.md](bn-04-multer-disk.md)。Flyway 空库、detection 幂等、整栈回滚、vitest mocker 仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.19`**（不要打在本分支上，不要打生产 `v1.2.2`）。

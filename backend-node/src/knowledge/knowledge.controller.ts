@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,15 +10,13 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JavaClientService } from '../common/java-client/java-client.service';
-import { inspectedMultipart } from '../common/upload-magic';
+import {
+  diskUploadOptions,
+  withDiskUpload,
+  type DiskUploadFile,
+} from '../common/upload-disk';
 import { SearchKnowledgeDto } from './dto/search-knowledge.dto';
 import { Roles } from '../auth/http-auth.decorators';
-
-interface UploadedKnowledgeFile {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-}
 
 @Controller('knowledge')
 export class KnowledgeController {
@@ -32,20 +29,15 @@ export class KnowledgeController {
 
   @Post('documents')
   @Roles('ADMIN')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      limits: { fileSize: 10 * 1024 * 1024 },
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', diskUploadOptions(10 * 1024 * 1024)))
   uploadDocument(
-    @UploadedFile() file?: UploadedKnowledgeFile,
+    @UploadedFile() file?: DiskUploadFile,
   ): Promise<unknown> {
-    if (!file) {
-      throw new BadRequestException('请选择需要上传的文档');
-    }
-    return this.javaClient.postMultipart(
-      '/knowledge/documents',
-      inspectedMultipart(file, 'knowledge', '请选择需要上传的文档'),
+    return withDiskUpload(
+      file,
+      'knowledge',
+      '请选择需要上传的文档',
+      (part) => this.javaClient.postMultipart('/knowledge/documents', part),
     );
   }
 
