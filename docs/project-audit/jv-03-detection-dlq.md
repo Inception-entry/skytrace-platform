@@ -73,6 +73,6 @@ cd backend-java && ../scripts/ci/mvn-with-retry.sh -Dtest=DetectionDeadLetterCon
 
 ## 6. 再下一刀
 
-publisher confirm 已单独实施，见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。下一刀是 outbox 或整栈回滚。Admin 头像落盘、vitest mocker 仍各自独立。
+publisher confirm 已单独实施，见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。告警 outbox 见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。下一刀是整栈回滚，或 Evidence MinIO/workflow outbox。Admin 头像落盘、vitest mocker 仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.25`**（不要打在本分支上，不要打生产 `v1.2.2`）。

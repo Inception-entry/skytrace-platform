@@ -102,6 +102,12 @@ app:
       cleanup-stale-claim-hours: ${EVIDENCE_CLEANUP_STALE_CLAIM_HOURS:6}
   messaging:
     enabled: ${MESSAGING_ENABLED:true}
+  alarm:
+    outbox:
+      enabled: ${ALARM_OUTBOX_ENABLED:true}
+      drain-ms: ${ALARM_OUTBOX_DRAIN_MS:2000}
+      batch-size: ${ALARM_OUTBOX_BATCH_SIZE:50}
+      max-attempts: ${ALARM_OUTBOX_MAX_ATTEMPTS:8}
   cache:
     enabled: ${CACHE_ENABLED:true}
     alarm-ttl-seconds: ${CACHE_ALARM_TTL_SECONDS:30}

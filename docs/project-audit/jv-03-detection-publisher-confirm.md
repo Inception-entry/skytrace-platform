@@ -76,6 +76,6 @@ cd backend-ai && uv run pytest tests/test_detection_publisher.py -q
 
 ## 6. 再下一刀
 
-outbox，或整栈回滚。Admin 头像落盘、vitest mocker 仍各自独立。
+告警 Temporal/realtime outbox 已单独实施，见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。下一刀是整栈回滚，或 Evidence MinIO/workflow outbox。Admin 头像落盘、vitest mocker 仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.26`**（不要打在本分支上，不要打生产 `v1.2.2`）。

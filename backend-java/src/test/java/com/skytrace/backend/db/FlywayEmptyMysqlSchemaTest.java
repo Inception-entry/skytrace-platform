@@ -73,9 +73,18 @@ class FlywayEmptyMysqlSchemaTest {
         }
         try (Connection connection = dataSource.getConnection();
              ResultSet history = connection.createStatement().executeQuery(
-                     "SELECT version FROM flyway_schema_history WHERE version = '21'"
+                     "SELECT version FROM flyway_schema_history WHERE version = '22'"
              )) {
             assertThat(history.next()).isTrue();
+        }
+        try (Connection connection = dataSource.getConnection();
+             ResultSet tables = connection.getMetaData().getTables(
+                     connection.getCatalog(),
+                     null,
+                     "alarm_outbox",
+                     new String[] {"TABLE"}
+             )) {
+            assertThat(tables.next()).isTrue();
         }
     }
 }

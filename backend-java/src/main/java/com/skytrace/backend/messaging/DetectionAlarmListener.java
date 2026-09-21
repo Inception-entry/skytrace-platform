@@ -31,17 +31,14 @@ public class DetectionAlarmListener {
     );
 
     private final AlarmService alarmService;
-    private final AlarmRealtimePublisher realtimePublisher;
     private final ObjectProvider<EvidenceRegistrationService> registrationService;
     private final ObjectProvider<MinioProperties> minioProperties;
 
     public DetectionAlarmListener(
             AlarmService alarmService,
-            AlarmRealtimePublisher realtimePublisher,
             ObjectProvider<EvidenceRegistrationService> registrationService,
             ObjectProvider<MinioProperties> minioProperties) {
         this.alarmService = alarmService;
-        this.realtimePublisher = realtimePublisher;
         this.registrationService = registrationService;
         this.minioProperties = minioProperties;
     }
@@ -132,7 +129,7 @@ public class DetectionAlarmListener {
                     primaryVideoEvidenceCode,
                     eventTime,
                     message.detectionId()
-            ), true, false);
+            ), true, true);
             if (!result.inserted()) {
                 log.info(
                         "event=detection_alarm_duplicate detectionId={} eventCode={}",
@@ -142,7 +139,6 @@ public class DetectionAlarmListener {
                 return;
             }
             AlarmResponse alarm = result.alarm();
-            realtimePublisher.publishCreated(alarm);
             log.info(
                     "event=detection_alarm_consumed eventCode={} taskCode={} evidence={}",
                     alarm.eventCode(),
