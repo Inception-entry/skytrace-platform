@@ -6,7 +6,7 @@
 
 | 模块 | 实际结果 | 能证明什么 | 不能证明什么 |
 | --- | --- | --- | --- |
-| Backend Java | 110 tests 通过 | 当前 H2/local、service 和 security integration 覆盖行为通过 | 真 MySQL 空库 Flyway、并发、Rabbit 重投、MinIO/Temporal 故障不在结论内 |
+| Backend Java | 110 tests 通过 | 当前 H2/local、service 和 security integration 覆盖行为通过 | `inspection_task` 空库已有 Testcontainers smoke；全量 schema diff、并发、Rabbit 重投、MinIO/Temporal 故障不在结论内 |
 | Gateway Java | 11 tests 通过 | 现有路由/安全断言通过 | 生产 overlay、真实 Redis 限流、客户端取消和新配置键升级未覆盖 |
 | Backend AI | 17 tests 通过 | chat/vision/knowledge 的当前小范围单元行为通过 | 恶意 PDF/图片、FFmpeg timeout、Rabbit partial publish、RAG 注入、负载未覆盖 |
 | Backend Node | 13 tests 通过 | DTO 布尔部分、JWT/JWKS基础、Redis adapter 契约通过 | `includeDeleted`、未知 kid 顺序放大、上传压力、断线重连、时间跨服务未覆盖 |
@@ -50,7 +50,7 @@ Producer fixture 必须被 Java consumer 真实反序列化；Java response fixt
 
 ### TQ-02：缺空库 migration smoke
 
-local H2 `ddl-auto:update` 会掩盖 Flyway 缺表。新增 CI job：
+实施说明：[jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。Testcontainers 空 MySQL + `ddl-auto=validate` 已作为 `FlywayEmptyMysqlSchemaTest`。从上一正式版 Schema 升级、全量 schema diff 仍未做。
 
 1. 启动全新 MySQL Testcontainer。
 2. 只运行 classpath Flyway migrations。

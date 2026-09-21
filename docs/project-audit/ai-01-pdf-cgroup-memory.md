@@ -75,6 +75,6 @@ cd backend-ai && uv run pytest tests/test_knowledge_base.py tests/test_cgroup_me
 
 ## 6. 再下一刀
 
-Flyway 空库。detection 幂等、整栈回滚、Admin 头像落盘、vitest mocker 仍各自独立。
+Flyway 空库已单独实施，见 [jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。下一刀是 detection 幂等。整栈回滚、Admin 头像落盘、vitest mocker 仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.22`**（不要打在本分支上，不要打生产 `v1.2.2`）。
