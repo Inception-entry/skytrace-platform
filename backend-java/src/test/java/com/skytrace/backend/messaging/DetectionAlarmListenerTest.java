@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -25,50 +26,43 @@ class DetectionAlarmListenerTest {
             "550e8400-e29b-41d4-a716-446655440000";
 
     @Test
-    void duplicateDetectionSkipsRealtime() {
+    void duplicateDetectionSkipsCreate() {
         AlarmService alarmService = mock(AlarmService.class);
-        AlarmRealtimePublisher realtime = mock(AlarmRealtimePublisher.class);
         when(alarmService.existsByDetectionId(DETECTION_ID)).thenReturn(true);
 
-        listener(alarmService, realtime).onDetection(sampleMessage());
+        listener(alarmService).onDetection(sampleMessage());
 
         verify(alarmService, never()).createResult(any(), anyBoolean(), anyBoolean());
-        verify(realtime, never()).publishCreated(any());
     }
 
     @Test
-    void firstInsertPublishesRealtime() {
+    void firstInsertEnqueuesRealtimeOutbox() {
         AlarmService alarmService = mock(AlarmService.class);
-        AlarmRealtimePublisher realtime = mock(AlarmRealtimePublisher.class);
         AlarmResponse alarm = sampleAlarm();
         when(alarmService.existsByDetectionId(DETECTION_ID)).thenReturn(false);
         when(alarmService.createResult(any(), anyBoolean(), anyBoolean()))
                 .thenReturn(new AlarmCreateResult(alarm, true));
 
-        listener(alarmService, realtime).onDetection(sampleMessage());
+        listener(alarmService).onDetection(sampleMessage());
 
-        verify(realtime).publishCreated(alarm);
+        verify(alarmService).createResult(any(), eq(true), eq(true));
     }
 
     @Test
-    void uniqueViolationSkipsRealtime() {
+    void uniqueViolationDoesNotRetryCreate() {
         AlarmService alarmService = mock(AlarmService.class);
-        AlarmRealtimePublisher realtime = mock(AlarmRealtimePublisher.class);
         when(alarmService.existsByDetectionId(DETECTION_ID)).thenReturn(false);
         when(alarmService.createResult(any(), anyBoolean(), anyBoolean()))
                 .thenThrow(new DataIntegrityViolationException("duplicate"));
 
-        listener(alarmService, realtime).onDetection(sampleMessage());
+        listener(alarmService).onDetection(sampleMessage());
 
-        verify(realtime, never()).publishCreated(any());
+        verify(alarmService).createResult(any(), eq(true), eq(true));
     }
 
-    private static DetectionAlarmListener listener(
-            AlarmService alarmService,
-            AlarmRealtimePublisher realtime) {
+    private static DetectionAlarmListener listener(AlarmService alarmService) {
         return new DetectionAlarmListener(
                 alarmService,
-                realtime,
                 emptyProvider(),
                 emptyProvider()
         );

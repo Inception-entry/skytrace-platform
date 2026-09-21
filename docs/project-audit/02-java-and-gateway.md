@@ -119,7 +119,7 @@ CREATE UNIQUE INDEX uk_alarm_source_detection
 
 消费端以唯一键/inbox 实现幂等；实时事件只能在“首次插入成功”时发布。配置 DLQ、最大尝试、`default-requeue-rejected=false`；发布端启用 confirms/returns，并让 API 的 `queued` 真正代表 broker 接受。
 
-实施说明：[jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。第一阶段：可选 `detectionId` + `source_detection_id` 唯一键；重复消费不插第二行、不发 realtime。毒消息 DLQ 见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。publisher confirm 见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。outbox 仍未做。
+实施说明：[jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。第一阶段：可选 `detectionId` + `source_detection_id` 唯一键；重复消费不插第二行、不发 realtime。毒消息 DLQ 见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。publisher confirm 见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。告警 outbox 见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。
 
 ### JV-04：数据库事务内执行 Temporal/MinIO 副作用，并保留事务内实时发布分支
 
@@ -148,6 +148,8 @@ public AlarmEvent createAlarm(CreateAlarm command) {
 
 // 独立 dispatcher 在 commit 后投递；event_id 唯一；失败可重试。
 ```
+
+告警 Temporal/realtime 半边已实施，见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。Evidence MinIO/workflow 仍在事务内，本刀未做。
 
 MinIO 需要显式状态机，例如 `PENDING_UPLOAD -> AVAILABLE | FAILED` 和可重试补偿记录。单纯 catch 后删除对象仍可能因删除失败留下孤儿。
 
