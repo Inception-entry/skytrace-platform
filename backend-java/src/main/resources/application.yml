@@ -28,6 +28,15 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:admin}
     password: ${RABBITMQ_PASSWORD:admin123}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: ${RABBIT_LISTENER_MAX_ATTEMPTS:3}
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 10s
   temporal:
     connection:
       target: ${TEMPORAL_TARGET_ENDPOINT:localhost:7233}
