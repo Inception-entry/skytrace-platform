@@ -48,6 +48,7 @@
 - [RB-16 Admin npm advisory 实施说明](rb-16-admin-npm-advisories.md)：第二十三项代码修复（Admin Nest 11.2.3、react-router 7.18.4，生产 audit 为 0）。
 - [AI-01 PDF 页数/超时实施说明](ai-01-pdf-parse-bounds.md)：第二十四项代码修复（知识库解析页数、字数、切片和 timeout）。
 - [BN-04 上传链去掉整文件内存复制实施说明](bn-04-upload-stream.md)：第二十五项代码修复（Java 流转发 AI，Node 不再额外拷 Uint8Array）。
+- [AI-01 可终止 PDF 解析进程实施说明](ai-01-pdf-killable-process.md)：第二十六项代码修复（PDF 解析进 spawn 子进程，超时 terminate/kill）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级
