@@ -13,7 +13,7 @@
 
 ## 2. AI-01 / P0：非可信 PDF 解析路径命中已知漏洞
 
-动手修复请看单独说明：[ai-01-pypdf-upgrade.md](ai-01-pypdf-upgrade.md)。页数/切片/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。下面是审计当时的证据和草稿。pypdf 升级 PR **没有**做页数/超时治理。
+动手修复请看单独说明：[ai-01-pypdf-upgrade.md](ai-01-pypdf-upgrade.md)。页数/切片/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。可终止解析进程见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。下面是审计当时的证据和草稿。pypdf 升级 PR **没有**做页数/超时治理。
 
 证据：
 
@@ -50,7 +50,7 @@ if len(chunks) > self.settings.knowledge_max_chunks:
     raise ValueError("文档切片数量超过限制")
 ```
 
-线程 timeout 只会停止等待，不能杀死正在运行的 CPU 解析；高风险生产环境应使用可终止的进程池/独立解析服务和 cgroup limit。
+线程 timeout 只会停止等待，不能杀死正在运行的 CPU 解析；可终止进程见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。cgroup 内存上限仍未做。
 
 ## 3. AI-02 / P0：告警时间丢弃 timezone，产生 8 小时偏移
 

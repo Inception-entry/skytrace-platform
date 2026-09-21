@@ -1,29 +1,22 @@
 import asyncio
 import hashlib
-import io
 import uuid
 from collections.abc import Iterable
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
 from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 from qdrant_client import AsyncQdrantClient, models
 
 from app.config import Settings
+from app.knowledge_parse import ParsedSection, parse_document
+from app.process_timeout import run_in_killable_process
 from app.schemas import (
     KnowledgeDocumentResponse,
     KnowledgeSearchResult,
 )
-
-
-@dataclass(frozen=True)
-class ParsedSection:
-    text: str
-    page: int | None
 
 
 class KnowledgeBase:
@@ -48,6 +41,9 @@ class KnowledgeBase:
             separators=["\n\n", "\n", "。", "！", "？", ". ", " "],
         )
         self._collection_lock = asyncio.Lock()
+        self._parse_slots = asyncio.Semaphore(
+            settings.knowledge_parse_concurrency
+        )
 
     async def close(self) -> None:
         await self.client.close()
@@ -72,10 +68,21 @@ class KnowledgeBase:
             raise ValueError(f"文档不能超过 {max_megabytes:g} MB")
 
         try:
-            sections = await asyncio.wait_for(
-                asyncio.to_thread(self._parse_document, extension, content),
-                timeout=self.settings.knowledge_parse_timeout_seconds,
-            )
+            if extension == ".pdf":
+                async with self._parse_slots:
+                    sections = await run_in_killable_process(
+                        parse_document,
+                        extension,
+                        content,
+                        self.settings.knowledge_max_pages,
+                        self.settings.knowledge_max_extract_chars,
+                        timeout=self.settings.knowledge_parse_timeout_seconds,
+                    )
+            else:
+                sections = await asyncio.wait_for(
+                    asyncio.to_thread(self._parse_document, extension, content),
+                    timeout=self.settings.knowledge_parse_timeout_seconds,
+                )
         except TimeoutError as exc:
             raise ValueError("文档解析超时") from exc
         except PdfReadError as exc:
@@ -277,29 +284,12 @@ class KnowledgeBase:
         extension: str,
         content: bytes,
     ) -> list[ParsedSection]:
-        if extension == ".pdf":
-            reader = PdfReader(io.BytesIO(content))
-            if len(reader.pages) > self.settings.knowledge_max_pages:
-                raise ValueError("文档页数超过限制")
-            sections = []
-            extracted = 0
-            for index, page in enumerate(reader.pages, start=1):
-                text = (page.extract_text() or "").strip()
-                if not text:
-                    continue
-                extracted += len(text)
-                if extracted > self.settings.knowledge_max_extract_chars:
-                    raise ValueError("文档提取文字超过限制")
-                sections.append(ParsedSection(text=text, page=index))
-            return sections
-
-        try:
-            text = content.decode("utf-8-sig").strip()
-        except UnicodeDecodeError as exc:
-            raise ValueError("文本文件必须使用 UTF-8 编码") from exc
-        if len(text) > self.settings.knowledge_max_extract_chars:
-            raise ValueError("文档提取文字超过限制")
-        return [ParsedSection(text=text, page=None)] if text else []
+        return parse_document(
+            extension,
+            content,
+            self.settings.knowledge_max_pages,
+            self.settings.knowledge_max_extract_chars,
+        )
 
     def _split_sections(
         self,

@@ -213,3 +213,17 @@ def test_parse_timeout_is_enforced() -> None:
             )
         )
 
+
+def test_killable_process_terminates_hung_worker() -> None:
+    import multiprocessing
+
+    from app.process_timeout import hang_for_tests, run_in_killable_process
+
+    started = time.monotonic()
+    with pytest.raises(TimeoutError):
+        asyncio.run(run_in_killable_process(hang_for_tests, 8.0, timeout=0.3))
+    elapsed = time.monotonic() - started
+    assert elapsed < 2.5
+    time.sleep(0.2)
+    assert multiprocessing.active_children() == []
+

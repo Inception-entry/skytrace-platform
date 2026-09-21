@@ -74,6 +74,6 @@ cd backend-ai && uv run pytest tests/test_knowledge_base.py -v
 
 ## 6. 再下一刀
 
-上传链多层内存复制已单独实施，见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。可终止 PDF 解析进程池、Flyway 空库、detection 幂等、整栈回滚、vitest mocker 仍各自独立。
+上传链多层内存复制已单独实施，见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。可终止 PDF 解析进程见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。Flyway 空库、detection 幂等、整栈回滚、vitest mocker 仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.18`**（不要打在本分支上，不要打生产 `v1.2.2`）。
