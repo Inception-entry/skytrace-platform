@@ -10,10 +10,6 @@ import com.skytrace.backend.evidence.dto.EvidenceArchiveAccessUrlResponse;
 import com.skytrace.backend.evidence.dto.EvidenceArchiveJobResponse;
 import com.skytrace.backend.evidence.repository.EvidenceArchiveJobRepository;
 import com.skytrace.backend.task.repository.InspectionTaskRepository;
-import com.skytrace.backend.temporal.workflow.EvidenceArchiveWorkflow;
-import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowOptions;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,27 +32,23 @@ public class EvidenceArchiveService {
     private final EvidenceArchiveJobRepository repository;
     private final EvidenceActorContextService actorContextService;
     private final EvidenceStorageService storageService;
-    private final WorkflowClient workflowClient;
+    private final EvidenceOutboxWriter outboxWriter;
     private final InspectionTaskRepository inspectionTaskRepository;
     private final AlarmEventRepository alarmEventRepository;
-    private final String taskQueue;
 
     public EvidenceArchiveService(
             EvidenceArchiveJobRepository repository,
             EvidenceActorContextService actorContextService,
             EvidenceStorageService storageService,
-            WorkflowClient workflowClient,
+            EvidenceOutboxWriter outboxWriter,
             InspectionTaskRepository inspectionTaskRepository,
-            AlarmEventRepository alarmEventRepository,
-            @Value("${TEMPORAL_TASK_QUEUE:skytrace-inspection-task-queue}")
-            String taskQueue) {
+            AlarmEventRepository alarmEventRepository) {
         this.repository = repository;
         this.actorContextService = actorContextService;
         this.storageService = storageService;
-        this.workflowClient = workflowClient;
+        this.outboxWriter = outboxWriter;
         this.inspectionTaskRepository = inspectionTaskRepository;
         this.alarmEventRepository = alarmEventRepository;
-        this.taskQueue = taskQueue;
     }
 
     @Transactional
@@ -75,21 +67,7 @@ public class EvidenceArchiveService {
         job.setCreatedBy(actor.actorId());
         job.setCreatedByName(actor.username());
         repository.save(job);
-
-        try {
-            EvidenceArchiveWorkflow workflow = workflowClient.newWorkflowStub(
-                    EvidenceArchiveWorkflow.class,
-                    WorkflowOptions.newBuilder()
-                            .setTaskQueue(taskQueue)
-                            .setWorkflowId("evidence-archive-" + job.getJobCode())
-                            .build()
-            );
-            WorkflowClient.start(workflow::archive, job.getJobCode());
-        } catch (Exception exception) {
-            job.setStatus(EvidenceArchiveJobStatus.FAILED);
-            job.setErrorMessage(truncate(exception.getMessage()));
-            repository.save(job);
-        }
+        outboxWriter.enqueueArchive(job.getJobCode());
 
         return toResponse(job);
     }
@@ -220,12 +198,5 @@ public class EvidenceArchiveService {
     private static String filenameOf(String objectKey) {
         int index = objectKey.lastIndexOf('/');
         return index >= 0 ? objectKey.substring(index + 1) : objectKey;
-    }
-
-    private static String truncate(String value) {
-        if (value == null) {
-            return null;
-        }
-        return value.length() <= 512 ? value : value.substring(0, 512);
     }
 }

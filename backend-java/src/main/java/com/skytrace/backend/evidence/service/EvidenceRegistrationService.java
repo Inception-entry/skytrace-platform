@@ -20,13 +20,13 @@ public class EvidenceRegistrationService {
     private static final DateTimeFormatter DAY = DateTimeFormatter.BASIC_ISO_DATE;
 
     private final EvidenceAssetRepository repository;
-    private final EvidenceDerivativeJobService derivativeJobService;
+    private final EvidenceOutboxWriter outboxWriter;
 
     public EvidenceRegistrationService(
             EvidenceAssetRepository repository,
-            EvidenceDerivativeJobService derivativeJobService) {
+            EvidenceOutboxWriter outboxWriter) {
         this.repository = repository;
-        this.derivativeJobService = derivativeJobService;
+        this.outboxWriter = outboxWriter;
     }
 
     public record RegisterCommand(
@@ -97,7 +97,7 @@ public class EvidenceRegistrationService {
         );
         asset.setDerivativeStatus(EvidenceDerivativeStatus.PENDING);
         repository.save(asset);
-        derivativeJobService.start(asset.getEvidenceCode());
+        outboxWriter.enqueueDerivative(asset.getEvidenceCode());
         return asset;
     }
 

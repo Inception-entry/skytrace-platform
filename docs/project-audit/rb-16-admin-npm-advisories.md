@@ -37,11 +37,11 @@ admin-frontend react-router-dom 6.28
 | 不要做 | 原因 |
 | --- | --- |
 | `npm audit fix --force` | 会把 MinIO 打回 7.x，Nest 打到 12 |
-| 升 vitest 4/5 | 开发链 `@vitest/mocker`，独立验证 |
+管理前端 vitest 已升到 4.1.11，见 [rb-16-vitest-mocker.md](rb-16-vitest-mocker.md)。
 | PDF 页数、整栈回滚、Flyway | 各自独立 |
 | 打生产 `v1.2.2` | 别的事 |
 
-管理前端仍用 `BrowserRouter` / `Routes`，没有上 SSR。vitest 3.2.4 的 mocker advisory 留在开发依赖。
+管理前端仍用 `BrowserRouter` / `Routes`，没有上 SSR。vitest 已升到 4.1.11，见 [rb-16-vitest-mocker.md](rb-16-vitest-mocker.md)。
 
 ---
 
@@ -73,6 +73,6 @@ cd admin-frontend && npm audit --omit=dev && npm test && npm run build
 
 ## 6. 再下一刀
 
-PDF 页数/超时已单独实施，见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。上传链多层内存复制、Flyway 空库、detection 幂等、整栈回滚、vitest mocker 仍各自独立。
+PDF 页数/超时已单独实施，见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。vitest mocker 见 [rb-16-vitest-mocker.md](rb-16-vitest-mocker.md)。
 
 合入 `main` 后打 **`v1.2.2-rc.17`**（不要打在本分支上，不要打生产 `v1.2.2`）。

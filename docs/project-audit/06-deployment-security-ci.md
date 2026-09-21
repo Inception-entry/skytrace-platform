@@ -116,7 +116,7 @@ fi
 
 更强方案是 Publish 生成 release manifest，记录每个服务的 OCI digest；生产按 digest 部署并保存上一份 manifest。
 
-预发/生产脚本与生产 workflow 已拒绝 `latest`，见 [dp-08-immutable-image-tag.md](dp-08-immutable-image-tag.md)。Compose overlay 本地默认值和 digest 部署未做。
+预发/生产脚本与生产 workflow 已拒绝 `latest`，见 [dp-08-immutable-image-tag.md](dp-08-immutable-image-tag.md)。应用镜像 digest 部署见 [dp-08-digest-manifest.md](dp-08-digest-manifest.md)。Compose overlay 本地默认值未改。
 
 ### DP-09 / P1：数据库 migration 与代码回滚没有兼容门禁
 

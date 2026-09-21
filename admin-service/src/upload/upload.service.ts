@@ -4,9 +4,9 @@ import { randomUUID } from 'crypto'
 import * as Minio from 'minio'
 import {
   avatarObjectName,
-  inspectAvatarBuffer,
   isBucketAlreadyExists,
 } from './avatar-bytes'
+import { avatarReadStream, type InspectedAvatarUpload } from './avatar-disk'
 
 @Injectable()
 export class UploadService implements OnModuleInit {
@@ -33,18 +33,22 @@ export class UploadService implements OnModuleInit {
     }
   }
 
-  async uploadAvatar(file: Express.Multer.File, userId: number): Promise<string> {
+  async uploadAvatar(file: InspectedAvatarUpload, userId: number): Promise<string> {
     if (!file) throw new BadRequestException('未上传文件')
 
-    const inspected = inspectAvatarBuffer(file.buffer)
     await this.ensureBucket()
 
-    const objectName = avatarObjectName(userId, inspected.ext, randomUUID())
-    await this.client.putObject(this.bucket, objectName, file.buffer, file.buffer.length, {
-      'Content-Type': inspected.contentType,
-      'Content-Disposition': `inline; filename="avatar${inspected.ext}"`,
-      'X-Content-Type-Options': 'nosniff',
-    })
+    const objectName = avatarObjectName(userId, file.ext, randomUUID())
+    const stream = avatarReadStream(file.path)
+    try {
+      await this.client.putObject(this.bucket, objectName, stream, file.size, {
+        'Content-Type': file.contentType,
+        'Content-Disposition': `inline; filename="avatar${file.ext}"`,
+        'X-Content-Type-Options': 'nosniff',
+      })
+    } finally {
+      stream.destroy()
+    }
 
     // Served via nginx /files/ → minio:9000
     return `/files/${this.bucket}/${objectName}`

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import stat
 import subprocess
@@ -12,6 +13,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPLOY_PRODUCTION = ROOT / "scripts" / "deploy-production.sh"
+SERVICES = (
+    "backend-ai",
+    "backend-java",
+    "backend-node",
+    "gateway",
+    "frontend",
+    "admin-service",
+    "admin-frontend",
+)
+DIGEST = "sha256:" + ("a" * 64)
 
 FAKE_DOCKER = """#!/usr/bin/env bash
 set -u
@@ -44,6 +55,13 @@ if [[ -n "$once" && -f "$once" && -n "$needle" && "$url" == *"$needle"* ]]; then
 fi
 exit 0
 """
+
+
+def sample_manifest(tag: str) -> str:
+    return json.dumps(
+        {"tag": tag, "images": {name: DIGEST for name in SERVICES}},
+        indent=2,
+    )
 
 
 def fail(message: str) -> None:
@@ -88,6 +106,12 @@ def run_deploy(
     (app_dir / "deploy" / ".env").write_text("", encoding="utf-8")
     if prev_tag is not None:
         (app_dir / ".current-image-tag").write_text(prev_tag + "\n", encoding="utf-8")
+        (app_dir / ".current-release-manifest").write_text(
+            sample_manifest(prev_tag),
+            encoding="utf-8",
+        )
+    new_manifest = tmp / "release-manifest.json"
+    new_manifest.write_text(sample_manifest(image_tag), encoding="utf-8")
     log_path.write_text("", encoding="utf-8")
 
     docker = bin_dir / "docker"
@@ -103,6 +127,8 @@ def run_deploy(
         "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}",
         "APP_DIR": str(app_dir),
         "IMAGE_TAG": image_tag,
+        "REGISTRY": "ghcr.io/test/skytrace",
+        "RELEASE_MANIFEST": str(new_manifest),
         "SKYTRACE_DOMAIN": "prod.example.com",
         "FAKE_DOCKER_LOG": str(log_path),
         "HEALTH_ATTEMPTS": "1",
@@ -203,6 +229,12 @@ def assert_success_writes_tag() -> None:
         tag = result.tag_file.read_text(encoding="utf-8").strip()
         if tag != NEW_TAG:
             fail(f"成功后应写入新 tag，实际：{tag}")
+        manifest = result.tag_file.parent / ".current-release-manifest"
+        if not manifest.exists():
+            fail("成功后应写入 .current-release-manifest")
+        body = json.loads(manifest.read_text(encoding="utf-8"))
+        if body.get("tag") != NEW_TAG:
+            fail(f"成功后 manifest.tag 应为新 tag，实际：{body}")
         events = parse_up_order(result.log_text)
         rolled = [svc for tag_name, svc in events if tag_name == OLD_TAG]
         if rolled:
@@ -236,6 +268,8 @@ def main() -> None:
             "updated_services+=",
             "rollback_release",
             "Rolling back $service to ${PREV_TAG}",
+            "release_manifest.py",
+            "DIGEST_OVERLAY",
         ],
     )
     if "rollback_service \"$svc\"" in text and "updated_services" not in text:

@@ -58,6 +58,10 @@
 - [JV-04 告警 Temporal/realtime outbox 实施说明](jv-04-alarm-outbox.md)：第三十三项代码修复（告警副作用提交后再投递）。
 - [RB-17 生产整次部署回滚实施说明](rb-17-whole-deploy-rollback.md)：第三十四项代码修复（发布失败逆序退回上一 tag）。
 - [DP-08 不可变 IMAGE_TAG 实施说明](dp-08-immutable-image-tag.md)：第三十五项代码修复（预发/生产拒绝 `latest`）。
+- [JV-04 Evidence Temporal/MinIO outbox 实施说明](jv-04-evidence-outbox.md)：第三十六项代码修复（证据副作用提交后再投递）。
+- [AS-09 Admin 头像落盘实施说明](as-09-admin-avatar-disk.md)：第三十七项代码修复（头像 multer 写临时文件再流转 MinIO）。
+- [RB-16 Admin vitest mocker 实施说明](rb-16-vitest-mocker.md)：第三十八项代码修复（vitest 4.1.11 关掉 mocker 路径穿越）。
+- [DP-08 OCI digest manifest 实施说明](dp-08-digest-manifest.md)：第三十九项代码修复（按 digest 钉七个应用镜像）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级

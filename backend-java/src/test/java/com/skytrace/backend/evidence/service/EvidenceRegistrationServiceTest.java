@@ -20,16 +20,13 @@ class EvidenceRegistrationServiceTest {
 
     private final EvidenceAssetRepository repository =
             mock(EvidenceAssetRepository.class);
-    private final EvidenceDerivativeJobService derivativeJobService =
-            mock(EvidenceDerivativeJobService.class);
+    private final EvidenceOutboxWriter outboxWriter =
+            mock(EvidenceOutboxWriter.class);
     private EvidenceRegistrationService service;
 
     @BeforeEach
     void setUp() {
-        service = new EvidenceRegistrationService(
-                repository,
-                derivativeJobService
-        );
+        service = new EvidenceRegistrationService(repository, outboxWriter);
         when(repository.save(any(EvidenceAsset.class))).thenAnswer(
                 invocation -> invocation.getArgument(0)
         );
@@ -37,7 +34,7 @@ class EvidenceRegistrationServiceTest {
     }
 
     @Test
-    void shouldRegisterAiEvidenceAndStartDerivative() {
+    void shouldRegisterAiEvidenceAndEnqueueDerivative() {
         EvidenceAsset asset = service.register(
                 new EvidenceRegistrationService.RegisterCommand(
                         "ai/demo.jpg",
@@ -60,11 +57,11 @@ class EvidenceRegistrationServiceTest {
                 .isEqualTo(EvidenceDerivativeStatus.PENDING);
         assertThat(asset.getSourceType())
                 .isEqualTo(EvidenceSourceType.AI_DETECTION);
-        verify(derivativeJobService).start(asset.getEvidenceCode());
+        verify(outboxWriter).enqueueDerivative(asset.getEvidenceCode());
     }
 
     @Test
-    void shouldReuseExistingObjectKeyWithoutStartingDerivativeAgain() {
+    void shouldReuseExistingObjectKeyWithoutEnqueueingDerivativeAgain() {
         EvidenceAsset existing = new EvidenceAsset();
         existing.setEvidenceCode("EV-EXISTING");
         existing.setObjectKey("tasks/demo.png");
@@ -94,6 +91,6 @@ class EvidenceRegistrationServiceTest {
         assertThat(asset.getDeviceCode()).isEqualTo("UAV-1");
         assertThat(asset.getSourceType())
                 .isEqualTo(EvidenceSourceType.MANUAL_UPLOAD);
-        verify(derivativeJobService, never()).start(any());
+        verify(outboxWriter, never()).enqueueDerivative(any());
     }
 }
