@@ -60,7 +60,7 @@
 - [x] 服务端已加 super 不变量（非 super 不能提权/改 super 边界；最后一名 super 带 advisory lock）。未做真实 PostgreSQL 并发套件。
 - [x] seed 固定密码已移除（首次建号用 `ADMIN_INITIAL_PASSWORD`）。
 - [x] Node `includeDeleted` 已改为严格布尔。告警 `eventTime` 已按上海 DATETIME 兼容转换（AI/Node 写入、Java 兼容读取）。证据查询/归档 Instant 已按 `DatabaseTimes.ZONE` 解释上海 DATETIME（JV-02）。AI `pypdf` 已升到 `>= 6.15.0`（RB-07）；AI `h2` 已升到 `>= 4.4.1`（AI-16）。
-- [x] 已升级 AI `pypdf` 锁文件；已升级 AI `h2` 到 4.4.1。没有升级 Admin npm 或其他依赖。
+- [x] 已升级 AI `pypdf` 锁文件；已升级 AI `h2` 到 4.4.1。Admin 生产 npm audit 已为 0（RB-16）。vitest mocker 仍是开发链。
 - [x] 生产 Keycloak 导入文件已去掉三个开发账号（RB-04）；已部署库内用户仍需运维盘点禁用。staging/production 公开 OIDC URL 从 `SKYTRACE_DOMAIN` 派生（RB-15）。已有 Keycloak 数据卷的 redirect 不会自动覆盖。
 - [ ] 没有增加 migration、event ID、outbox、DLQ 或索引。
 - [x] Admin 头像按 magic-byte 入库（AS-09）。AI 图片/视频有界读入与 FFmpeg 超时（RB-14）。AI 解码前像素预算（AI-04）。Java/Node 证据、知识库、视觉上传按 magic-byte（RB-12）。未改 PDF 页数、RAG、多层内存复制。

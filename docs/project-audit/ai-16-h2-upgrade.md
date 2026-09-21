@@ -70,6 +70,6 @@ uv run pytest tests/test_h2_advisory.py tests/test_knowledge_base.py -q
 
 ## 6. 再下一刀
 
-Admin npm advisory（RB-16 尾巴）。PDF 页数/超时、Flyway 空库、detection 幂等、整栈回滚仍各自独立。
+Admin npm advisory（RB-16 尾巴）已单独实施，见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。PDF 页数/超时、Flyway 空库、detection 幂等、整栈回滚仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.16`**（不要打在本分支上，不要打生产 `v1.2.2`）。

@@ -12,7 +12,7 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 
 - Keycloak 拆分 PR 需先合入；已部署库内开发账号要运维盘点，改 JSON 不会删旧用户。
 - 操作日志历史数据未清理，凭据轮换未做。
-- 原 `1.2.2` 大清单里的 P1 仍在：Admin refresh/logout、Admin npm advisory、PDF 限额、Flyway 空库、detection 幂等、整栈回滚。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
+- 原 `1.2.2` 大清单里的 P1 仍在：PDF 限额、Flyway 空库、detection 幂等、整栈回滚。Admin npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
 
 本版把 `1.2.2` **收窄为 P0 热修**。未完成的 P1 记入发版说明「已知限制」，正式 tag 前要修完或书面豁免。不要把时间协议改成 UTC（那是 `1.3.0`）。
 
@@ -35,7 +35,7 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 3. 移除 seed 默认管理员密码（#157）；生产 Keycloak 导入去掉开发用户（待合入）。
 4. Node `includeDeleted` 严格布尔（#160）。
 5. AI/Node/Java 当前协议下的时间兼容，以及 Evidence Instant 8 小时修正（#161、#162）。
-6. `pypdf >= 6.15.0`（#163，锁到 6.18.1）。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。Admin advisory **本版不做**。
+6. `pypdf >= 6.15.0`（#163，锁到 6.18.1）。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。Admin 生产 npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。
 
 ### 正式 tag 前仍建议完成（可豁免后进 `1.2.3`）
 
@@ -45,7 +45,7 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 4. Flyway 空库完整性修复与真 MySQL测试。
 5. detection ID/consumer 幂等的兼容第一阶段。
 6. 生产不可变 image tag、整次部署回滚和真实域名 OIDC 预检。OIDC URL 派生见 [rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。
-7. Admin runtime advisory，或书面豁免。AI `h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
+7. Admin 开发链 vitest mocker，或书面豁免。生产 npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。AI `h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
 
 ### 建议包含但可拆到 `v1.2.3`/`v1.3.0`
 

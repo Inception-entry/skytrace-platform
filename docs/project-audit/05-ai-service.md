@@ -256,7 +256,7 @@ Compose 将 8000 绑定在 loopback，公网常规路径经 Gateway 鉴权，这
 
 ## 17. AI-16 / P1/P2：`h2 4.3.0` 当前 advisory
 
-实施说明：[ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。锁文件已升到 `h2 4.4.1`，关闭 `CVE-2026-71554`。Admin npm advisory 仍未做。
+实施说明：[ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。锁文件已升到 `h2 4.4.1`，关闭 `CVE-2026-71554`。Admin 生产 npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。
 
 ## 18. AI-17 / P2：容器 root 与构建可复现性
 
