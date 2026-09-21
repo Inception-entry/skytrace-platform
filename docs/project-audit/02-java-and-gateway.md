@@ -20,7 +20,7 @@
 - `backend-java/src/main/resources/application-docker.yml:10-12` 为 `ddl-auto: validate`。
 - `backend-java/src/main/resources/application.yml:11-13` 启用 Flyway。
 - `deploy/mysql/init/001_init.sql:62-73` 创建 `inspection_task`。
-- `backend-java/src/main/resources/db/migration/` 没有创建 `inspection_task` 的 migration。
+- `backend-java/src/main/resources/db/migration/` 审计时没有创建 `inspection_task` 的 migration（已用 V20 补上）。
 - local profile 用 `ddl-auto:update`，会掩盖缺失表。
 
 影响：部署到真正空的托管 MySQL，Flyway 执行结束后 Hibernate validate 仍会因缺表启动失败。当前部署实际上把 Schema 所有权拆在 Docker init、Flyway 和 Hibernate 三处。
@@ -49,7 +49,7 @@ CREATE INDEX idx_task_device_status_updated
 CREATE INDEX idx_task_route_code ON inspection_task(route_code);
 ```
 
-必补门禁：Testcontainers MySQL 从空库 `flyway migrate`，然后 `ddl-auto=validate` 启动完整 Spring Context。CI 不得预执行 `deploy/mysql/init` 来帮助该测试。
+实施说明：[jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。V20 在空库创建 `inspection_task`；已有 Docker init 的库只补索引。必补门禁是 Testcontainers 空 MySQL，不预跑 `deploy/mysql/init`。
 
 ### JV-02：证据 API 把上海本地 DATETIME 当 UTC
 
