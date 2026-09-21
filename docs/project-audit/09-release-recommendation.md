@@ -12,7 +12,7 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 
 - Keycloak 拆分 PR 需先合入；已部署库内开发账号要运维盘点，改 JSON 不会删旧用户。
 - 操作日志历史数据未清理，凭据轮换未做。
-- 原 `1.2.2` 大清单里的 P1 仍在：Evidence MinIO/workflow outbox、生产 `latest` 镜像引用（DP-08）。整次部署回滚见 [rb-17-whole-deploy-rollback.md](rb-17-whole-deploy-rollback.md)。告警 outbox 见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。detection publisher confirm 见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。detection DLQ 见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。detection 消费幂等见 [jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。Flyway 空库已做，见 [jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。cgroup 内存上限见 [ai-01-pdf-cgroup-memory.md](ai-01-pdf-cgroup-memory.md)。multer 落盘见 [bn-04-multer-disk.md](bn-04-multer-disk.md)。可终止 PDF 解析见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。上传流转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。PDF 页数/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。Admin npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
+- 原 `1.2.2` 大清单里的 P1 仍在：Evidence MinIO/workflow outbox。不可变 IMAGE_TAG 见 [dp-08-immutable-image-tag.md](dp-08-immutable-image-tag.md)。整次部署回滚见 [rb-17-whole-deploy-rollback.md](rb-17-whole-deploy-rollback.md)。告警 outbox 见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。detection publisher confirm 见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。detection DLQ 见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。detection 消费幂等见 [jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。Flyway 空库已做，见 [jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。cgroup 内存上限见 [ai-01-pdf-cgroup-memory.md](ai-01-pdf-cgroup-memory.md)。multer 落盘见 [bn-04-multer-disk.md](bn-04-multer-disk.md)。可终止 PDF 解析见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。上传流转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。PDF 页数/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。Admin npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
 
 本版把 `1.2.2` **收窄为 P0 热修**。未完成的 P1 记入发版说明「已知限制」，正式 tag 前要修完或书面豁免。不要把时间协议改成 UTC（那是 `1.3.0`）。
 
@@ -44,7 +44,7 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 3. Admin 前端 refresh deadlock（RB-08）、logout 撤销（RB-09）、partial-login（FE-05，见 [fe-05-admin-partial-login.md](fe-05-admin-partial-login.md)）。
 4. Flyway 空库见 [jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。
 5. detection 消费幂等见 [jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。毒消息 DLQ 见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。publisher confirm 见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。告警 Temporal/realtime outbox 见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。Evidence MinIO/workflow outbox 仍未做。
-6. 生产不可变 image tag 仍未强制（DP-08）。整次部署回滚见 [rb-17-whole-deploy-rollback.md](rb-17-whole-deploy-rollback.md)。真实域名 OIDC 预检见 [rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。
+6. 生产不可变 image tag 见 [dp-08-immutable-image-tag.md](dp-08-immutable-image-tag.md)。整次部署回滚见 [rb-17-whole-deploy-rollback.md](rb-17-whole-deploy-rollback.md)。真实域名 OIDC 预检见 [rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。Digest 部署仍未做。
 7. Admin 开发链 vitest mocker，或书面豁免。生产 npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。AI `h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
 
 ### 建议包含但可拆到 `v1.2.3`/`v1.3.0`

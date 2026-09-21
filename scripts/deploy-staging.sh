@@ -20,6 +20,14 @@ if [[ "$SKYTRACE_DOMAIN" == "localhost" || "$SKYTRACE_DOMAIN" == "127.0.0.1" ]];
   echo "SKYTRACE_DOMAIN cannot be localhost" >&2
   exit 1
 fi
+if [[ -z "${IMAGE_TAG:-}" ]]; then
+  echo "IMAGE_TAG is required (main-<git-sha>)" >&2
+  exit 2
+fi
+if [[ ! "$IMAGE_TAG" =~ ^main-[0-9a-f]{7,40}$ ]]; then
+  echo "IMAGE_TAG must be immutable main-<git-sha>" >&2
+  exit 2
+fi
 
 APP_DIR="${APP_DIR:-/opt/skytrace}"
 cd "$APP_DIR"

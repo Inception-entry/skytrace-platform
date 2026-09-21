@@ -57,6 +57,7 @@
 - [JV-03 Detection 发布 confirm 实施说明](jv-03-detection-publisher-confirm.md)：第三十二项代码修复（broker ack 之后才返回 queued）。
 - [JV-04 告警 Temporal/realtime outbox 实施说明](jv-04-alarm-outbox.md)：第三十三项代码修复（告警副作用提交后再投递）。
 - [RB-17 生产整次部署回滚实施说明](rb-17-whole-deploy-rollback.md)：第三十四项代码修复（发布失败逆序退回上一 tag）。
+- [DP-08 不可变 IMAGE_TAG 实施说明](dp-08-immutable-image-tag.md)：第三十五项代码修复（预发/生产拒绝 `latest`）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级

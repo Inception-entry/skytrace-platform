@@ -26,6 +26,17 @@ require_domain() {
   fi
 }
 
+require_image_tag() {
+  if [[ -z "${IMAGE_TAG:-}" ]]; then
+    echo "IMAGE_TAG is required (main-<git-sha>)" >&2
+    exit 2
+  fi
+  if [[ ! "$IMAGE_TAG" =~ ^main-[0-9a-f]{7,40}$ ]]; then
+    echo "IMAGE_TAG must be immutable main-<git-sha>" >&2
+    exit 2
+  fi
+}
+
 compose() {
   # vision overlay forces AI_VISION_BACKEND=yolo26 on published images
   # (INSTALL_VISION=1 is baked at Publish time).
@@ -111,6 +122,7 @@ rollback_release() {
 
 main() {
   require_domain
+  require_image_tag
   local app_dir="${APP_DIR:-/opt/skytrace}"
   cd "$app_dir"
   PREV_TAG="$(cat .current-image-tag 2>/dev/null || true)"

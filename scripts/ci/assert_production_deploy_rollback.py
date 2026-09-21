@@ -129,32 +129,36 @@ def run_deploy(
     return result
 
 
+NEW_TAG = "main-abc1234"
+OLD_TAG = "main-def5678"
+
+
 def assert_failed_gateway_rolls_back_updated() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
         result = run_deploy(
             tmp,
-            image_tag="main-newtag",
-            prev_tag="main-oldtag",
+            image_tag=NEW_TAG,
+            prev_tag=OLD_TAG,
             fail_service="gateway",
         )
         if result.returncode == 0:
             fail("gateway compose 失败时部署必须非 0\n" + result.stdout + result.stderr)
         events = parse_up_order(result.log_text)
         expected = [
-            ("main-newtag", "backend-ai"),
-            ("main-newtag", "backend-java"),
-            ("main-newtag", "backend-node"),
-            ("main-newtag", "gateway"),
-            ("main-oldtag", "gateway"),
-            ("main-oldtag", "backend-node"),
-            ("main-oldtag", "backend-java"),
-            ("main-oldtag", "backend-ai"),
+            (NEW_TAG, "backend-ai"),
+            (NEW_TAG, "backend-java"),
+            (NEW_TAG, "backend-node"),
+            (NEW_TAG, "gateway"),
+            (OLD_TAG, "gateway"),
+            (OLD_TAG, "backend-node"),
+            (OLD_TAG, "backend-java"),
+            (OLD_TAG, "backend-ai"),
         ]
         if events != expected:
             fail(f"回滚顺序不对：{events}\n期望：{expected}\nlog:\n{result.log_text}")
         tag = result.tag_file.read_text(encoding="utf-8").strip()
-        if tag != "main-oldtag":
+        if tag != OLD_TAG:
             fail(f"失败后不得改写 .current-image-tag，实际：{tag}")
         if "frontend" in {svc for _, svc in events}:
             fail("失败点之后的服务不应被更新")
@@ -165,22 +169,22 @@ def assert_health_failure_rolls_back_updated() -> None:
         tmp = Path(raw)
         result = run_deploy(
             tmp,
-            image_tag="main-newtag",
-            prev_tag="main-oldtag",
+            image_tag=NEW_TAG,
+            prev_tag=OLD_TAG,
             fail_health_substring=":8082/",
         )
         if result.returncode == 0:
             fail("gateway 健康检查失败时部署必须非 0\n" + result.stdout + result.stderr)
         events = parse_up_order(result.log_text)
         expected = [
-            ("main-newtag", "backend-ai"),
-            ("main-newtag", "backend-java"),
-            ("main-newtag", "backend-node"),
-            ("main-newtag", "gateway"),
-            ("main-oldtag", "gateway"),
-            ("main-oldtag", "backend-node"),
-            ("main-oldtag", "backend-java"),
-            ("main-oldtag", "backend-ai"),
+            (NEW_TAG, "backend-ai"),
+            (NEW_TAG, "backend-java"),
+            (NEW_TAG, "backend-node"),
+            (NEW_TAG, "gateway"),
+            (OLD_TAG, "gateway"),
+            (OLD_TAG, "backend-node"),
+            (OLD_TAG, "backend-java"),
+            (OLD_TAG, "backend-ai"),
         ]
         if events != expected:
             fail(f"健康检查失败回滚顺序不对：{events}\n期望：{expected}\nlog:\n{result.log_text}")
@@ -191,16 +195,16 @@ def assert_success_writes_tag() -> None:
         tmp = Path(raw)
         result = run_deploy(
             tmp,
-            image_tag="main-newtag",
-            prev_tag="main-oldtag",
+            image_tag=NEW_TAG,
+            prev_tag=OLD_TAG,
         )
         if result.returncode != 0:
             fail("全绿部署应成功\n" + result.stdout + result.stderr)
         tag = result.tag_file.read_text(encoding="utf-8").strip()
-        if tag != "main-newtag":
+        if tag != NEW_TAG:
             fail(f"成功后应写入新 tag，实际：{tag}")
         events = parse_up_order(result.log_text)
-        rolled = [svc for tag, svc in events if tag == "main-oldtag"]
+        rolled = [svc for tag_name, svc in events if tag_name == OLD_TAG]
         if rolled:
             fail(f"成功路径不应回滚：{rolled}")
 
@@ -210,14 +214,14 @@ def assert_first_deploy_without_prev_does_not_invent_rollback() -> None:
         tmp = Path(raw)
         result = run_deploy(
             tmp,
-            image_tag="main-newtag",
+            image_tag=NEW_TAG,
             prev_tag=None,
             fail_service="backend-java",
         )
         if result.returncode == 0:
             fail("无上一 tag 且中途失败时必须非 0")
         events = parse_up_order(result.log_text)
-        if any(tag == "main-oldtag" for tag, _ in events):
+        if any(tag_name == OLD_TAG for tag_name, _ in events):
             fail(f"没有 .current-image-tag 时不应虚构回滚：{events}")
         if result.tag_file.exists():
             fail("首次部分失败不得创建 .current-image-tag")
