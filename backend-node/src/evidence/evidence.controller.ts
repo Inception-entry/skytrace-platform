@@ -14,19 +14,17 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Roles } from '../auth/http-auth.decorators'
 import { JavaClientService } from '../common/java-client/java-client.service'
-import { inspectedMultipart } from '../common/upload-magic'
+import {
+  diskUploadOptions,
+  withDiskUpload,
+  type DiskUploadFile,
+} from '../common/upload-disk'
 import { BatchReviewEvidenceDto } from './dto/batch-review-evidence.dto'
 import { BatchTagEvidenceDto } from './dto/batch-tag-evidence.dto'
 import { CreateEvidenceArchiveJobDto } from './dto/create-evidence-archive-job.dto'
 import { EvidenceCodeParamDto } from './dto/evidence-code.dto'
 import { SearchEvidenceDto } from './dto/search-evidence.dto'
 import { UpdateEvidenceMetadataDto } from './dto/update-evidence-metadata.dto'
-
-interface UploadedEvidenceFile {
-  buffer: Buffer
-  originalname: string
-  mimetype: string
-}
 
 @Controller('evidence')
 export class EvidenceController {
@@ -104,28 +102,23 @@ export class EvidenceController {
 
   @Post()
   @Roles('ADMIN', 'OPERATOR')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      limits: { fileSize: 20 * 1024 * 1024 },
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', diskUploadOptions(20 * 1024 * 1024)))
   upload(
-    @UploadedFile() file?: UploadedEvidenceFile,
+    @UploadedFile() file?: DiskUploadFile,
     @Body('taskCode') taskCode?: string,
     @Body('alarmEventCode') alarmEventCode?: string,
     @Body('deviceCode') deviceCode?: string,
   ) {
-    if (!file) {
-      throw new BadRequestException('请选择需要上传的证据文件')
-    }
-    return this.javaClient.postMultipart(
-      '/evidence',
-      inspectedMultipart(file, 'evidence', '请选择需要上传的证据文件'),
-      {
-        taskCode,
-        alarmEventCode,
-        deviceCode,
-      },
+    return withDiskUpload(
+      file,
+      'evidence',
+      '请选择需要上传的证据文件',
+      (part) =>
+        this.javaClient.postMultipart('/evidence', part, {
+          taskCode,
+          alarmEventCode,
+          deviceCode,
+        }),
     )
   }
 

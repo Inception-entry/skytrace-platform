@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -10,16 +9,14 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JavaClientService } from '../common/java-client/java-client.service';
 import { toJavaLocalDateTime } from '../common/java-local-date-time';
-import { inspectedMultipart } from '../common/upload-magic';
+import {
+  diskUploadOptions,
+  withDiskUpload,
+  type DiskUploadFile,
+} from '../common/upload-disk';
 import { AlarmRealtimeGateway } from '../realtime/alarm-realtime.gateway';
 import { CreateAlarmDto } from './dto/create-alarm.dto';
 import { Roles } from '../auth/http-auth.decorators';
-
-interface UploadedVisionFile {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-}
 
 @Controller('alarms')
 export class AlarmController {
@@ -65,13 +62,9 @@ export class AlarmController {
 
   @Post('analyze')
   @Roles('ADMIN', 'OPERATOR')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      limits: { fileSize: 10 * 1024 * 1024 },
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', diskUploadOptions(10 * 1024 * 1024)))
   analyze(
-    @UploadedFile() file?: UploadedVisionFile,
+    @UploadedFile() file?: DiskUploadFile,
     @Body('deviceCode') deviceCode?: string,
     @Body('taskCode') taskCode?: string,
     @Body('latitude') latitude?: string,
@@ -79,33 +72,32 @@ export class AlarmController {
     @Body('publishAlarms') publishAlarms?: string,
     @Body('maxAlarms') maxAlarms?: string,
   ) {
-    if (!file) {
-      throw new BadRequestException('请选择需要识别的图片');
-    }
-    return this.javaClient.postMultipart(
-      '/detections/analyze',
-      inspectedMultipart(file, 'image', '请选择需要识别的图片'),
-      {
-        deviceCode: deviceCode || 'UAV-001',
-        taskCode,
-        latitude,
-        longitude,
-        publishAlarms: publishAlarms ?? 'true',
-        maxAlarms,
-      },
-      180_000,
+    return withDiskUpload(
+      file,
+      'image',
+      '请选择需要识别的图片',
+      (part) =>
+        this.javaClient.postMultipart(
+          '/detections/analyze',
+          part,
+          {
+            deviceCode: deviceCode || 'UAV-001',
+            taskCode,
+            latitude,
+            longitude,
+            publishAlarms: publishAlarms ?? 'true',
+            maxAlarms,
+          },
+          180_000,
+        ),
     );
   }
 
   @Post('analyze-video')
   @Roles('ADMIN', 'OPERATOR')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      limits: { fileSize: 50 * 1024 * 1024 },
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', diskUploadOptions(50 * 1024 * 1024)))
   analyzeVideo(
-    @UploadedFile() file?: UploadedVisionFile,
+    @UploadedFile() file?: DiskUploadFile,
     @Body('deviceCode') deviceCode?: string,
     @Body('taskCode') taskCode?: string,
     @Body('latitude') latitude?: string,
@@ -115,23 +107,26 @@ export class AlarmController {
     @Body('frameIntervalSec') frameIntervalSec?: string,
     @Body('maxFrames') maxFrames?: string,
   ) {
-    if (!file) {
-      throw new BadRequestException('请选择需要识别的视频');
-    }
-    return this.javaClient.postMultipart(
-      '/detections/analyze-video',
-      inspectedMultipart(file, 'video', '请选择需要识别的视频'),
-      {
-        deviceCode: deviceCode || 'UAV-001',
-        taskCode,
-        latitude,
-        longitude,
-        publishAlarms: publishAlarms ?? 'true',
-        maxAlarms,
-        frameIntervalSec,
-        maxFrames,
-      },
-      300_000,
+    return withDiskUpload(
+      file,
+      'video',
+      '请选择需要识别的视频',
+      (part) =>
+        this.javaClient.postMultipart(
+          '/detections/analyze-video',
+          part,
+          {
+            deviceCode: deviceCode || 'UAV-001',
+            taskCode,
+            latitude,
+            longitude,
+            publishAlarms: publishAlarms ?? 'true',
+            maxAlarms,
+            frameIntervalSec,
+            maxFrames,
+          },
+          300_000,
+        ),
     );
   }
 }
