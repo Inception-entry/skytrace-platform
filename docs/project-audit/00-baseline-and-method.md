@@ -88,11 +88,9 @@ Gateway 测试虽然通过，但 Spring 明确输出大量配置迁移告警：`
 | `backend-node` | 0 | 1 high | high 位于开发依赖 `brace-expansion` 链 |
 | `admin-frontend` | 2 moderate | 3 total：1 high、2 moderate | 生产链为 `react-router` / `react-router-dom`；开发链另有 `nanoid` |
 | `admin-service` | 7 moderate | 20 total：4 high、13 moderate、3 low | 生产链涉及 Nest core/platform、Express/body-parser/qs、file-type |
-| `backend-ai` | 3 advisories / 2 packages | 同左 | `pypdf 6.14.2` 两个恶意 PDF 资源耗尽漏洞；`h2 4.3.0` 一个重复 Host/request-smuggling primitive |
+| `backend-ai` | 3 advisories / 2 packages | 同左 | `pypdf 6.14.2` 两个恶意 PDF 资源耗尽漏洞；`h2 4.3.0` 一个重复 Host/request-smuggling primitive。pypdf 已升到 6.18.1；h2 已升到 4.4.1，见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md) |
 
-AI 锁文件确认包含上述版本：`backend-ai/uv.lock:312-313` 为 `h2 4.3.0`，`:1094-1095` 为 `pypdf 6.14.2`。建议升级目标至少为 `h2 4.4.1`、`pypdf 6.15.0`，再重新锁定和回归。
-
-依赖审计是时间快照；任何发版都应在 release SHA 上重新执行，而不是复用本报告结果。
+AI 锁文件：pypdf 已升到 `>= 6.15.0`（锁定 6.18.1）；h2 已升到 `>= 4.4.1`（锁定 4.4.1）。依赖审计是时间快照；任何发版都应在 release SHA 上重新执行，而不是复用本报告结果。
 
 ## 4. 证据规则
 

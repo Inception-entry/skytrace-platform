@@ -73,6 +73,6 @@ cd backend-node && npm test
 
 ## 6. 再下一刀
 
-`h2` advisory。PDF 页数/超时、Flyway 空库、detection 幂等、整栈回滚仍各自独立。
+`h2` advisory 已单独实施，见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。PDF 页数/超时、Flyway 空库、detection 幂等、整栈回滚仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.15`**（不要打在本分支上，不要打生产 `v1.2.2`）。
