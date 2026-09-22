@@ -1,6 +1,7 @@
 package com.skytrace.backend.common;
 
 import com.skytrace.backend.ai.client.AiClientException;
+import com.skytrace.backend.messaging.BrokerPublishException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -66,6 +67,12 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(
                         ex.errorCode().name() + ": " + ex.getMessage()
                 ));
+    }
+
+    @ExceptionHandler(BrokerPublishException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public ApiResponse<Void> handleBrokerPublish(BrokerPublishException ex) {
+        return ApiResponse.fail(ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

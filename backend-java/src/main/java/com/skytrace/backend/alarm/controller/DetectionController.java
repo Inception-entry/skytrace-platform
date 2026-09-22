@@ -43,7 +43,8 @@ public class DetectionController {
                 request.videoObjectKey(),
                 request.eventTime() == null
                         ? LocalDateTime.now()
-                        : request.eventTime()
+                        : request.eventTime(),
+                request.detectionId()
         ));
         return ApiResponse.ok(Map.of(
                 "status", "queued",
@@ -62,7 +63,8 @@ public class DetectionController {
             String imageObjectKey,
             String videoObjectKey,
             @JsonDeserialize(using = ShanghaiLocalDateTimeDeserializer.class)
-            LocalDateTime eventTime
+            LocalDateTime eventTime,
+            String detectionId
     ) {
     }
 }

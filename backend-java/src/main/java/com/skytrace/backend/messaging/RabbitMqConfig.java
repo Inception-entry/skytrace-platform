@@ -6,6 +6,7 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,8 +34,31 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    public DirectExchange detectionDlx() {
+        return new DirectExchange(MessagingProperties.DETECTION_DLX, true, false);
+    }
+
+    @Bean
+    public Queue detectionDlq() {
+        return QueueBuilder.durable(MessagingProperties.DETECTION_DLQ).build();
+    }
+
+    @Bean
+    public Binding detectionDlqBinding(
+            Queue detectionDlq,
+            DirectExchange detectionDlx) {
+        return BindingBuilder
+                .bind(detectionDlq)
+                .to(detectionDlx)
+                .with(MessagingProperties.DETECTION_DLQ_ROUTING_KEY);
+    }
+
+    @Bean
     public Queue detectionQueue() {
-        return new Queue(MessagingProperties.DETECTION_QUEUE, true);
+        return QueueBuilder.durable(MessagingProperties.DETECTION_QUEUE)
+                .deadLetterExchange(MessagingProperties.DETECTION_DLX)
+                .deadLetterRoutingKey(MessagingProperties.DETECTION_DLQ_ROUTING_KEY)
+                .build();
     }
 
     @Bean

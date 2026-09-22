@@ -47,6 +47,12 @@ def test_analyze_image_publishes_mapped_alarms() -> None:
         assert len(result.alarm_candidates) == 2
         assert len(result.published_alarms) == 2
         assert publish.await_count == 2
+        first_payload = publish.await_args_list[0].args[1]
+        second_payload = publish.await_args_list[1].args[1]
+        assert first_payload.detection_id
+        assert second_payload.detection_id
+        assert first_payload.detection_id != second_payload.detection_id
+        assert first_payload.schema_version == 2
 
     anyio.run(_run)
 

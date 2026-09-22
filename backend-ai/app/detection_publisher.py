@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from typing import Any
@@ -15,6 +16,7 @@ from app.observability import log_event
 logger = logging.getLogger(__name__)
 
 DATABASE_ZONE = ZoneInfo("Asia/Shanghai")
+DETECTION_ID_NAMESPACE = uuid.UUID("a8e2c1d0-5b3f-4e9a-9c11-7b4d2f18e601")
 
 
 def to_legacy_java_local(value: datetime) -> str:
@@ -25,6 +27,23 @@ def to_legacy_java_local(value: datetime) -> str:
         .replace(tzinfo=None)
         .isoformat(timespec="seconds")
     )
+
+
+def stable_detection_id(
+    analysis_id: str,
+    *,
+    frame: int,
+    class_name: str,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+) -> str:
+    name = (
+        f"{analysis_id}|{frame}|{class_name}"
+        f"|{x1:.4f}|{y1:.4f}|{x2:.4f}|{y2:.4f}"
+    )
+    return str(uuid.uuid5(DETECTION_ID_NAMESPACE, name))
 
 
 class DetectionAlarmPayload(BaseModel):
@@ -44,6 +63,8 @@ class DetectionAlarmPayload(BaseModel):
         alias="videoObjectKey",
     )
     event_time: datetime | None = Field(default=None, alias="eventTime")
+    detection_id: str | None = Field(default=None, alias="detectionId")
+    schema_version: int = Field(default=2, alias="schemaVersion")
 
     model_config = {"populate_by_name": True}
 
@@ -56,6 +77,7 @@ async def publish_detection_alarm(
 ) -> None:
     event_time = payload.event_time or datetime.now(timezone.utc)
     body: dict[str, Any] = {
+        "schemaVersion": payload.schema_version,
         "deviceCode": payload.device_code,
         "taskCode": payload.task_code,
         "eventType": payload.event_type,
@@ -67,9 +89,11 @@ async def publish_detection_alarm(
         "videoObjectKey": payload.video_object_key,
         "eventTime": to_legacy_java_local(event_time),
     }
+    if payload.detection_id:
+        body["detectionId"] = payload.detection_id
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     try:
-        channel = await connection.channel()
+        channel = await connection.channel(publisher_confirms=True)
         exchange = await channel.declare_exchange(
             "skytrace.detection",
             aio_pika.ExchangeType.DIRECT,
@@ -82,6 +106,7 @@ async def publish_detection_alarm(
                 delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
             ),
             routing_key="alarm",
+            mandatory=True,
         )
         log_event(
             logger,
@@ -91,6 +116,7 @@ async def publish_detection_alarm(
             operation="publish_detection",
             task_code=payload.task_code,
             event_type=payload.event_type,
+            detection_id=payload.detection_id,
         )
     finally:
         await connection.close()

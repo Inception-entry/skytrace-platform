@@ -22,5 +22,6 @@ public record CreateAlarmRequest(
         String primaryVideoEvidenceCode,
         @NotNull
         @JsonDeserialize(using = ShanghaiLocalDateTimeDeserializer.class)
-        LocalDateTime eventTime
+        LocalDateTime eventTime,
+        String detectionId
 ) {}

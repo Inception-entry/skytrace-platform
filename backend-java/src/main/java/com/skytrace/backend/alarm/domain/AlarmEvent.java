@@ -43,6 +43,9 @@ public class AlarmEvent {
     @Column(name = "primary_video_evidence_code", length = 64)
     private String primaryVideoEvidenceCode;
 
+    @Column(name = "source_detection_id", length = 36, unique = true)
+    private String sourceDetectionId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private AlarmStatus status = AlarmStatus.PENDING;
@@ -159,6 +162,14 @@ public class AlarmEvent {
 
     public void setPrimaryVideoEvidenceCode(String primaryVideoEvidenceCode) {
         this.primaryVideoEvidenceCode = primaryVideoEvidenceCode;
+    }
+
+    public String getSourceDetectionId() {
+        return sourceDetectionId;
+    }
+
+    public void setSourceDetectionId(String sourceDetectionId) {
+        this.sourceDetectionId = sourceDetectionId;
     }
 
     public AlarmStatus getStatus() {
