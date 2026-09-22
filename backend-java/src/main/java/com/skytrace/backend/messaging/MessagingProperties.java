@@ -8,6 +8,9 @@ public class MessagingProperties {
     public static final String DETECTION_EXCHANGE = "skytrace.detection";
     public static final String DETECTION_QUEUE = "skytrace.detection.alarms";
     public static final String DETECTION_ROUTING_KEY = "alarm";
+    public static final String DETECTION_DLX = "skytrace.detection.dlx";
+    public static final String DETECTION_DLQ = "skytrace.detection.alarms.dlq";
+    public static final String DETECTION_DLQ_ROUTING_KEY = "alarm.dlq";
     public static final String REALTIME_EXCHANGE = "skytrace.alarm.realtime";
     public static final String REALTIME_QUEUE = "skytrace.alarm.realtime.node";
 

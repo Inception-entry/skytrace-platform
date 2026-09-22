@@ -424,6 +424,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_ADMIN_BUCKET: ${MINIO_ADMIN_BUCKET:-admin-avatars}
+      AVATAR_TEMP_DIR: ${AVATAR_TEMP_DIR:-/tmp/skytrace-admin-avatars}
     ports:
       - "127.0.0.1:${ADMIN_SERVICE_PORT:-3100}:3000"
     expose:

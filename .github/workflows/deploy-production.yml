@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Image tag to deploy (e.g. main-abc1234 or latest)"
+        description: "Immutable image tag (main-<git-sha>, 7–40 hex chars). Do not use latest."
         required: true
-        default: latest
 
 permissions:
   contents: write
@@ -22,6 +21,15 @@ jobs:
       name: production
       url: ${{ env.PROD_URL }}
     steps:
+      - name: Require immutable IMAGE_TAG
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if [[ -z "${IMAGE_TAG:-}" || ! "$IMAGE_TAG" =~ ^main-[0-9a-f]{7,40}$ ]]; then
+            echo "IMAGE_TAG must be immutable main-<git-sha> (7-40 hex), got: ${IMAGE_TAG:-<empty>}" >&2
+            exit 2
+          fi
+
       - name: Check whether production deployment is configured
         id: config
         env:

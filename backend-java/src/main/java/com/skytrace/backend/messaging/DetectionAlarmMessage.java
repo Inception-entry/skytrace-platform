@@ -17,6 +17,7 @@ public record DetectionAlarmMessage(
         String imageObjectKey,
         String videoObjectKey,
         @JsonDeserialize(using = ShanghaiLocalDateTimeDeserializer.class)
-        LocalDateTime eventTime
+        LocalDateTime eventTime,
+        String detectionId
 ) {
 }

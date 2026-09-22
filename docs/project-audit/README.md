@@ -52,6 +52,16 @@
 - [BN-04 multer 落盘实施说明](bn-04-multer-disk.md)：第二十七项代码修复（证据/知识库/视觉上传写临时文件，只嗅探文件头再流转发）。
 - [AI-01 PDF 解析 cgroup 内存上限实施说明](ai-01-pdf-cgroup-memory.md)：第二十八项代码修复（PDF 解析子进程 memory.max，超限 400）。
 - [JV-01 Flyway 空库 Schema 实施说明](jv-01-flyway-empty-schema.md)：第二十九项代码修复（V20 建 `inspection_task`，空 MySQL validate 能启动）。
+- [JV-03 Detection 消费幂等实施说明](jv-03-detection-idempotency.md)：第三十项代码修复（可选 `detectionId` + `source_detection_id` 唯一键去重）。
+- [JV-03 Detection 毒消息 DLQ 实施说明](jv-03-detection-dlq.md)：第三十一项代码修复（detection 队列死信 + 有限重试后拒绝）。
+- [JV-03 Detection 发布 confirm 实施说明](jv-03-detection-publisher-confirm.md)：第三十二项代码修复（broker ack 之后才返回 queued）。
+- [JV-04 告警 Temporal/realtime outbox 实施说明](jv-04-alarm-outbox.md)：第三十三项代码修复（告警副作用提交后再投递）。
+- [RB-17 生产整次部署回滚实施说明](rb-17-whole-deploy-rollback.md)：第三十四项代码修复（发布失败逆序退回上一 tag）。
+- [DP-08 不可变 IMAGE_TAG 实施说明](dp-08-immutable-image-tag.md)：第三十五项代码修复（预发/生产拒绝 `latest`）。
+- [JV-04 Evidence Temporal/MinIO outbox 实施说明](jv-04-evidence-outbox.md)：第三十六项代码修复（证据副作用提交后再投递）。
+- [AS-09 Admin 头像落盘实施说明](as-09-admin-avatar-disk.md)：第三十七项代码修复（头像 multer 写临时文件再流转 MinIO）。
+- [RB-16 Admin vitest mocker 实施说明](rb-16-vitest-mocker.md)：第三十八项代码修复（vitest 4.1.11 关掉 mocker 路径穿越）。
+- [DP-08 OCI digest manifest 实施说明](dp-08-digest-manifest.md)：第三十九项代码修复（按 digest 钉七个应用镜像）。
 - [认证机制统一调整方案（00 总览）](../authentication-unification/00-overview-and-reading-order.md)：按现状决策、目标架构、身份与数据、API/前端迁移、安全运维、测试回滚、任务版本和后续方向拆分；同样仅为文档，尚未实施。
 
 ## 风险等级

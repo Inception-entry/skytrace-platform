@@ -35,12 +35,20 @@ public class EvidenceDerivativeJobService {
                             .build()
             );
             WorkflowClient.start(workflow::enrich, evidenceCode);
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
+            if (EvidenceWorkflowStarts.alreadyStarted(exception)) {
+                log.info(
+                        "event=evidence_derivative_already_started evidenceCode={}",
+                        evidenceCode
+                );
+                return;
+            }
             log.warn(
-                    "启动证据衍生工作流失败 evidenceCode={}: {}",
+                    "event=evidence_derivative_start_failed evidenceCode={} reason={}",
                     evidenceCode,
                     exception.getMessage()
             );
+            throw exception;
         }
     }
 }

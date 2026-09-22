@@ -82,7 +82,7 @@ export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform SKYTRACE_DO
 ./scripts/deploy-staging.sh
 ```
 
-失败时脚本会尝试回滚到 `.current-image-tag` 记录的上一版本。
+失败时脚本会尝试回滚到 `.current-image-tag` 记录的上一版本。`IMAGE_TAG` 必须是 `main-<git-sha>`（7–40 位 hex），`latest` 会被拒绝。
 
 ### 生产（滚动）
 
@@ -91,12 +91,12 @@ export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform SKYTRACE_DO
 ./scripts/deploy-production.sh
 ```
 
-逐服务重启并健康检查；单服务失败则回滚该服务到上一 `IMAGE_TAG`。
+逐服务重启并健康检查；任一服务失败则把**本次已经更新的服务**逆序退回上一 `IMAGE_TAG`，不留下新旧混跑。
 
 ### 手动回滚
 
 1. 确认目标 tag：`cat .current-image-tag` 与 GHCR 可用 tag
-2. `IMAGE_TAG=<previous> ./scripts/deploy-production.sh`（或 staging）
+2. `IMAGE_TAG=<previous> ./scripts/deploy-production.sh`（或 staging）；`<previous>` 也必须是 `main-<sha>`，不能再发 `latest`
 3. 验证：`/gateway-health`、关键 Java `/api/health`、关键任务列表
 4. 若涉及 Flyway 不兼容的降级，**禁止**直接回滚代码；先评估迁移可逆性或恢复 DB 备份
 
