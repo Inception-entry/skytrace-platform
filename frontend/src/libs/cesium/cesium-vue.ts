@@ -6,8 +6,8 @@ export const CESIUM_REF_KEY = Symbol('cesiumRef')
 
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {
-    readonly $cesiumRef: CesiumRef
-    readonly cesiumRef: CesiumRef
+    $cesiumRef: CesiumRef
+    cesiumRef: CesiumRef
   }
 }
 
@@ -18,7 +18,6 @@ export default {
       viewer: undefined,
       viewerContainer: undefined,
     }
-    // @ts-expect-error Vue's public type does not expose this injected property.
     app.config.globalProperties.$cesiumRef = cr
     app.provide<CesiumRef>(CESIUM_REF_KEY, cr)
   },
