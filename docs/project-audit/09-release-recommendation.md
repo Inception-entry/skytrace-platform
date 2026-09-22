@@ -12,7 +12,7 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 
 - Keycloak 拆分 PR 需先合入；已部署库内开发账号要运维盘点，改 JSON 不会删旧用户。
 - 操作日志历史数据未清理，凭据轮换未做。
-- 原 `1.2.2` 大清单里的 P1 仍在：detection 幂等、整栈回滚。Flyway 空库已做，见 [jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。cgroup 内存上限见 [ai-01-pdf-cgroup-memory.md](ai-01-pdf-cgroup-memory.md)。multer 落盘见 [bn-04-multer-disk.md](bn-04-multer-disk.md)。可终止 PDF 解析见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。上传流转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。PDF 页数/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。Admin npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
+- 原 `1.2.2` 大清单里的 P1 代码刀（Evidence outbox、digest、vitest mocker、Admin 头像落盘）见本 RC。不可变 IMAGE_TAG 见 [dp-08-immutable-image-tag.md](dp-08-immutable-image-tag.md)。digest 见 [dp-08-digest-manifest.md](dp-08-digest-manifest.md)。整次部署回滚见 [rb-17-whole-deploy-rollback.md](rb-17-whole-deploy-rollback.md)。告警 outbox 见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。证据 outbox 见 [jv-04-evidence-outbox.md](jv-04-evidence-outbox.md)。detection publisher confirm 见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。detection DLQ 见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。detection 消费幂等见 [jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。Flyway 空库已做，见 [jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。cgroup 内存上限见 [ai-01-pdf-cgroup-memory.md](ai-01-pdf-cgroup-memory.md)。multer 落盘见 [bn-04-multer-disk.md](bn-04-multer-disk.md)。头像落盘见 [as-09-admin-avatar-disk.md](as-09-admin-avatar-disk.md)。可终止 PDF 解析见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)。上传流转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)。PDF 页数/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)。Admin npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。vitest mocker 见 [rb-16-vitest-mocker.md](rb-16-vitest-mocker.md)。`h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
 
 本版把 `1.2.2` **收窄为 P0 热修**。未完成的 P1 记入发版说明「已知限制」，正式 tag 前要修完或书面豁免。不要把时间协议改成 UTC（那是 `1.3.0`）。
 
@@ -43,13 +43,12 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 2. PDF/图片/视频的直接资源边界与 FFmpeg timeout。Admin 头像 magic-byte 见 [as-09-admin-avatar-magic.md](as-09-admin-avatar-magic.md)；AI 有界读入/FFmpeg 超时见 [ai-03-upload-ffmpeg-bounds.md](ai-03-upload-ffmpeg-bounds.md)；像素预算见 [ai-04-image-pixel-budget.md](ai-04-image-pixel-budget.md)；Java/Node 上传 magic-byte 见 [rb-12-java-node-upload-magic.md](rb-12-java-node-upload-magic.md)；PDF 页数/超时见 [ai-01-pdf-parse-bounds.md](ai-01-pdf-parse-bounds.md)；可终止 PDF 解析见 [ai-01-pdf-killable-process.md](ai-01-pdf-killable-process.md)；上传流转发见 [bn-04-upload-stream.md](bn-04-upload-stream.md)；multer 落盘见 [bn-04-multer-disk.md](bn-04-multer-disk.md)；PDF 解析 cgroup 内存上限见 [ai-01-pdf-cgroup-memory.md](ai-01-pdf-cgroup-memory.md)。
 3. Admin 前端 refresh deadlock（RB-08）、logout 撤销（RB-09）、partial-login（FE-05，见 [fe-05-admin-partial-login.md](fe-05-admin-partial-login.md)）。
 4. Flyway 空库见 [jv-01-flyway-empty-schema.md](jv-01-flyway-empty-schema.md)。
-5. detection ID/consumer 幂等的兼容第一阶段。
-6. 生产不可变 image tag、整次部署回滚和真实域名 OIDC 预检。OIDC URL 派生见 [rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。
-7. Admin 开发链 vitest mocker，或书面豁免。生产 npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。AI `h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。
+5. detection 消费幂等见 [jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。毒消息 DLQ 见 [jv-03-detection-dlq.md](jv-03-detection-dlq.md)。publisher confirm 见 [jv-03-detection-publisher-confirm.md](jv-03-detection-publisher-confirm.md)。告警 Temporal/realtime outbox 见 [jv-04-alarm-outbox.md](jv-04-alarm-outbox.md)。Evidence MinIO/workflow outbox 见 [jv-04-evidence-outbox.md](jv-04-evidence-outbox.md)。
+6. 生产不可变 image tag 见 [dp-08-immutable-image-tag.md](dp-08-immutable-image-tag.md)。digest manifest 见 [dp-08-digest-manifest.md](dp-08-digest-manifest.md)。整次部署回滚见 [rb-17-whole-deploy-rollback.md](rb-17-whole-deploy-rollback.md)。真实域名 OIDC 预检见 [rb-15-oidc-public-domain.md](rb-15-oidc-public-domain.md)。
+7. Admin 开发链 vitest mocker 见 [rb-16-vitest-mocker.md](rb-16-vitest-mocker.md)。生产 npm 见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md)。AI `h2` 见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md)。头像落盘见 [as-09-admin-avatar-disk.md](as-09-admin-avatar-disk.md)。
 
 ### 建议包含但可拆到 `v1.2.3`/`v1.3.0`
 
-- 完整 transactional outbox。
 - 全部非 root/read-only/cap drop。
 - Redis KEYS、N+1、全部分页和性能优化。
 - 前端全面 lazy load、统一 API helper、全部可访问性修复。
@@ -91,9 +90,8 @@ P0 代码（日志脱敏、seed、RBAC、`includeDeleted`、告警时间、证�
 
 ## 6. Schema 与协议策略
 
-当前 Java Flyway 最新为 V20（`inspection_task` 空库建表）。下一 migration 应从当前分支实际状态确定，可能包括：
+当前 Java Flyway 最新为 V21（`alarm_event.source_detection_id`）。下一 migration 应从当前分支实际状态确定，可能包括：
 
-- detection source ID 唯一键。
 - outbox/inbox 表。
 - 认证/审计所需字段（如 token family、mustChangePassword）属于 PostgreSQL Prisma migration。
 

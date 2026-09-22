@@ -75,6 +75,6 @@ cd backend-java && ../scripts/ci/mvn-with-retry.sh test
 
 ## 6. 再下一刀
 
-detection 幂等。整栈回滚、Admin 头像落盘、vitest mocker 仍各自独立。
+detection 幂等第一阶段已单独实施，见 [jv-03-detection-idempotency.md](jv-03-detection-idempotency.md)。下一刀是 outbox/DLQ 或整栈回滚。Admin 头像落盘、vitest mocker 仍各自独立。
 
 合入 `main` 后打 **`v1.2.2-rc.23`**（不要打在本分支上，不要打生产 `v1.2.2`）。
