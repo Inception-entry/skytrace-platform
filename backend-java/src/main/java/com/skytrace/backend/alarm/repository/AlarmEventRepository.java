@@ -4,6 +4,7 @@ import com.skytrace.backend.alarm.domain.AlarmEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface AlarmEventRepository extends JpaRepository<AlarmEvent, Long> {
     List<AlarmEvent> findTop20ByOrderByEventTimeDesc();
@@ -11,4 +12,8 @@ public interface AlarmEventRepository extends JpaRepository<AlarmEvent, Long> {
     boolean existsByDeviceCode(String deviceCode);
 
     boolean existsByEventCode(String eventCode);
+
+    Optional<AlarmEvent> findBySourceDetectionId(String sourceDetectionId);
+
+    boolean existsBySourceDetectionId(String sourceDetectionId);
 }

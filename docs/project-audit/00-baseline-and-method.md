@@ -86,7 +86,7 @@ Gateway 测试虽然通过，但 Spring 明确输出大量配置迁移告警：`
 | `frontend` | 0 | 0 | 当前 npm advisory 无发现 |
 | `e2e` | 0 | 0 | 当前 npm advisory 无发现 |
 | `backend-node` | 0 | 1 high | high 位于开发依赖 `brace-expansion` 链 |
-| `admin-frontend` | 0 | vitest mocker moderate | 生产 `react-router-dom` 已升到 7.18.4；开发链 vitest 3.2.4 仍有 mocker advisory。见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md) |
+| `admin-frontend` | 0 | 0 | 生产 `react-router-dom` 已升到 7.18.4；vitest 已升到 4.1.11。见 [rb-16-vitest-mocker.md](rb-16-vitest-mocker.md) |
 | `admin-service` | 0 | 0 | Nest 11.2.3 + overrides。见 [rb-16-admin-npm-advisories.md](rb-16-admin-npm-advisories.md) |
 | `backend-ai` | 3 advisories / 2 packages | 同左 | `pypdf 6.14.2` 两个恶意 PDF 资源耗尽漏洞；`h2 4.3.0` 一个重复 Host/request-smuggling primitive。pypdf 已升到 6.18.1；h2 已升到 4.4.1，见 [ai-16-h2-upgrade.md](ai-16-h2-upgrade.md) |
 

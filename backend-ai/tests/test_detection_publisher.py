@@ -1,9 +1,17 @@
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, patch
 from zoneinfo import ZoneInfo
 
+import anyio
 import pytest
 
-from app.detection_publisher import DetectionAlarmPayload, to_legacy_java_local
+from app.config import Settings
+from app.detection_publisher import (
+    DetectionAlarmPayload,
+    publish_detection_alarm,
+    stable_detection_id,
+    to_legacy_java_local,
+)
 
 
 def test_detection_payload_aliases() -> None:
@@ -42,6 +50,81 @@ def test_legacy_java_local_crosses_utc_date() -> None:
 def test_legacy_java_local_rejects_naive_datetime() -> None:
     with pytest.raises(ValueError, match="timezone offset"):
         to_legacy_java_local(datetime(2026, 8, 24, 10, 0))
+
+
+def test_stable_detection_id_is_deterministic() -> None:
+    first = stable_detection_id(
+        "req-1",
+        frame=0,
+        class_name="knife",
+        x1=0.52,
+        y1=0.40,
+        x2=0.70,
+        y2=0.62,
+    )
+    second = stable_detection_id(
+        "req-1",
+        frame=0,
+        class_name="knife",
+        x1=0.52,
+        y1=0.40,
+        x2=0.70,
+        y2=0.62,
+    )
+    other = stable_detection_id(
+        "req-1",
+        frame=1,
+        class_name="knife",
+        x1=0.52,
+        y1=0.40,
+        x2=0.70,
+        y2=0.62,
+    )
+    assert first == second
+    assert first != other
+
+
+def test_detection_payload_keeps_optional_detection_id() -> None:
+    payload = DetectionAlarmPayload.model_validate(
+        {
+            "deviceCode": "UAV-1",
+            "eventType": "WEAPON_DETECTED",
+            "detectionId": "550e8400-e29b-41d4-a716-446655440000",
+        }
+    )
+    assert payload.detection_id == "550e8400-e29b-41d4-a716-446655440000"
+    assert payload.schema_version == 2
+
+
+def test_publish_waits_for_publisher_confirms() -> None:
+    async def _run() -> None:
+        exchange = AsyncMock()
+        channel = AsyncMock()
+        channel.declare_exchange = AsyncMock(return_value=exchange)
+        connection = AsyncMock()
+        connection.channel = AsyncMock(return_value=channel)
+        connection.close = AsyncMock()
+        with patch(
+            "app.detection_publisher.aio_pika.connect_robust",
+            AsyncMock(return_value=connection),
+        ):
+            await publish_detection_alarm(
+                Settings(),
+                DetectionAlarmPayload.model_validate(
+                    {
+                        "deviceCode": "UAV-1",
+                        "eventType": "WEAPON_DETECTED",
+                    }
+                ),
+                request_id="req-confirm",
+            )
+        connection.channel.assert_awaited_with(publisher_confirms=True)
+        assert exchange.publish.await_args.kwargs["mandatory"] is True
+        assert exchange.publish.await_args.kwargs["routing_key"] == "alarm"
+
+    anyio.run(_run)
+
+
 
 
 

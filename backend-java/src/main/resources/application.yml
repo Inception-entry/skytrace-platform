@@ -28,6 +28,19 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:admin}
     password: ${RABBITMQ_PASSWORD:admin123}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: ${RABBIT_LISTENER_MAX_ATTEMPTS:3}
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 10s
   temporal:
     connection:
       target: ${TEMPORAL_TARGET_ENDPOINT:localhost:7233}
@@ -75,6 +88,11 @@ app:
     write-timeout: ${MINIO_WRITE_TIMEOUT:5m}
     archive-temp-dir: ${MINIO_ARCHIVE_TEMP_DIR:${java.io.tmpdir}/skytrace-evidence-archives}
   evidence:
+    outbox:
+      enabled: ${EVIDENCE_OUTBOX_ENABLED:true}
+      drain-ms: ${EVIDENCE_OUTBOX_DRAIN_MS:2000}
+      batch-size: ${EVIDENCE_OUTBOX_BATCH_SIZE:50}
+      max-attempts: ${EVIDENCE_OUTBOX_MAX_ATTEMPTS:8}
     maintenance:
       hash-backfill-enabled: ${EVIDENCE_HASH_BACKFILL_ENABLED:false}
       hash-backfill-batch-size: ${EVIDENCE_HASH_BACKFILL_BATCH_SIZE:25}
@@ -89,6 +107,12 @@ app:
       cleanup-stale-claim-hours: ${EVIDENCE_CLEANUP_STALE_CLAIM_HOURS:6}
   messaging:
     enabled: ${MESSAGING_ENABLED:true}
+  alarm:
+    outbox:
+      enabled: ${ALARM_OUTBOX_ENABLED:true}
+      drain-ms: ${ALARM_OUTBOX_DRAIN_MS:2000}
+      batch-size: ${ALARM_OUTBOX_BATCH_SIZE:50}
+      max-attempts: ${ALARM_OUTBOX_MAX_ATTEMPTS:8}
   cache:
     enabled: ${CACHE_ENABLED:true}
     alarm-ttl-seconds: ${CACHE_ALARM_TTL_SECONDS:30}

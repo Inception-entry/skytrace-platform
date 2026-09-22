@@ -41,13 +41,14 @@ public class InspectionAlarmSignaler {
                     taskCode,
                     eventCode
             );
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             log.warn(
                     "event=alarm_workflow_signal_failed taskCode={} eventCode={} reason={}",
                     taskCode,
                     eventCode,
                     exception.getMessage()
             );
+            throw exception;
         }
     }
 }
