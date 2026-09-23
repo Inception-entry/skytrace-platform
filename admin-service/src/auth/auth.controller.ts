@@ -1,4 +1,5 @@
-import { Controller, Post, Put, Get, Body, UseGuards, HttpCode } from '@nestjs/common'
+import { Controller, Post, Put, Get, Body, UseGuards, HttpCode, Req, Res, UnauthorizedException, ForbiddenException } from '@nestjs/common'
+import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import { AuthRateLimit } from './decorators/auth-rate-limit.decorator'
 import { AuthRateLimitGuard } from './guards/auth-rate-limit.guard'
@@ -9,6 +10,14 @@ import { RefreshDto } from './dto/refresh.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
 import { Log } from '../common/decorators/log.decorator'
+import {
+  CSRF_HEADER,
+  readCookie,
+  REFRESH_COOKIE_NAME,
+  refreshClearCookie,
+  refreshSetCookie,
+  resolveRefreshCredential,
+} from './refresh-cookie'
 
 @Controller('auth')
 export class AuthController {
@@ -19,8 +28,10 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @Log('系统', '登录')
-  login(@CurrentUser() user: RequestUser) {
-    return this.authService.login(user.id, user.username)
+  async login(@CurrentUser() user: RequestUser, @Res({ passthrough: true }) res: Response) {
+    const tokens = await this.authService.login(user.id, user.username)
+    res.setHeader('Set-Cookie', refreshSetCookie(tokens.refresh_token))
+    return tokens
   }
 
   @AuthRateLimit('refresh')
@@ -28,16 +39,51 @@ export class AuthController {
   @Post('refresh')
   @Log('系统', '刷新令牌')
   @HttpCode(200)
-  refresh(@Body() dto: RefreshDto) {
-    return this.authService.refresh(dto.refresh_token)
+  async refresh(
+    @Body() dto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const credential = this.credential(dto, req)
+    const tokens = await this.authService.refresh(credential.token)
+    res.setHeader('Set-Cookie', refreshSetCookie(tokens.refresh_token))
+    return tokens
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @Log('系统', '登出')
   @HttpCode(204)
-  async logout(@Body() dto: RefreshDto) {
-    await this.authService.logout(dto.refresh_token)
+  async logout(
+    @Body() dto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const body = typeof dto.refresh_token === 'string' ? dto.refresh_token.trim() : ''
+    const cookie = readCookie(req.headers.cookie, REFRESH_COOKIE_NAME)
+    if (!body && cookie) {
+      this.credential(dto, req)
+    }
+    if (!body && !cookie) {
+      throw new UnauthorizedException('缺少刷新令牌')
+    }
+    if (body) await this.authService.logout(body)
+    if (cookie && cookie !== body) await this.authService.logout(cookie)
+    res.setHeader('Set-Cookie', refreshClearCookie())
+  }
+
+  private credential(dto: RefreshDto, req: Request) {
+    const credential = resolveRefreshCredential({
+      bodyToken: dto.refresh_token,
+      cookieHeader: req.headers.cookie,
+      csrfHeader: req.headers[CSRF_HEADER],
+    })
+    if (!credential.ok) {
+      throw credential.reason === 'csrf'
+        ? new ForbiddenException('缺少 CSRF 请求头')
+        : new UnauthorizedException('缺少刷新令牌')
+    }
+    return credential
   }
 
   @UseGuards(JwtAuthGuard)

@@ -122,7 +122,7 @@ immutable release manifest ──> 整栈回滚 ──> 蓝绿切换 ──> 自
 
 ### 7.2 Admin Cookie 认证
 
-1. 服务端先支持 HttpOnly refresh cookie 和旧 body token 双协议。
+1. 服务端先支持 HttpOnly refresh cookie 和旧 body token 双协议。见 `admin-refresh-cookie.md`。
 2. 增加 CSRF/Origin、CORS、rotation/reuse detection。
 3. 新前端切换，access token 只在内存。
 4. 观测旧协议使用者，版本化下线。
