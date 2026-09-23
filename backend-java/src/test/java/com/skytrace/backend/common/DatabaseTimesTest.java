@@ -32,6 +32,8 @@ class DatabaseTimesTest {
 
     @Test
     void keepsNaiveDatetimeAsShanghaiWallClock() {
+        assertThat(DatabaseTimes.toUtcInstantString(LocalDateTime.parse("2026-08-24T10:00:00")))
+                .isEqualTo("2026-08-24T02:00:00Z");
         assertThat(DatabaseTimes.parseJsonLocalDateTime("2026-08-24T10:00:00"))
                 .isEqualTo(LocalDateTime.of(2026, 8, 24, 10, 0));
     }

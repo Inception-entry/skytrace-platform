@@ -24,6 +24,11 @@ public final class DatabaseTimes {
         return toInstant(value, ZONE);
     }
 
+    public static String toUtcInstantString(LocalDateTime shanghaiLocal) {
+        Instant instant = toInstant(shanghaiLocal);
+        return instant == null ? null : instant.toString();
+    }
+
     /**
      * 包内重载只给单测对照有 DST 的 ZoneId，证明转换走 ZoneId 而不是写死 +8 小时。
      */

@@ -20,5 +20,6 @@ public record AlarmResponse(
         String primaryEvidenceCode,
         String primaryVideoEvidenceCode,
         AlarmStatus status,
-        LocalDateTime eventTime
+        LocalDateTime eventTime,
+        String eventTimeUtc
 ) {}

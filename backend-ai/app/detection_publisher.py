@@ -19,6 +19,17 @@ DATABASE_ZONE = ZoneInfo("Asia/Shanghai")
 DETECTION_ID_NAMESPACE = uuid.UUID("a8e2c1d0-5b3f-4e9a-9c11-7b4d2f18e601")
 
 
+def to_wire_event_time(value: datetime) -> str:
+    if value.tzinfo is None:
+        raise ValueError("eventTime 必须携带 timezone offset")
+    return (
+        value.astimezone(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
 def to_legacy_java_local(value: datetime) -> str:
     if value.tzinfo is None:
         raise ValueError("eventTime 必须携带 timezone offset")
@@ -87,7 +98,7 @@ async def publish_detection_alarm(
         "longitude": payload.longitude,
         "imageObjectKey": payload.image_object_key,
         "videoObjectKey": payload.video_object_key,
-        "eventTime": to_legacy_java_local(event_time),
+        "eventTime": to_wire_event_time(event_time),
     }
     if payload.detection_id:
         body["detectionId"] = payload.detection_id

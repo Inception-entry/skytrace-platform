@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JavaClientService } from '../common/java-client/java-client.service';
-import { toJavaLocalDateTime } from '../common/java-local-date-time';
+import { requireOffsetEventTime } from '../common/java-local-date-time';
 import {
   diskUploadOptions,
   withDiskUpload,
@@ -35,7 +35,8 @@ export class AlarmController {
   async create(@Body() dto: CreateAlarmDto) {
     const payload = {
       ...dto,
-      eventTime: toJavaLocalDateTime(dto.eventTime),
+      schemaVersion: 2,
+      eventTime: requireOffsetEventTime(dto.eventTime),
     };
     const result = await this.javaClient.post('/alarms', payload);
     this.alarmGateway.broadcastAlarm(result);
@@ -55,7 +56,8 @@ export class AlarmController {
       longitude: dto.longitude,
       imageObjectKey: dto.imageObjectKey ?? dto.imageUrl,
       videoObjectKey: dto.videoObjectKey ?? dto.videoUrl,
-      eventTime: toJavaLocalDateTime(dto.eventTime),
+      schemaVersion: 2,
+      eventTime: requireOffsetEventTime(dto.eventTime),
       detectionId: dto.detectionId,
     };
     return this.javaClient.post('/detections/alarms', payload);
