@@ -11,6 +11,7 @@ import com.skytrace.backend.alarm.dto.CreateAlarmRequest;
 import com.skytrace.backend.alarm.repository.AlarmEventRepository;
 import com.skytrace.backend.alarm.repository.AlarmOutboxRepository;
 import com.skytrace.backend.cache.AlarmRecentCache;
+import com.skytrace.backend.common.DatabaseTimes;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,6 +90,7 @@ public class AlarmService {
         event.setPrimaryEvidenceCode(request.primaryEvidenceCode());
         event.setPrimaryVideoEvidenceCode(request.primaryVideoEvidenceCode());
         event.setEventTime(request.eventTime());
+        event.setEventInstantUtc(DatabaseTimes.toUtcInstantString(request.eventTime()));
         event.setSourceDetectionId(detectionId);
         AlarmResponse response = toResponse(alarmEventRepository.save(event));
         evictAlarmCacheAfterCommit();
@@ -203,6 +205,13 @@ public class AlarmService {
         );
     }
 
+    private static String eventInstantUtc(AlarmEvent event) {
+        if (event.getEventInstantUtc() != null && !event.getEventInstantUtc().isBlank()) {
+            return event.getEventInstantUtc();
+        }
+        return DatabaseTimes.toUtcInstantString(event.getEventTime());
+    }
+
     private static String normalizeDetectionId(String detectionId) {
         if (detectionId == null || detectionId.isBlank()) {
             return null;
@@ -231,7 +240,8 @@ public class AlarmService {
                 event.getPrimaryEvidenceCode(),
                 event.getPrimaryVideoEvidenceCode(),
                 event.getStatus(),
-                event.getEventTime()
+                event.getEventTime(),
+                eventInstantUtc(event)
         );
     }
 }

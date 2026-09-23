@@ -4,6 +4,18 @@ export const JAVA_DATABASE_ZONE = 'Asia/Shanghai'
 
 const OFFSET_SUFFIX = /(?:Z|[+-]\d{2}:\d{2})$/i
 
+export function requireOffsetEventTime(value?: string): string {
+  const source = (value ?? new Date().toISOString()).trim()
+  if (!OFFSET_SUFFIX.test(source)) {
+    throw new BadRequestException('eventTime 必须包含 Z 或 UTC offset')
+  }
+  const instant = new Date(source)
+  if (Number.isNaN(instant.getTime())) {
+    throw new BadRequestException('eventTime 必须包含 Z 或 UTC offset')
+  }
+  return source
+}
+
 export function toJavaLocalDateTime(value?: string): string {
   const source = (value ?? new Date().toISOString()).trim()
   if (!OFFSET_SUFFIX.test(source)) {

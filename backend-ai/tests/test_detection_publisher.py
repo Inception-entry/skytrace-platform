@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 from zoneinfo import ZoneInfo
@@ -11,6 +12,7 @@ from app.detection_publisher import (
     publish_detection_alarm,
     stable_detection_id,
     to_legacy_java_local,
+    to_wire_event_time,
 )
 
 
@@ -30,6 +32,13 @@ def test_detection_payload_aliases() -> None:
     assert payload.task_code == "TASK-1"
     assert payload.image_object_key == "TASK-1/a.jpg"
     assert isinstance(payload.event_time, datetime)
+
+
+def test_wire_event_time_keeps_utc_offset() -> None:
+    source = datetime(2026, 8, 24, 2, 0, tzinfo=timezone.utc)
+    assert to_wire_event_time(source) == "2026-08-24T02:00:00Z"
+    shanghai = datetime(2026, 8, 24, 10, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+    assert to_wire_event_time(shanghai) == "2026-08-24T02:00:00Z"
 
 
 def test_legacy_java_local_converts_utc_to_shanghai() -> None:
@@ -121,6 +130,9 @@ def test_publish_waits_for_publisher_confirms() -> None:
         connection.channel.assert_awaited_with(publisher_confirms=True)
         assert exchange.publish.await_args.kwargs["mandatory"] is True
         assert exchange.publish.await_args.kwargs["routing_key"] == "alarm"
+        body = json.loads(exchange.publish.await_args.args[0].body)
+        assert body["schemaVersion"] == 2
+        assert body["eventTime"].endswith("Z")
 
     anyio.run(_run)
 

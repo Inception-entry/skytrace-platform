@@ -20,6 +20,7 @@ export interface AlarmEvent {
   videoUrl: string | null
   status: string
   eventTime: string
+  eventTimeUtc?: string
 }
 
 export interface EvidenceUpload {

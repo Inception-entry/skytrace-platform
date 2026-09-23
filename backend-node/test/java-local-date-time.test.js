@@ -4,8 +4,16 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { BadRequestException } = require('@nestjs/common');
 const {
+  requireOffsetEventTime,
   toJavaLocalDateTime,
 } = require('../dist/common/java-local-date-time.js');
+
+test('keeps an offset eventTime for schema v2', () => {
+  assert.equal(
+    requireOffsetEventTime('2026-08-24T02:00:00Z'),
+    '2026-08-24T02:00:00Z',
+  );
+});
 
 test('converts UTC Z to Shanghai wall clock', () => {
   assert.equal(

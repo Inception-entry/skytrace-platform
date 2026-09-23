@@ -53,6 +53,9 @@ public class AlarmEvent {
     @Column(name = "event_time", nullable = false)
     private LocalDateTime eventTime;
 
+    @Column(name = "event_instant_utc", length = 32)
+    private String eventInstantUtc;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -182,5 +185,13 @@ public class AlarmEvent {
 
     public void setEventTime(LocalDateTime eventTime) {
         this.eventTime = eventTime;
+    }
+
+    public String getEventInstantUtc() {
+        return eventInstantUtc;
+    }
+
+    public void setEventInstantUtc(String eventInstantUtc) {
+        this.eventInstantUtc = eventInstantUtc;
     }
 }

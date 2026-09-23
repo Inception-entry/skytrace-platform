@@ -100,7 +100,8 @@ class DetectionAlarmListenerTest {
                 null,
                 null,
                 AlarmStatus.PENDING,
-                LocalDateTime.of(2030, 1, 1, 8, 0)
+                LocalDateTime.of(2030, 1, 1, 8, 0),
+                "2030-01-01T00:00:00Z"
         );
     }
 
