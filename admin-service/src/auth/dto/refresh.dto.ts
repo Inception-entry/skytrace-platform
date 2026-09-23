@@ -1,7 +1,8 @@
-import { IsNotEmpty, IsString } from 'class-validator'
+import { IsOptional, IsString, MinLength } from 'class-validator'
 
 export class RefreshDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  refresh_token!: string
+  @MinLength(1)
+  refresh_token?: string
 }
