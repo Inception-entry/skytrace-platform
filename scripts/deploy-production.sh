@@ -199,6 +199,22 @@ main() {
 
   echo "${IMAGE_TAG}" > .current-image-tag
   cp "${app_dir}/.release-manifest.json" .current-release-manifest
+
+  if [[ -f deploy/.env ]]; then
+    set +e
+    set -a
+    # shellcheck disable=SC1091
+    source deploy/.env
+    set +a
+    scripts/keycloak/reconcile-web-client.sh \
+      || echo "Keycloak redirect 未对齐。栈就绪后重跑 scripts/keycloak/reconcile-web-client.sh"
+    KEYCLOAK_DISABLE_DEV_USERS=true scripts/keycloak/disable-dev-users.sh \
+      || echo "开发账号未禁用。确认 Keycloak 已起来后重跑 scripts/keycloak/disable-dev-users.sh"
+    scripts/rabbit/redeclare-detection-queue.sh \
+      || echo "detection 队列仍是旧参数。确认可丢消息后设置 SKYTRACE_REDECLARE_DETECTION_QUEUE=true 再跑 scripts/rabbit/redeclare-detection-queue.sh"
+    set -e
+  fi
+
   echo "=== Production deploy complete: ${IMAGE_TAG} ==="
 }
 

@@ -19,6 +19,7 @@ interface AccessJwtPayload {
 interface RefreshJwtPayload extends AccessJwtPayload {
   type: 'refresh'
   jti: string
+  familyId?: string
 }
 
 function hashToken(token: string): string {
@@ -30,6 +31,9 @@ function isRefreshPayload(payload: unknown): payload is RefreshJwtPayload {
     return false
   }
   const value = payload as Record<string, unknown>
+  if (value.familyId !== undefined && (typeof value.familyId !== 'string' || value.familyId.length === 0)) {
+    return false
+  }
   return (
     value.type === 'refresh'
     && typeof value.jti === 'string'
@@ -77,11 +81,13 @@ export class AuthService {
 
   async login(userId: number, username: string) {
     const accessToken = this.jwtService.sign({ sub: userId, username })
-    const refreshToken = this.signRefreshToken(userId, username)
+    const familyId = randomUUID()
+    const refreshToken = this.signRefreshToken(userId, username, familyId)
 
     await this.prisma.refreshToken.create({
       data: {
         token: hashToken(refreshToken),
+        familyId,
         userId,
         expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
       },
@@ -93,11 +99,14 @@ export class AuthService {
   async refresh(refreshToken: string) {
     const payload = this.verifyRefreshToken(refreshToken)
     const tokenHash = hashToken(refreshToken)
+    let familyToRevoke: string | undefined
 
     try {
       return await this.prisma.$transaction(async tx => {
         const stored = await tx.refreshToken.findUnique({ where: { token: tokenHash } })
+        const familyId = stored?.familyId ?? payload.familyId
         if (!stored) {
+          familyToRevoke = payload.familyId
           throw new UnauthorizedException('令牌已撤销')
         }
         if (stored.expiresAt.getTime() <= Date.now()) {
@@ -107,6 +116,7 @@ export class AuthService {
 
         const consumed = await tx.refreshToken.deleteMany({ where: { token: tokenHash } })
         if (consumed.count !== 1) {
+          familyToRevoke = familyId ?? undefined
           throw new UnauthorizedException('令牌已撤销')
         }
 
@@ -115,14 +125,16 @@ export class AuthService {
           throw new UnauthorizedException('账号不存在或已被禁用')
         }
 
+        const nextFamilyId = familyId ?? randomUUID()
         const newAccessToken = this.jwtService.sign({
           sub: user.id,
           username: user.username,
         })
-        const newRefreshToken = this.signRefreshToken(user.id, user.username)
+        const newRefreshToken = this.signRefreshToken(user.id, user.username, nextFamilyId)
         await tx.refreshToken.create({
           data: {
             token: hashToken(newRefreshToken),
+            familyId: nextFamilyId,
             userId: user.id,
             expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
           },
@@ -135,6 +147,9 @@ export class AuthService {
         }
       })
     } catch (error) {
+      if (familyToRevoke) {
+        await this.prisma.refreshToken.deleteMany({ where: { familyId: familyToRevoke } })
+      }
       if (error instanceof UnauthorizedException) {
         throw error
       }
@@ -220,12 +235,13 @@ export class AuthService {
     }
   }
 
-  private signRefreshToken(userId: number, username: string): string {
+  private signRefreshToken(userId: number, username: string, familyId: string): string {
     const payload: RefreshJwtPayload = {
       sub: userId,
       username,
       type: 'refresh',
       jti: randomUUID(),
+      familyId,
     }
     return this.jwtService.sign(payload, {
       secret: this.refreshSecret,

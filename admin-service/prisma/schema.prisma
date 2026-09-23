@@ -70,11 +70,13 @@ model UserRole {
 model RefreshToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique
+  familyId  String?  @map("family_id")
   userId    Int      @map("user_id")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([familyId])
   @@map("sys_refresh_token")
 }
 

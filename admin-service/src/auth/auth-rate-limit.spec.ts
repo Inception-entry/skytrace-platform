@@ -83,6 +83,34 @@ describe('AuthRateLimiter', () => {
     expect(limiter.consumeLogin('10.0.0.99', 'viewer', now + 21).allowed).toBe(true)
   })
 
+  it('shares the login window across replicas when redis answers', async () => {
+    const hits = new Map<string, number>()
+    const limiter = new AuthRateLimiter({
+      remote: async (key, max) => {
+        const count = (hits.get(key) ?? 0) + 1
+        hits.set(key, count)
+        return count > max
+          ? { allowed: false, retryAfterSec: 60 }
+          : { allowed: true, retryAfterSec: 0 }
+      },
+    })
+    for (let i = 0; i < LOGIN_RATE_MAX; i++) {
+      await expect(limiter.consumeLoginShared('10.9.9.9', 'admin', 1_000 + i)).resolves.toMatchObject({ allowed: true })
+    }
+    await expect(limiter.consumeLoginShared('10.9.9.9', 'admin', 2_000)).resolves.toMatchObject({ allowed: false })
+  })
+
+  it('falls back to the local window when redis fails', async () => {
+    const limiter = new AuthRateLimiter({
+      remote: async () => {
+        throw new Error('down')
+      },
+    })
+    await expect(limiter.consumeRefreshShared('10.8.8.8', 3_000)).resolves.toMatchObject({ allowed: true })
+    expect(limiter.usesRedis(3_000)).toBe(false)
+    expect(limiter.consumeRefresh('10.8.8.8', 3_001).allowed).toBe(true)
+  })
+
   it('blocks refresh after the per-IP max and does not affect login', () => {
     const limiter = new AuthRateLimiter()
     const now = 9_000
