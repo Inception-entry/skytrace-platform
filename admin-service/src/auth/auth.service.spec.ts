@@ -55,12 +55,13 @@ const mockConfig = {
   }),
 }
 
-function refreshClaims(overrides?: { sub?: number; username?: string; jti?: string }) {
+function refreshClaims(overrides?: { sub?: number; username?: string; jti?: string; familyId?: string }) {
   return {
     sub: overrides?.sub ?? 1,
     username: overrides?.username ?? 'admin',
     type: 'refresh' as const,
     jti: overrides?.jti ?? 'jti-1',
+    ...(overrides?.familyId ? { familyId: overrides.familyId } : {}),
   }
 }
 
@@ -164,9 +165,11 @@ describe('AuthService', () => {
 
     it('signs refresh tokens with unique jti so same-second logins differ', async () => {
       const refreshJtis: string[] = []
-      mockJwt.sign.mockImplementation((payload: { type?: string; jti?: string }) => {
+      const families: string[] = []
+      mockJwt.sign.mockImplementation((payload: { type?: string; jti?: string; familyId?: string }) => {
         if (payload.type === 'refresh') {
           refreshJtis.push(payload.jti ?? '')
+          families.push(payload.familyId ?? '')
           return `rt-${payload.jti}`
         }
         return 'access-token'
@@ -178,6 +181,8 @@ describe('AuthService', () => {
 
       expect(refreshJtis).toHaveLength(2)
       expect(refreshJtis[0]).not.toBe(refreshJtis[1])
+      expect(families[0]).toHaveLength(36)
+      expect(families[0]).not.toBe(families[1])
       expect(first.refresh_token).not.toBe(second.refresh_token)
       expect(mockJwt.sign).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'refresh', sub: 1, username: 'admin' }),
@@ -201,6 +206,15 @@ describe('AuthService', () => {
       mockJwt.verify.mockReturnValue(refreshClaims())
       mockPrisma.refreshToken.findUnique.mockResolvedValue(null)
       await expect(service.refresh('valid-jwt-but-revoked')).rejects.toThrow(UnauthorizedException)
+      expect(mockPrisma.refreshToken.deleteMany).not.toHaveBeenCalled()
+    })
+
+    it('revokes the whole family when a consumed refresh token is presented again', async () => {
+      mockJwt.verify.mockReturnValue(refreshClaims({ familyId: 'fam-1' }))
+      mockPrisma.refreshToken.findUnique.mockResolvedValue(null)
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
+      await expect(service.refresh('reused')).rejects.toThrow('令牌已撤销')
+      expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({ where: { familyId: 'fam-1' } })
     })
 
     it('throws when refresh token row is expired', async () => {
@@ -250,6 +264,28 @@ describe('AuthService', () => {
       expect(result.expires_in).toBe(900)
       expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledTimes(1)
       expect(mockPrisma.refreshToken.create).toHaveBeenCalledTimes(1)
+      expect(mockPrisma.refreshToken.create.mock.calls[0][0].data.familyId).toEqual(expect.any(String))
+    })
+
+    it('keeps the stored family id when rotating', async () => {
+      mockJwt.verify.mockReturnValue(refreshClaims({ familyId: 'from-jwt' }))
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'hash',
+        familyId: 'fam-keep',
+        userId: 1,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 1, username: 'admin', status: 1 })
+      mockJwt.sign.mockImplementation((payload: { type?: string; familyId?: string }) => {
+        return payload.type === 'refresh' ? `rt-${payload.familyId}` : 'access'
+      })
+      mockPrisma.refreshToken.create.mockResolvedValue({})
+
+      const result = await service.refresh('old-refresh-token')
+      expect(result.refresh_token).toBe('rt-fam-keep')
+      expect(mockPrisma.refreshToken.create.mock.calls.at(-1)[0].data.familyId).toBe('fam-keep')
     })
 
     it('lets only one concurrent refresh of the same token succeed', async () => {

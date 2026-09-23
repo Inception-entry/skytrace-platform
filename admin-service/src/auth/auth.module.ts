@@ -31,7 +31,20 @@ import { resolveJwtSecrets } from './jwt-secrets'
       },
     }),
   ],
-  providers: [AuthService, AuthRateLimiter, AuthRateLimitGuard, LocalStrategy, JwtStrategy],
+  providers: [
+    AuthService,
+    {
+      provide: AuthRateLimiter,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => new AuthRateLimiter({
+        redisHost: config.get<string>('REDIS_HOST'),
+        redisPort: Number(config.get<string>('REDIS_PORT') ?? 6379),
+      }),
+    },
+    AuthRateLimitGuard,
+    LocalStrategy,
+    JwtStrategy,
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}

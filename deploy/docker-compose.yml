@@ -425,6 +425,8 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_ADMIN_BUCKET: ${MINIO_ADMIN_BUCKET:-admin-avatars}
       AVATAR_TEMP_DIR: ${AVATAR_TEMP_DIR:-/tmp/skytrace-admin-avatars}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
     ports:
       - "127.0.0.1:${ADMIN_SERVICE_PORT:-3100}:3000"
     expose:
@@ -438,6 +440,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - backend
 

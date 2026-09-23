@@ -126,4 +126,18 @@ done
 echo "${IMAGE_TAG}" > .current-image-tag
 cp "${APP_DIR}/.release-manifest.json" .current-release-manifest
 trap - ERR
+
+if [[ -f deploy/.env ]]; then
+  set +e
+  set -a
+  # shellcheck disable=SC1091
+  source deploy/.env
+  set +a
+  scripts/keycloak/reconcile-web-client.sh
+  if [[ "$?" -ne 0 ]]; then
+    echo "Keycloak redirect 未对齐。栈就绪后重跑 scripts/keycloak/reconcile-web-client.sh"
+  fi
+  set -e
+fi
+
 echo "=== Deployment complete: ${IMAGE_TAG} ==="
