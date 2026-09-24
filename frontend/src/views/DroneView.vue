@@ -705,6 +705,7 @@ const runTaskAction = async (
     await waitForStatusChange(taskCode, previousStatus)
   } catch (error) {
     errorMessage.value = errorText(error, failureText)
+  } finally {
     loading.value = false
   }
 }
@@ -720,6 +721,7 @@ const waitForStatusChange = async (
     await delay(attempt === 0 ? 500 : 1_000)
     if (taskPollDisposed) return
     await loadTasks({ includeRoutes: false, silent: true })
+    loading.value = false
     if (taskPollDisposed) return
     const currentStatus = tasks.value.find(
       (task) => task.taskCode === taskCode,
