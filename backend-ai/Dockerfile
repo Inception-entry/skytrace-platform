@@ -39,7 +39,13 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
       uv sync --locked --no-dev; \
     fi
 
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/app/.venv/bin:$PATH" \
+    HOME=/tmp
+
+RUN groupadd --gid 10001 skytrace \
+    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin skytrace \
+    && chown -R 10001:10001 /app
+USER 10001:10001
 
 EXPOSE 8000
 

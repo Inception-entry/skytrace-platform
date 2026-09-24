@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:8.4
+    image: mysql:8.4@sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d
     container_name: skytrace-mysql
     restart: always
     environment:
@@ -23,7 +23,7 @@ services:
       - backend
 
   redis:
-    image: redis:7.4-alpine
+    image: redis:7.4-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
     container_name: skytrace-redis
     restart: always
     ports:
@@ -34,7 +34,7 @@ services:
       - backend
 
   qdrant:
-    image: qdrant/qdrant:v1.18.3
+    image: qdrant/qdrant:v1.18.3@sha256:0bd98fa7977f1e75694779359ca4e212822e5a71334e28421182f72f209d5286
     container_name: skytrace-qdrant
     restart: always
     ports:
@@ -45,7 +45,7 @@ services:
       - backend
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     container_name: skytrace-postgres
     restart: always
     environment:
@@ -65,7 +65,7 @@ services:
       - backend
 
   rabbitmq:
-    image: rabbitmq:4-management
+    image: rabbitmq:4-management@sha256:ddc75301edf58a8332934cf2d801be7cbf8d65c6458d747364a8046238ff1c89
     container_name: skytrace-rabbitmq
     restart: always
     environment:
@@ -82,7 +82,7 @@ services:
   minio:
     # minio/minio on Docker Hub is archived; :latest anonymous pull is denied.
     # Pigsty rebuild is S3-compatible with the same env and `server /data`.
-    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
     container_name: skytrace-minio
     restart: always
     command: server /data --console-address ":9002"
@@ -98,7 +98,7 @@ services:
       - backend
 
   temporal:
-    image: temporalio/auto-setup:latest
+    image: temporalio/auto-setup:1.28.1@sha256:607d68caa111338d754771efb876c92dfcdae06d056e4530bb31cd0f37406e6a
     container_name: skytrace-temporal
     restart: always
     environment:
@@ -119,7 +119,7 @@ services:
       - backend
 
   temporal-ui:
-    image: temporalio/ui:latest
+    image: temporalio/ui:2.39.0@sha256:b768f87f18b59663a6749e98a2f7782c266e8e4e4749f92248e2ba41d6330d3f
     container_name: skytrace-temporal-ui
     restart: always
     environment:
@@ -381,7 +381,7 @@ services:
       - backend
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.0
+    image: quay.io/keycloak/keycloak:26.7.0@sha256:0f198be292568439d700cdbfb893e69a6009bb43a94a06a945b1d3d506c76b13
     container_name: skytrace-keycloak
     restart: unless-stopped
     command: start-dev --import-realm
@@ -453,7 +453,7 @@ services:
     environment:
       NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-localhost}
     ports:
-      - "127.0.0.1:${ADMIN_FRONTEND_PORT:-8889}:80"
+      - "127.0.0.1:${ADMIN_FRONTEND_PORT:-8889}:8080"
     depends_on:
       admin-service:
         condition: service_healthy
@@ -473,7 +473,7 @@ services:
       KEYCLOAK_CLIENT_ID: skytrace-web
       MINIO_EVIDENCE_BUCKET: ${MINIO_EVIDENCE_BUCKET:-skytrace-evidence}
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-8888}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-8888}:8080"
       - "127.0.0.1:${HTTPS_PORT:-8443}:443"
     volumes:
       - ./nginx/certs:/etc/nginx/certs:ro

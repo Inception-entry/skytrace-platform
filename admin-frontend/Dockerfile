@@ -10,10 +10,13 @@ RUN npm run build
 
 FROM nginx:1.29-alpine
 
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache \
+    && sed -i 's,/var/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
+    && chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /etc/nginx/conf.d
 COPY nginx.conf /etc/nginx/templates/default.conf.template
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build --chown=nginx:nginx /app/dist /usr/share/nginx/html
+USER nginx
 
-EXPOSE 80
+EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]

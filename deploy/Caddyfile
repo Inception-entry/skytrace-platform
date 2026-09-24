@@ -8,5 +8,5 @@
     }
 
     # Vue SPA + API proxy (frontend Nginx routes /api/* → gateway internally)
-    reverse_proxy frontend:80
+    import /etc/caddy/upstream.caddy
 }

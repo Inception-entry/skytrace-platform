@@ -38,7 +38,7 @@ services:
     image: ${REGISTRY}/frontend:${IMAGE_TAG:-latest}
     # Keep loopback binding for health checks; Caddy is the public entry point.
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-8888}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-8888}:8080"
     environment:
       NGINX_SERVER_NAME: ${SKYTRACE_DOMAIN:-localhost}
       KEYCLOAK_PUBLIC_URL: https://${SKYTRACE_DOMAIN}
@@ -49,7 +49,7 @@ services:
   admin-frontend:
     image: ${REGISTRY}/admin-frontend:${IMAGE_TAG:-latest}
     ports:
-      - "127.0.0.1:${ADMIN_FRONTEND_PORT:-8889}:80"
+      - "127.0.0.1:${ADMIN_FRONTEND_PORT:-8889}:8080"
     environment:
       NGINX_SERVER_NAME: ${SKYTRACE_DOMAIN:-localhost}
 
@@ -60,7 +60,7 @@ services:
       SKYTRACE_WEB_ORIGIN_LOOPBACK: https://${SKYTRACE_DOMAIN}
 
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     container_name: skytrace-caddy
     restart: always
     ports:
@@ -69,6 +69,7 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/upstream.caddy:/etc/caddy/upstream.caddy:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:

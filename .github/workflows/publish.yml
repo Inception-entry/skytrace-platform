@@ -109,8 +109,14 @@ jobs:
           python3 scripts/release_manifest.py validate \
             --manifest release-manifest.json \
             --expect-tag "$TAG"
+          python3 scripts/release_sbom.py generate \
+            --manifest release-manifest.json \
+            --registry "$REGISTRY" \
+            --output-dir sbom
 
       - uses: actions/upload-artifact@v4
         with:
           name: release-digest-manifest
-          path: release-manifest.json
+          path: |
+            release-manifest.json
+            sbom/
