@@ -161,7 +161,7 @@
           class="secondary-button"
           type="button"
           :disabled="loading"
-          @click="loadTasks"
+          @click="() => loadTasks()"
         >
           {{ $t('common.refresh') }}
         </button>
@@ -379,7 +379,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
@@ -500,6 +500,8 @@ const loadDevices = async () => {
   }
 }
 
+let taskPollDisposed = false
+
 const loadRoutes = async () => {
   try {
     routes.value = await getRoutes()
@@ -508,20 +510,25 @@ const loadRoutes = async () => {
   }
 }
 
-const loadTasks = async () => {
-  loading.value = true
-  errorMessage.value = ''
+const loadTasks = async (options?: { includeRoutes?: boolean; silent?: boolean }) => {
+  const includeRoutes = options?.includeRoutes !== false
+  const silent = options?.silent === true
+  if (!silent) {
+    loading.value = true
+    errorMessage.value = ''
+  }
 
   try {
-    const [taskList] = await Promise.all([
-      getInspectionTasks(),
-      loadRoutes(),
-    ])
+    const taskList = includeRoutes
+      ? (await Promise.all([getInspectionTasks(), loadRoutes()]))[0]
+      : await getInspectionTasks()
+    if (taskPollDisposed) return
     tasks.value = taskList
   } catch (error) {
+    if (taskPollDisposed || silent) return
     errorMessage.value = errorText(error, t('tasks.loadFailed'))
   } finally {
-    loading.value = false
+    if (!silent && !taskPollDisposed) loading.value = false
   }
 }
 
@@ -698,6 +705,7 @@ const runTaskAction = async (
     await waitForStatusChange(taskCode, previousStatus)
   } catch (error) {
     errorMessage.value = errorText(error, failureText)
+  } finally {
     loading.value = false
   }
 }
@@ -711,7 +719,10 @@ const waitForStatusChange = async (
   const maxAttempts = 20
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await delay(attempt === 0 ? 500 : 1_000)
-    await loadTasks()
+    if (taskPollDisposed) return
+    await loadTasks({ includeRoutes: false, silent: true })
+    loading.value = false
+    if (taskPollDisposed) return
     const currentStatus = tasks.value.find(
       (task) => task.taskCode === taskCode,
     )?.status
@@ -747,6 +758,10 @@ const errorText = (error: unknown, fallback: string) =>
 
 onMounted(async () => {
   await Promise.all([loadTasks(), loadDevices(), loadRoutes()])
+})
+
+onBeforeUnmount(() => {
+  taskPollDisposed = true
 })
 </script>
 

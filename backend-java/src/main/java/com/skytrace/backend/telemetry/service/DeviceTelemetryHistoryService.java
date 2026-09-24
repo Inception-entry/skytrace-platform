@@ -69,7 +69,10 @@ public class DeviceTelemetryHistoryService {
 
     @Transactional(readOnly = true)
     public List<DeviceTelemetryPointResponse> findTrackByTaskCode(String taskCode) {
-        return telemetryRepository.findByTaskCodeOrderByRecordedAtAsc(taskCode)
+        return telemetryRepository.findByTaskCodeOrderByRecordedAtAsc(
+                        taskCode,
+                        org.springframework.data.domain.PageRequest.of(0, 2000)
+                )
                 .stream()
                 .map(point -> new DeviceTelemetryPointResponse(
                         point.getLatitude(),

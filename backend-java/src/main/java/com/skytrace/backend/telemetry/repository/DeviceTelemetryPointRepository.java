@@ -10,5 +10,9 @@ public interface DeviceTelemetryPointRepository
 
     List<DeviceTelemetryPoint> findByTaskCodeOrderByRecordedAtAsc(String taskCode);
 
+    List<DeviceTelemetryPoint> findByTaskCodeOrderByRecordedAtAsc(
+            String taskCode,
+            org.springframework.data.domain.Pageable pageable);
+
     long countByTaskCode(String taskCode);
 }

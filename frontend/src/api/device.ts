@@ -40,8 +40,8 @@ async function request<T>(
   return result.data
 }
 
-export function getDevices() {
-  return request<Device[]>('/api/devices')
+export function getDevices(signal?: AbortSignal) {
+  return request<Device[]>('/api/devices', { signal })
 }
 
 export function getDevice(deviceCode: string) {

@@ -8,7 +8,7 @@
 <script lang="ts">
 const LOADED_EVENT = 'loaded'
 
-import { defineComponent, shallowRef, inject, onMounted, onUnmounted } from 'vue'
+import { defineComponent, shallowRef, inject, onMounted, onBeforeUnmount } from 'vue'
 import { type CesiumRef, CESIUM_REF_KEY } from '@/libs/cesium/cesium-vue'
 import * as Cesium from 'cesium'
 import CesiumLibs from '@/libs/cesium/cesium-libs'
@@ -181,7 +181,7 @@ export default defineComponent({
         ...options,
       })
       viewer.scene.globe.depthTestAgainstTerrain = props.depthTestAgainstTerrain
-      viewer.resolutionScale = window.devicePixelRatio
+      viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 2)
       viewer.scene.postProcessStages.fxaa.enabled = props.fxaaEnable
       // 鼠标中键修改为地图缩放效果
       viewer.scene.screenSpaceCameraController.zoomEventTypes = [Cesium.CameraEventType.WHEEL, Cesium.CameraEventType.PINCH]
@@ -210,6 +210,8 @@ export default defineComponent({
       return viewer
     }
 
+    let ownedViewer: Cesium.Viewer | undefined
+
     const init = (): Cesium.Viewer => {
       initializeCesiumDefault()
       const viewer = initializeCesium()
@@ -219,20 +221,26 @@ export default defineComponent({
 
     onMounted(() => {
       const viewer = init()
+      ownedViewer = viewer
       context.emit(LOADED_EVENT, { viewer })
     })
 
-    onUnmounted(() => {
+    onBeforeUnmount(() => {
       const cesiumRef = inject<CesiumRef>(CESIUM_REF_KEY)
-      if (cesiumRef) {
+      const viewer = ownedViewer
+      ownedViewer = undefined
+      if (cesiumRef && cesiumRef.viewer === viewer) {
         cesiumRef.viewer = undefined
       }
       const { viewerMountOnWindow, cesiumMountOnWindow } = props
-      if (viewerMountOnWindow) {
+      if (viewerMountOnWindow && window.viewer === viewer) {
         window.viewer = undefined
       }
       if (cesiumMountOnWindow) {
         window.Cesium = undefined
+      }
+      if (viewer && !viewer.isDestroyed()) {
+        viewer.destroy()
       }
     })
 

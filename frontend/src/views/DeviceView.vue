@@ -177,6 +177,9 @@ const errorMessage = ref('')
 const successMessage = ref('')
 
 let pollingId: number | undefined
+let refreshInFlight = false
+let refreshSeq = 0
+let refreshAbort: AbortController | undefined
 
 const form = reactive({
   deviceCode: '',
@@ -191,15 +194,27 @@ const canOperate = computed(() =>
 )
 
 async function refresh(silent = false) {
+  if (silent && refreshInFlight) return
+  refreshAbort?.abort()
+  const abort = new AbortController()
+  refreshAbort = abort
+  const seq = ++refreshSeq
+  refreshInFlight = true
   if (!silent) loading.value = true
-  errorMessage.value = ''
+  if (!silent) errorMessage.value = ''
   try {
-    devices.value = await getDevices()
+    const next = await getDevices(abort.signal)
+    if (seq !== refreshSeq) return
+    devices.value = next
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : t('devices.loadFailed')
+    if (abort.signal.aborted || seq !== refreshSeq) return
+    if (!silent) {
+      errorMessage.value =
+        error instanceof Error ? error.message : t('devices.loadFailed')
+    }
   } finally {
-    if (!silent) loading.value = false
+    if (seq === refreshSeq) refreshInFlight = false
+    if (!silent && seq === refreshSeq) loading.value = false
   }
 }
 
@@ -310,6 +325,8 @@ onBeforeUnmount(() => {
   if (pollingId !== undefined) {
     window.clearInterval(pollingId)
   }
+  refreshAbort?.abort()
+  refreshSeq += 1
 })
 </script>
 
