@@ -29,6 +29,8 @@ jobs:
         run: python3 scripts/ci/assert_immutable_image_tag.py
       - name: Assert release digest manifest wiring
         run: python3 scripts/ci/assert_release_manifest.py
+      - name: Assert base image digests, non-root, SBOM and blue/green
+        run: python3 scripts/ci/assert_supply_chain.py
       - name: Assert platform versions align
         run: python3 scripts/ci/assert_version_alignment.py
 

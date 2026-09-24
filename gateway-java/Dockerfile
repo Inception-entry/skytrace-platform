@@ -45,7 +45,9 @@ RUN set -eux; \
     apt_retry install -y --no-install-recommends curl; \
     rm -rf /var/lib/apt/lists/*; \
     rm -f /usr/bin/pebble
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build --chown=10001:10001 /app/target/*.jar app.jar
+RUN groupadd --gid 10001 skytrace && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin skytrace
+USER 10001:10001
 
 EXPOSE 8080
 

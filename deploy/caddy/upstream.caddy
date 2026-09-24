@@ -1,0 +1,2 @@
+# 默认把公网流量送到正在滚动的 frontend。蓝绿切流时由 scripts/bluegreen.py 改写这一行。
+reverse_proxy frontend:8080
