@@ -2,6 +2,7 @@ package com.skytrace.backend.task;
 
 import com.skytrace.backend.common.ApiResponse;
 import com.skytrace.backend.task.dto.CreateInspectionTaskRequest;
+import com.skytrace.backend.task.dto.InspectionTaskPageResponse;
 import com.skytrace.backend.task.dto.InspectionTaskResponse;
 import com.skytrace.backend.task.dto.UpdateInspectionTaskRequest;
 import com.skytrace.backend.task.service.InspectionTaskService;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -31,8 +33,17 @@ public class InspectionTaskController {
     }
 
     @GetMapping
-    public ApiResponse<List<InspectionTaskResponse>> list() {
-        return ApiResponse.ok(inspectionTaskService.findAll());
+    public ApiResponse<?> list(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page == null) {
+            return ApiResponse.ok(inspectionTaskService.findAll());
+        }
+        InspectionTaskPageResponse body = inspectionTaskService.findPage(
+                page,
+                size == null ? 20 : size
+        );
+        return ApiResponse.ok(body);
     }
 
     @GetMapping("/{taskCode}")

@@ -643,6 +643,7 @@ const archiveError = ref('')
 const archiveJob = ref<EvidenceArchiveJob | null>(null)
 const archiveLookupCode = ref('')
 let archivePollTimer: number | undefined
+let archiveDisposed = false
 
 const filters = reactive({
   keyword: '',
@@ -759,12 +760,14 @@ async function lookupArchive() {
 }
 
 async function refreshArchiveJob(silent: boolean) {
+  if (archiveDisposed) return
   const jobCode = archiveLookupCode.value.trim()
   if (!jobCode) return
   if (!silent) archiveLoading.value = true
   archiveError.value = ''
   try {
     archiveJob.value = await getEvidenceArchiveJob(jobCode)
+    if (archiveDisposed) return
     scheduleArchivePolling()
   } catch (error) {
     archiveError.value =
@@ -777,6 +780,7 @@ async function refreshArchiveJob(silent: boolean) {
 
 function scheduleArchivePolling() {
   stopArchivePolling()
+  if (archiveDisposed) return
   if (!archiveJob.value || !['PENDING', 'RUNNING'].includes(archiveJob.value.status)) {
     return
   }
@@ -1088,6 +1092,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  archiveDisposed = true
   stopArchivePolling()
 })
 </script>

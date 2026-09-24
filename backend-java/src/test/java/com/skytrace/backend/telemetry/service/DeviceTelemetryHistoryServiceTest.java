@@ -103,8 +103,10 @@ class DeviceTelemetryHistoryServiceTest {
                 "sim",
                 LocalDateTime.of(2026, 8, 12, 9, 5)
         );
-        when(telemetryRepository.findByTaskCodeOrderByRecordedAtAsc("TASK-FLY-1"))
-                .thenReturn(List.of(point));
+        when(telemetryRepository.findByTaskCodeOrderByRecordedAtAsc(
+                org.mockito.ArgumentMatchers.eq("TASK-FLY-1"),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)
+        )).thenReturn(List.of(point));
 
         List<DeviceTelemetryPointResponse> track =
                 service.findTrackByTaskCode("TASK-FLY-1");

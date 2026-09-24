@@ -10,18 +10,24 @@ import com.skytrace.backend.route.repository.InspectionRouteRepository;
 import com.skytrace.backend.task.domain.InspectionTask;
 import com.skytrace.backend.task.dto.CreateInspectionTaskRequest;
 import com.skytrace.backend.task.dto.InspectionTaskAnalysisContext;
+import com.skytrace.backend.task.dto.InspectionTaskPageResponse;
 import com.skytrace.backend.task.dto.InspectionTaskResponse;
 import com.skytrace.backend.task.dto.UpdateInspectionTaskRequest;
 import com.skytrace.backend.task.repository.InspectionTaskRepository;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -44,22 +50,31 @@ public class InspectionTaskService {
     }
 
     public List<InspectionTaskResponse> findAll() {
-        Set<String> online = onlineDeviceCodes();
-        return repository.findAll(
-                        Sort.by(
-                                Sort.Direction.DESC,
-                                "createdAt"
-                        )
-                )
-                .stream()
-                .map(task -> toResponse(task, online))
-                .toList();
+        return toResponses(repository.findAll(
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        ));
+    }
+
+    public InspectionTaskPageResponse findPage(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        var result = repository.findAll(PageRequest.of(
+                safePage,
+                safeSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        ));
+        return new InspectionTaskPageResponse(
+                toResponses(result.getContent()),
+                safePage,
+                safeSize,
+                result.getTotalElements()
+        );
     }
 
     public InspectionTaskResponse findByTaskCode(
             String taskCode) {
         InspectionTask task = getRequiredTask(taskCode);
-        return toResponse(task, onlineDeviceCodes());
+        return respond(task);
     }
 
     @Transactional
@@ -86,10 +101,7 @@ public class InspectionTaskService {
                 request.planStartTime(),
                 request.planEndTime()
         );
-        return toResponse(
-                repository.save(task),
-                onlineDeviceCodes()
-        );
+        return respond(repository.save(task));
     }
 
     @Transactional
@@ -117,7 +129,7 @@ public class InspectionTaskService {
                 request.planStartTime(),
                 request.planEndTime()
         );
-        return toResponse(task, onlineDeviceCodes());
+        return respond(task);
     }
 
     public InspectionTaskAnalysisContext findAnalysisContext(
@@ -184,13 +196,52 @@ public class InspectionTaskService {
         return value.trim();
     }
 
+    private InspectionTaskResponse respond(InspectionTask task) {
+        return toResponses(List.of(task)).getFirst();
+    }
+
+    private List<InspectionTaskResponse> toResponses(List<InspectionTask> tasks) {
+        Set<String> deviceCodes = tasks.stream()
+                .map(InspectionTask::getDeviceCode)
+                .filter(code -> code != null && !code.isBlank())
+                .collect(Collectors.toSet());
+        Set<String> routeCodes = tasks.stream()
+                .map(InspectionTask::getRouteCode)
+                .filter(code -> code != null && !code.isBlank())
+                .collect(Collectors.toSet());
+        Map<String, Device> devices = deviceCodes.isEmpty()
+                ? Map.of()
+                : deviceRepository.findByDeviceCodeIn(deviceCodes).stream()
+                        .collect(Collectors.toMap(
+                                Device::getDeviceCode,
+                                Function.identity(),
+                                (left, right) -> left,
+                                HashMap::new
+                        ));
+        Map<String, InspectionRoute> routes = routeCodes.isEmpty()
+                ? Map.of()
+                : routeRepository.findByRouteCodeIn(routeCodes).stream()
+                        .collect(Collectors.toMap(
+                                InspectionRoute::getRouteCode,
+                                Function.identity(),
+                                (left, right) -> left,
+                                HashMap::new
+                        ));
+        Set<String> online = onlineDeviceCodes();
+        return tasks.stream()
+                .map(task -> toResponse(task, online, devices, routes))
+                .toList();
+    }
+
     private InspectionTaskResponse toResponse(
             InspectionTask task,
-            Set<String> online) {
+            Set<String> online,
+            Map<String, Device> devices,
+            Map<String, InspectionRoute> routes) {
         String deviceCode = task.getDeviceCode();
         Optional<Device> device = deviceCode == null || deviceCode.isBlank()
                 ? Optional.empty()
-                : deviceRepository.findByDeviceCode(deviceCode);
+                : Optional.ofNullable(devices.get(deviceCode));
         String deviceName = TextEncodingFix.repairMojibake(
                 device.map(Device::getDeviceName).orElse(null)
         );
@@ -201,7 +252,7 @@ public class InspectionTaskService {
         String routeCode = task.getRouteCode();
         Optional<InspectionRoute> route = routeCode == null || routeCode.isBlank()
                 ? Optional.empty()
-                : routeRepository.findByRouteCode(routeCode);
+                : Optional.ofNullable(routes.get(routeCode));
         String routeName = TextEncodingFix.repairMojibake(
                 route.map(InspectionRoute::getRouteName).orElse(null)
         );
