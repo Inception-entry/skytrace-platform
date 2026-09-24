@@ -60,8 +60,8 @@ async function request<T>(
   return result.data
 }
 
-export function getLatestAlarms() {
-  return request<AlarmEvent[]>('/api/alarms/latest')
+export function getLatestAlarms(signal?: AbortSignal) {
+  return request<AlarmEvent[]>('/api/alarms/latest', { signal })
 }
 
 export function createAlarm(input: Partial<AlarmEvent> & {

@@ -322,6 +322,18 @@
           <div>
             <h2>{{ $t('tasks.evidenceTitle', { code: selectedTaskCode }) }}</h2>
             <p>{{ $t('tasks.evidenceHint') }}</p>
+            <ul v-if="taskAlarms.length" class="alarm-times">
+              <li v-for="alarm in taskAlarms" :key="alarm.eventCode">
+                <span>{{ $t('tasks.alarmTimes') }}</span>
+                <time
+                  :datetime="alarm.eventTimeUtc || undefined"
+                  :title="alarm.eventTimeUtc || alarm.eventTime"
+                >{{ formatAlarmClock(alarm).wall }}</time>
+                <small v-if="formatAlarmClock(alarm).utc">
+                  {{ $t('tasks.alarmUtc', { time: formatAlarmClock(alarm).utc }) }}
+                </small>
+              </li>
+            </ul>
           </div>
           <div class="evidence-actions">
             <label class="upload-button">
@@ -384,9 +396,13 @@ import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
   getEvidence,
+  getLatestAlarms,
   uploadEvidence,
+  type AlarmEvent,
   type EvidenceAsset,
 } from '@/api/alarm-evidence'
+import { onAlarmCreated } from '@/realtime/socket'
+import { formatAlarmClock } from '@/utils/alarm-clock'
 import { getDevices, type Device } from '@/api/device'
 import { getRoutes, type Route } from '@/api/route'
 import {
@@ -420,6 +436,9 @@ const devices = ref<Device[]>([])
 const routes = ref<Route[]>([])
 const evidenceList = ref<EvidenceAsset[]>([])
 const selectedTaskCode = ref('')
+const taskAlarms = ref<AlarmEvent[]>([])
+let alarmAbort: AbortController | undefined
+let unsubscribeAlarms: (() => void) | undefined
 const replayTaskCode = ref('')
 const replayPoints = ref<TaskTelemetryPoint[]>([])
 const replayLoading = ref(false)
@@ -544,9 +563,29 @@ const routeWaypoints = (routeCode: string) =>
   routeByCode.value.get(routeCode)?.waypointsJson ?? null
 
 
+const loadTaskAlarms = async (taskCode: string) => {
+  alarmAbort?.abort()
+  const abort = new AbortController()
+  alarmAbort = abort
+  try {
+    const alarms = await getLatestAlarms(abort.signal)
+    if (abort.signal.aborted || selectedTaskCode.value !== taskCode) return
+    taskAlarms.value = alarms.filter(alarm => alarm.taskCode === taskCode)
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') return
+    if (selectedTaskCode.value === taskCode) taskAlarms.value = []
+  }
+}
+
 const selectTask = async (taskCode: string) => {
   selectedTaskCode.value = taskCode
-  await loadEvidence(taskCode)
+  taskAlarms.value = []
+  unsubscribeAlarms ??= onAlarmCreated(() => {
+    if (selectedTaskCode.value) {
+      void loadTaskAlarms(selectedTaskCode.value)
+    }
+  })
+  await Promise.all([loadEvidence(taskCode), loadTaskAlarms(taskCode)])
 }
 
 const selectReplayTask = async (taskCode: string) => {
@@ -762,10 +801,22 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   taskPollDisposed = true
+  alarmAbort?.abort()
+  unsubscribeAlarms?.()
 })
 </script>
 
 <style scoped>
+.alarm-times {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 12px;
+}
+
 .task-page {
   padding: 36px;
 }

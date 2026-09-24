@@ -91,9 +91,15 @@ public class EvidenceQueryService {
                 )
         );
 
+        var tags = tagService.tagsOfAll(
+                result.getContent().stream().map(EvidenceAsset::getId).toList()
+        );
         return new EvidencePageResponse(
                 result.getContent().stream()
-                        .map(this::toSummary)
+                        .map(asset -> toSummary(
+                                asset,
+                                tags.getOrDefault(asset.getId(), List.of())
+                        ))
                         .toList(),
                 result.getTotalElements(),
                 result.getTotalPages(),
@@ -204,8 +210,9 @@ public class EvidenceQueryService {
         );
     }
 
-    private EvidenceSummaryResponse toSummary(EvidenceAsset asset) {
-        List<EvidenceTagResponse> tags = tagService.tagsOf(asset.getId());
+    private EvidenceSummaryResponse toSummary(
+            EvidenceAsset asset,
+            List<EvidenceTagResponse> tags) {
         return new EvidenceSummaryResponse(
                 asset.getEvidenceCode(),
                 asset.getOriginalFilename(),

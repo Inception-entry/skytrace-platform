@@ -34,23 +34,42 @@ declare global {
 }
 
 let socket: RealtimeSocket | null = null
+let connectionPromise: Promise<RealtimeSocket> | null = null
+let connectGeneration = 0
 let authenticationRetryUsed = false
 let reconnectTimer: number | null = null
 let clientScriptPromise: Promise<void> | null = null
 
-export async function connectAlarmRealtime() {
+export function connectAlarmRealtime() {
   if (socket) {
     if (!socket.connected) {
       socket.connect()
     }
+    return Promise.resolve(socket)
+  }
+  const generation = connectGeneration
+  connectionPromise ??= openSocket(generation).catch((error: unknown) => {
+    if (generation === connectGeneration) {
+      connectionPromise = null
+    }
+    throw error
+  })
+  return connectionPromise
+}
+
+async function openSocket(generation: number) {
+  await loadSocketIoClient()
+  if (generation !== connectGeneration) {
+    throw new DOMException('aborted', 'AbortError')
+  }
+  if (socket) {
     return socket
   }
-  await loadSocketIoClient()
   if (!window.io) {
     throw new Error('Socket.IO 客户端脚本加载失败')
   }
 
-  socket = window.io({
+  const created = window.io({
     path: '/socket.io',
     autoConnect: false,
     transports: ['websocket', 'polling'],
@@ -63,6 +82,11 @@ export async function connectAlarmRealtime() {
         })
     },
   })
+  if (generation !== connectGeneration) {
+    created.disconnect()
+    throw new DOMException('aborted', 'AbortError')
+  }
+  socket = created
 
   socket.on('connect', () => {
     authenticationRetryUsed = false
@@ -84,8 +108,10 @@ export function disconnectAlarmRealtime() {
     window.clearTimeout(reconnectTimer)
     reconnectTimer = null
   }
+  connectGeneration += 1
   socket?.disconnect()
   socket = null
+  connectionPromise = null
   authenticationRetryUsed = false
 }
 

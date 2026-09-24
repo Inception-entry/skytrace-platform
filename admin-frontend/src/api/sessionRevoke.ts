@@ -11,17 +11,18 @@ export type AdminSessionTokens = {
 export async function revokeAdminSession(
   tokens: AdminSessionTokens,
 ): Promise<void> {
-  if (!tokens.refreshToken) {
-    return
-  }
   await axios.post(
     ADMIN_LOGOUT_PATH,
-    { refresh_token: tokens.refreshToken },
+    tokens.refreshToken ? { refresh_token: tokens.refreshToken } : {},
     {
       timeout: REVOKE_TIMEOUT_MS,
-      headers: tokens.accessToken
-        ? { Authorization: `Bearer ${tokens.accessToken}` }
-        : undefined,
+      withCredentials: true,
+      headers: {
+        'X-Skytrace-CSRF': '1',
+        ...(tokens.accessToken
+          ? { Authorization: `Bearer ${tokens.accessToken}` }
+          : {}),
+      },
     },
   )
 }

@@ -108,7 +108,9 @@
       </p>
 
       <form class="composer" @submit.prevent="sendMessage">
+        <label class="visually-hidden" for="chat-question">{{ $t('chat.placeholderDetail') }}</label>
         <textarea
+          id="chat-question"
           v-model="question"
           rows="3"
           maxlength="2000"
@@ -132,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useTranslation } from 'i18next-vue'
 import { streamInspectionAnalysis } from '@/api/inspection-task'
 
@@ -165,6 +167,7 @@ const errorMessage = ref('')
 const messagePanel = ref<HTMLElement>()
 let messageId = 0
 let scrollFrame: number | undefined
+let streamAbort: AbortController | undefined
 
 const canSubmit = computed(
   () =>
@@ -213,6 +216,9 @@ const sendMessage = async () => {
   })
   question.value = ''
   submitting.value = true
+  streamAbort?.abort()
+  const abort = new AbortController()
+  streamAbort = abort
   await scrollToLatest()
 
   try {
@@ -239,6 +245,7 @@ const sendMessage = async () => {
           }
         },
       },
+      abort.signal,
     )
     const message = messages.value.find(
       item => item.id === assistantId,
@@ -247,6 +254,9 @@ const sendMessage = async () => {
       message.content = message.content.trim()
     }
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return
+    }
     const message = messages.value.find(
       item => item.id === assistantId,
     )
@@ -266,6 +276,13 @@ const sendMessage = async () => {
     await scrollToLatest()
   }
 }
+
+onBeforeUnmount(() => {
+  streamAbort?.abort()
+  if (scrollFrame !== undefined) {
+    window.cancelAnimationFrame(scrollFrame)
+  }
+})
 
 const startNewConversation = () => {
   sessionId.value = crypto.randomUUID()
@@ -546,6 +563,18 @@ const startNewConversation = () => {
   border: 1px solid var(--st-border);
   border-radius: 15px;
   box-shadow: var(--st-shadow);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .composer textarea {

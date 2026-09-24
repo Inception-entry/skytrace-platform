@@ -152,6 +152,8 @@ export default {
     startFailed: 'Start failed',
     completeFailed: 'Complete failed',
     cancelFailed: 'Cancel failed',
+    alarmTimes: 'Alarm time',
+    alarmUtc: 'UTC {{time}}',
     status: {
       CREATED: 'Pending',
       RUNNING: 'Running',
