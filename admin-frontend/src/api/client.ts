@@ -27,7 +27,14 @@ async function defaultRefreshTokens(refreshToken: string) {
   const { data } = await axios.post<{
     access_token: string
     refresh_token: string
-  }>('/admin-api/auth/refresh', { refresh_token: refreshToken })
+  }>(
+    '/admin-api/auth/refresh',
+    refreshToken ? { refresh_token: refreshToken } : {},
+    {
+      withCredentials: true,
+      headers: { 'X-Skytrace-CSRF': '1' },
+    },
+  )
   return data
 }
 
@@ -93,7 +100,7 @@ export function attachAdminAuthInterceptors(
   return client
 }
 
-const client = axios.create({ baseURL: '/admin-api' })
+const client = axios.create({ baseURL: '/admin-api', withCredentials: true })
 
 attachAdminAuthInterceptors(client, {
   getAccessToken: () => useAuthStore.getState().accessToken,

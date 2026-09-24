@@ -185,6 +185,7 @@ export async function streamInspectionAnalysis(
   sessionId: string,
   question: string,
   handlers: InspectionStreamHandlers,
+  signal?: AbortSignal,
 ) {
   const response = await authorizedFetch(
     `/api/inspection-tasks/${encodeURIComponent(taskCode)}/analysis/stream`,
@@ -195,6 +196,7 @@ export async function streamInspectionAnalysis(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ sessionId, question }),
+      signal,
     },
   )
 
@@ -205,23 +207,36 @@ export async function streamInspectionAnalysis(
     throw new Error('浏览器未提供流式响应，请更换现代浏览器')
   }
 
-  await consumeEventStream(response.body, handlers)
+  await consumeEventStream(response.body, handlers, signal)
 }
+
+const MAX_SSE_BUFFER = 1_048_576
 
 async function consumeEventStream(
   body: ReadableStream<Uint8Array>,
   handlers: InspectionStreamHandlers,
+  signal?: AbortSignal,
 ) {
   const reader = body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
   let completed = false
+  const onAbort = () => {
+    void reader.cancel().catch(() => undefined)
+  }
+  signal?.addEventListener('abort', onAbort)
 
   try {
     while (!completed) {
+      if (signal?.aborted) {
+        throw new DOMException('aborted', 'AbortError')
+      }
       const { value, done } = await reader.read()
       if (done) break
       buffer += decoder.decode(value, { stream: true })
+      if (buffer.length > MAX_SSE_BUFFER) {
+        throw new Error('AI 流式事件超过大小限制')
+      }
 
       let boundary = eventBoundary(buffer)
       while (boundary) {
@@ -235,6 +250,7 @@ async function consumeEventStream(
     await reader.cancel().catch(() => undefined)
     throw error
   } finally {
+    signal?.removeEventListener('abort', onAbort)
     reader.releaseLock()
   }
 

@@ -152,6 +152,8 @@ export default {
     startFailed: '启动失败',
     completeFailed: '完成失败',
     cancelFailed: '取消失败',
+    alarmTimes: '告警时间',
+    alarmUtc: 'UTC {{time}}',
     status: {
       CREATED: '待启动',
       RUNNING: '执行中',

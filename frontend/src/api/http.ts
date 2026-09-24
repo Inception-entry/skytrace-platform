@@ -55,5 +55,6 @@ async function sendAuthorizedRequest(
 
   return fetch(request.clone(), {
     headers,
+    signal: request.signal,
   })
 }

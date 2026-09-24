@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'skytrace-admin-auth',
-      partialize: state => ({ accessToken: state.accessToken, refreshToken: state.refreshToken }),
+      partialize: state => ({ refreshToken: state.refreshToken }),
     },
   ),
 )

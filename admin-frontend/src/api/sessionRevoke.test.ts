@@ -25,12 +25,16 @@ describe('revokeAdminSession', () => {
       { refresh_token: 'refresh-1' },
       expect.objectContaining({
         timeout: REVOKE_TIMEOUT_MS,
-        headers: { Authorization: 'Bearer access-1' },
+        withCredentials: true,
+        headers: expect.objectContaining({
+          Authorization: 'Bearer access-1',
+          'X-Skytrace-CSRF': '1',
+        }),
       }),
     )
   })
 
-  it('does not call logout when there is no refresh token', async () => {
+  it('still clears the cookie when the refresh token is only in the browser', async () => {
     const post = vi.spyOn(axios, 'post').mockResolvedValue({ status: 204 })
 
     await revokeAdminSession({
@@ -38,7 +42,14 @@ describe('revokeAdminSession', () => {
       refreshToken: null,
     })
 
-    expect(post).not.toHaveBeenCalled()
+    expect(post).toHaveBeenCalledWith(
+      ADMIN_LOGOUT_PATH,
+      {},
+      expect.objectContaining({
+        withCredentials: true,
+        headers: expect.objectContaining({ 'X-Skytrace-CSRF': '1' }),
+      }),
+    )
   })
 })
 

@@ -65,26 +65,57 @@ services:
     mem_limit: 1536m
     memswap_limit: 1536m
     cpus: '2.0'
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
 
   backend-java:
     mem_limit: 768m
     memswap_limit: 768m
     cpus: '1.0'
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
 
   backend-node:
     mem_limit: 256m
     memswap_limit: 256m
     cpus: '0.5'
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
 
   gateway:
     mem_limit: 512m
     memswap_limit: 512m
     cpus: '1.0'
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
 
   frontend:
     mem_limit: 64m
     memswap_limit: 64m
     cpus: '0.25'
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp", "/etc/nginx/conf.d", "/var/cache/nginx"]
+
+  admin-service:
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
+
+  admin-frontend:
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp", "/etc/nginx/conf.d", "/var/cache/nginx"]
 
   caddy:
     mem_limit: 128m

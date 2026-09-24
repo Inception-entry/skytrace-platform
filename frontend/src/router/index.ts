@@ -1,13 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/Home.vue'
-import DroneView from '../views/DroneView.vue'
-import DeviceView from '../views/DeviceView.vue'
-import RouteView from '../views/RouteView.vue'
-import ChatView from '../views/ChatView.vue'
-import KnowledgeView from '../views/KnowledgeView.vue'
-import AdminView from '../views/AdminView.vue'
-import AuthorizationErrorView from '../views/AuthorizationErrorView.vue'
-import EvidenceView from '../views/EvidenceView.vue'
 import { authenticationState } from '@/auth/keycloak'
 
 const routes = [
@@ -17,27 +8,27 @@ const routes = [
   },
   {
     path: '/map',
-    component: Home,
+    component: () => import('../views/Home.vue'),
   },
   {
     path: '/drone',
     name: 'drone',
-    component: DroneView,
+    component: () => import('../views/DroneView.vue'),
   },
   {
     path: '/devices',
     name: 'devices',
-    component: DeviceView,
+    component: () => import('../views/DeviceView.vue'),
   },
   {
     path: '/routes',
     name: 'routes',
-    component: RouteView,
+    component: () => import('../views/RouteView.vue'),
   },
   {
     path: '/chat',
     name: 'chat',
-    component: ChatView,
+    component: () => import('../views/ChatView.vue'),
     meta: {
       roles: ['ADMIN', 'OPERATOR'],
     },
@@ -45,12 +36,12 @@ const routes = [
   {
     path: '/knowledge',
     name: 'knowledge',
-    component: KnowledgeView,
+    component: () => import('../views/KnowledgeView.vue'),
   },
   {
     path: '/audit',
     name: 'audit',
-    component: AdminView,
+    component: () => import('../views/AdminView.vue'),
     meta: {
       roles: ['ADMIN'],
     },
@@ -62,18 +53,18 @@ const routes = [
   {
     path: '/evidence',
     name: 'evidence',
-    component: EvidenceView,
+    component: () => import('../views/EvidenceView.vue'),
   },
   {
     path: '/401',
     name: 'unauthorized',
-    component: AuthorizationErrorView,
+    component: () => import('../views/AuthorizationErrorView.vue'),
     props: { status: 401 }
   },
   {
     path: '/403',
     name: 'forbidden',
-    component: AuthorizationErrorView,
+    component: () => import('../views/AuthorizationErrorView.vue'),
     props: { status: 403 }
   },
 ]
