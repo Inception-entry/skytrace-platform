@@ -161,7 +161,7 @@
           class="secondary-button"
           type="button"
           :disabled="loading"
-          @click="loadTasks"
+          @click="() => loadTasks()"
         >
           {{ $t('common.refresh') }}
         </button>
