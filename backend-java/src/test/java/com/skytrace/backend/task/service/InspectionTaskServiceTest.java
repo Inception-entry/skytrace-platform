@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -57,8 +58,8 @@ class InspectionTaskServiceTest {
         LocalDateTime start = LocalDateTime.of(2026, 7, 18, 9, 0);
         LocalDateTime end = LocalDateTime.of(2026, 7, 18, 11, 0);
         when(deviceRepository.existsByDeviceCode("UAV-002")).thenReturn(true);
-        when(deviceRepository.findByDeviceCode("UAV-002"))
-                .thenReturn(Optional.of(new Device(
+        when(deviceRepository.findByDeviceCodeIn(any()))
+                .thenReturn(List.of(new Device(
                         "UAV-002",
                         "二号无人机",
                         "UAV"
@@ -212,11 +213,11 @@ class InspectionTaskServiceTest {
         );
         task.changeStatus("RUNNING");
         when(deviceRepository.existsByDeviceCode("UAV-001")).thenReturn(true);
-        when(deviceRepository.findByDeviceCode("UAV-001"))
-                .thenReturn(Optional.of(new Device("UAV-001", "一号机", "UAV")));
+        when(deviceRepository.findByDeviceCodeIn(any()))
+                .thenReturn(List.of(new Device("UAV-001", "一号机", "UAV")));
         when(routeRepository.existsByRouteCode("ROUTE-001")).thenReturn(true);
-        when(routeRepository.findByRouteCode("ROUTE-001"))
-                .thenReturn(Optional.of(
+        when(routeRepository.findByRouteCodeIn(any()))
+                .thenReturn(List.of(
                         new com.skytrace.backend.route.domain.InspectionRoute(
                                 "ROUTE-001",
                                 "东区示例航线",
