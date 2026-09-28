@@ -1,4 +1,4 @@
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3-eclipse-temurin-24 AS build
 WORKDIR /app
 COPY pom.xml .
 # 生产镜像不拉 test 依赖；Maven Central 502 时重试。
