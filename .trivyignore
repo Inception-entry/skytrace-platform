@@ -1,0 +1,5 @@
+# CVE-2026-47884: spring-webmvc 6.2.19 的 XsltView 路径限制。
+# Trivy 标 CRITICAL，Spring 公告是 MEDIUM。触发条件是使用 XsltView，并且存在 view name 非显式的 /** 映射。
+# 本仓库没有 XsltView。OSS 修复只在 Spring Framework 7.0.9；6.2.20 是企业支持线，Maven Central 没有。
+# 7.0.9 跟着 Spring Boot 4（Jackson 3）走，不能在 Boot 3.5 上单独替换 spring-webmvc。
+CVE-2026-47884 exp:2027-04-08
