@@ -3,7 +3,18 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+# registry 偶发断连时重试。
+RUN set -eu; \
+    npm_retry() { \
+      i=0; \
+      until "$@"; do \
+        i=$((i + 1)); \
+        [ "$i" -ge 5 ] && exit 1; \
+        echo "npm registry flake (attempt $i/5), retrying..." >&2; \
+        sleep $((i * 8)); \
+      done; \
+    }; \
+    npm_retry npm ci
 
 COPY . .
 RUN npm run build

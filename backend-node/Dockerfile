@@ -1,12 +1,34 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# registry 偶发断连时重试。
+RUN set -eu; \
+    npm_retry() { \
+      i=0; \
+      until "$@"; do \
+        i=$((i + 1)); \
+        [ "$i" -ge 5 ] && exit 1; \
+        echo "npm registry flake (attempt $i/5), retrying..." >&2; \
+        sleep $((i * 8)); \
+      done; \
+    }; \
+    npm_retry npm ci
 
 FROM node:20-alpine AS production-deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN set -eu; \
+    npm_retry() { \
+      i=0; \
+      until "$@"; do \
+        i=$((i + 1)); \
+        [ "$i" -ge 5 ] && exit 1; \
+        echo "npm registry flake (attempt $i/5), retrying..." >&2; \
+        sleep $((i * 8)); \
+      done; \
+    }; \
+    npm_retry npm ci --omit=dev; \
+    npm cache clean --force
 
 FROM node:20-alpine AS build
 WORKDIR /app
