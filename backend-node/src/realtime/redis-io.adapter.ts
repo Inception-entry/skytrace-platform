@@ -10,7 +10,8 @@ import type { INestApplication } from '@nestjs/common';
  * 任一 Node 实例消费 Rabbit 后 server.emit，其它实例上的客户端也能收到。
  */
 export class RedisIoAdapter extends IoAdapter {
-  private readonly logger = new Logger(RedisIoAdapter.name);
+  // IoAdapter 11.2.7 的 protected logger 与子类 private 同名会触发 TS2415。
+  private readonly redisLogger = new Logger(RedisIoAdapter.name);
   private adapterConstructor: ReturnType<typeof createAdapter> | null = null;
   private pubClient: RedisClientType | null = null;
   private subClient: RedisClientType | null = null;
@@ -21,7 +22,7 @@ export class RedisIoAdapter extends IoAdapter {
 
   async connectToRedis(): Promise<boolean> {
     if ((process.env.SOCKETIO_REDIS_ADAPTER ?? 'true') === 'false') {
-      this.logger.log('SOCKETIO_REDIS_ADAPTER=false; using in-memory adapter');
+      this.redisLogger.log('SOCKETIO_REDIS_ADAPTER=false; using in-memory adapter');
       return false;
     }
 
@@ -33,17 +34,17 @@ export class RedisIoAdapter extends IoAdapter {
       this.pubClient = createClient({ url });
       this.subClient = this.pubClient.duplicate();
       this.pubClient.on('error', (error) => {
-        this.logger.warn(`redis pub client error: ${String(error)}`);
+        this.redisLogger.warn(`redis pub client error: ${String(error)}`);
       });
       this.subClient.on('error', (error) => {
-        this.logger.warn(`redis sub client error: ${String(error)}`);
+        this.redisLogger.warn(`redis sub client error: ${String(error)}`);
       });
       await Promise.all([this.pubClient.connect(), this.subClient.connect()]);
       this.adapterConstructor = createAdapter(this.pubClient, this.subClient);
-      this.logger.log(`Socket.IO Redis adapter connected (${url})`);
+      this.redisLogger.log(`Socket.IO Redis adapter connected (${url})`);
       return true;
     } catch (error) {
-      this.logger.warn(
+      this.redisLogger.warn(
         `Socket.IO Redis adapter unavailable, fallback to memory: ${String(error)}`,
       );
       await this.closeClients();
