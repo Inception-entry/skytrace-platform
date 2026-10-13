@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +34,6 @@ class AlarmRecentCacheTest {
         );
         cache.put(List.of());
 
-        verify(values, never()).set(anyString(), anyString(), any());
+        verify(values, never()).set(anyString(), anyString(), any(Duration.class));
     }
 }

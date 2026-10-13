@@ -46,11 +46,11 @@ class AuthenticatedUserHeaderFilterTest {
 
         assertThat(invocationCount).hasValue(1);
         assertThat(forwarded.get().getRequest().getHeaders()
-                .containsKey("X-Authenticated-User")).isFalse();
+                .containsHeader("X-Authenticated-User")).isFalse();
         assertThat(forwarded.get().getRequest().getHeaders()
-                .containsKey("X-Authenticated-Username")).isFalse();
+                .containsHeader("X-Authenticated-Username")).isFalse();
         assertThat(forwarded.get().getRequest().getHeaders()
-                .containsKey("X-Authenticated-Roles")).isFalse();
+                .containsHeader("X-Authenticated-Roles")).isFalse();
     }
 
     @Test
