@@ -2,7 +2,8 @@ FROM maven:3-eclipse-temurin-24 AS build
 
 WORKDIR /app
 COPY pom.xml .
-# 生产镜像不拉 test 依赖；Maven Central 502 时重试。
+# 生产镜像只预拉 runtime（含 compile）依赖。dependency-plugin 3.10 禁止 -DexcludeScope=test。
+# Maven Central 502 时重试。
 RUN --mount=type=cache,target=/root/.m2 \
     set -eu; \
     mvn_retry() { \
@@ -14,7 +15,7 @@ RUN --mount=type=cache,target=/root/.m2 \
         sleep $((i * 8)); \
       done; \
     }; \
-    mvn_retry mvn -B -ntp -Dmaven.test.skip=true -DexcludeScope=test dependency:go-offline
+    mvn_retry mvn -B -ntp -Dmaven.test.skip=true -DincludeScope=runtime dependency:go-offline
 COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 \
     set -eu; \
