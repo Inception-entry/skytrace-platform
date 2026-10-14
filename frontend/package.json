@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "ant-design-vue": "^4.2.6",
-    "cesium": "~1.145.0",
+    "cesium": "~1.146.0",
     "cesium-navigation-es6": "^3.0.9",
     "i18next": "^26.4.2",
     "i18next-browser-languagedetector": "^8.2.0",
@@ -28,7 +28,7 @@
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^22.20.5",
-    "@typescript-eslint/eslint-plugin": "^8.70.1",
+    "@typescript-eslint/eslint-plugin": "^8.71.1",
     "@typescript-eslint/parser": "^8.71.0",
     "@vitejs/plugin-vue": "^6.0.9",
     "@vue/runtime-core": "^3.5.43",
@@ -39,11 +39,11 @@
     "patch-package": "^8.0.0",
     "sass": "^1.105.1",
     "typescript": "~5.9.3",
-    "vite": "^6.3.5",
+    "vite": "^6.4.4",
     "vite-plugin-cesium": "^1.2.23",
     "vite-plugin-compression": "^0.5.1",
     "vue-eslint-parser": "^10.4.1",
-    "vue-tsc": "^3.3.11"
+    "vue-tsc": "^3.3.13"
   },
   "overrides": {
     "dompurify": "3.4.16",

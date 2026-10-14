@@ -6,6 +6,10 @@ server:
 spring:
   application:
     name: skytrace-api-gateway
+  http:
+    codecs:
+      # 鉴权错误体使用 Jackson 2 ObjectMapper。
+      preferred-json-mapper: jackson2
   lifecycle:
     timeout-per-shutdown-phase: 20s
   data:
@@ -14,111 +18,113 @@ spring:
       port: ${REDIS_PORT:6380}
   cloud:
     gateway:
-      metrics:
-        enabled: true
-      httpclient:
-        connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:3000}
-        response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:180s}
-      default-filters:
-        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
-        - AddResponseHeader=X-SkyTrace-Gateway, spring-cloud-gateway
-        - RemoveResponseHeader=X-Powered-By
-      globalcors:
-        add-to-simple-url-handler-mapping: true
-        cors-configurations:
-          '[/**]':
-            allowed-origin-patterns:
-              - ${GATEWAY_ALLOWED_ORIGIN:http://localhost:8888}
-              - http://127.0.0.1:8888
-              - http://localhost:8888
-            allowed-methods:
-              - GET
-              - POST
-              - PUT
-              - PATCH
-              - DELETE
-              - OPTIONS
-            allowed-headers: '*'
-            exposed-headers:
-              - X-Request-Id
-              - X-RateLimit-Remaining
-              - X-RateLimit-Replenish-Rate
-              - X-RateLimit-Burst-Capacity
-              - X-RateLimit-Requested-Tokens
-            allow-credentials: true
-            max-age: 3600
-      routes:
-        - id: node-bff-analysis
-          order: -10
-          uri: ${NODE_BFF_URL:http://localhost:3000}
-          predicates:
-            - Path=/api/inspection-tasks/*/analysis,/api/inspection-tasks/*/analysis/stream
-            - Method=POST
-          filters:
-            - name: RequestRateLimiter
-              args:
-                key-resolver: '#{@gatewayKeyResolver}'
-                redis-rate-limiter.replenishRate: ${GATEWAY_AI_RATE_LIMIT_REPLENISH_RATE:1}
-                redis-rate-limiter.burstCapacity: ${GATEWAY_AI_RATE_LIMIT_BURST_CAPACITY:2}
-                redis-rate-limiter.requestedTokens: 1
-            - name: RequestSize
-              args:
-                maxSize: ${GATEWAY_MAX_REQUEST_SIZE:20MB}
-        - id: node-bff-knowledge
-          order: -9
-          uri: ${NODE_BFF_URL:http://localhost:3000}
-          predicates:
-            - Path=/api/knowledge/**
-          filters:
-            - name: RequestRateLimiter
-              args:
-                key-resolver: '#{@gatewayKeyResolver}'
-                redis-rate-limiter.replenishRate: ${GATEWAY_KNOWLEDGE_RATE_LIMIT_REPLENISH_RATE:5}
-                redis-rate-limiter.burstCapacity: ${GATEWAY_KNOWLEDGE_RATE_LIMIT_BURST_CAPACITY:10}
-                redis-rate-limiter.requestedTokens: 1
-            - name: RequestSize
-              args:
-                maxSize: ${GATEWAY_MAX_REQUEST_SIZE:20MB}
-        - id: node-bff-api
-          order: 0
-          uri: ${NODE_BFF_URL:http://localhost:3000}
-          predicates:
-            - Path=/api/**
-          filters:
-            - name: RequestRateLimiter
-              args:
-                key-resolver: '#{@gatewayKeyResolver}'
-                redis-rate-limiter.replenishRate: ${GATEWAY_RATE_LIMIT_REPLENISH_RATE:20}
-                redis-rate-limiter.burstCapacity: ${GATEWAY_RATE_LIMIT_BURST_CAPACITY:40}
-                redis-rate-limiter.requestedTokens: 1
-            - name: RequestSize
-              args:
-                maxSize: ${GATEWAY_MAX_REQUEST_SIZE:20MB}
-        - id: node-bff-websocket
-          order: -10
-          uri: ${NODE_WS_URL:ws://localhost:3001}
-          predicates:
-            - Path=/socket.io/**
-            - Header=Upgrade, (?i)websocket
-          filters:
-            - name: RequestRateLimiter
-              args:
-                key-resolver: '#{@gatewayKeyResolver}'
-                redis-rate-limiter.replenishRate: ${GATEWAY_WS_RATE_LIMIT_REPLENISH_RATE:5}
-                redis-rate-limiter.burstCapacity: ${GATEWAY_WS_RATE_LIMIT_BURST_CAPACITY:10}
-                redis-rate-limiter.requestedTokens: 1
-        - id: node-bff-socket-http
-          order: -5
-          uri: ${NODE_WS_HTTP_URL:http://localhost:3001}
-          predicates:
-            - Path=/socket.io/**
-          filters:
-            - name: RequestRateLimiter
-              args:
-                key-resolver: '#{@gatewayKeyResolver}'
-                redis-rate-limiter.replenishRate: ${GATEWAY_WS_RATE_LIMIT_REPLENISH_RATE:5}
-                redis-rate-limiter.burstCapacity: ${GATEWAY_WS_RATE_LIMIT_BURST_CAPACITY:10}
-                redis-rate-limiter.requestedTokens: 1
+      server:
+        webflux:
+          metrics:
+            enabled: true
+          httpclient:
+            connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:3000}
+            response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:180s}
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+            - AddResponseHeader=X-SkyTrace-Gateway, spring-cloud-gateway
+            - RemoveResponseHeader=X-Powered-By
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowed-origin-patterns:
+                  - ${GATEWAY_ALLOWED_ORIGIN:http://localhost:8888}
+                  - http://127.0.0.1:8888
+                  - http://localhost:8888
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowed-headers: '*'
+                exposed-headers:
+                  - X-Request-Id
+                  - X-RateLimit-Remaining
+                  - X-RateLimit-Replenish-Rate
+                  - X-RateLimit-Burst-Capacity
+                  - X-RateLimit-Requested-Tokens
+                allow-credentials: true
+                max-age: 3600
+          routes:
+            - id: node-bff-analysis
+              order: -10
+              uri: ${NODE_BFF_URL:http://localhost:3000}
+              predicates:
+                - Path=/api/inspection-tasks/*/analysis,/api/inspection-tasks/*/analysis/stream
+                - Method=POST
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: '#{@gatewayKeyResolver}'
+                    redis-rate-limiter.replenishRate: ${GATEWAY_AI_RATE_LIMIT_REPLENISH_RATE:1}
+                    redis-rate-limiter.burstCapacity: ${GATEWAY_AI_RATE_LIMIT_BURST_CAPACITY:2}
+                    redis-rate-limiter.requestedTokens: 1
+                - name: RequestSize
+                  args:
+                    maxSize: ${GATEWAY_MAX_REQUEST_SIZE:20MB}
+            - id: node-bff-knowledge
+              order: -9
+              uri: ${NODE_BFF_URL:http://localhost:3000}
+              predicates:
+                - Path=/api/knowledge/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: '#{@gatewayKeyResolver}'
+                    redis-rate-limiter.replenishRate: ${GATEWAY_KNOWLEDGE_RATE_LIMIT_REPLENISH_RATE:5}
+                    redis-rate-limiter.burstCapacity: ${GATEWAY_KNOWLEDGE_RATE_LIMIT_BURST_CAPACITY:10}
+                    redis-rate-limiter.requestedTokens: 1
+                - name: RequestSize
+                  args:
+                    maxSize: ${GATEWAY_MAX_REQUEST_SIZE:20MB}
+            - id: node-bff-api
+              order: 0
+              uri: ${NODE_BFF_URL:http://localhost:3000}
+              predicates:
+                - Path=/api/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: '#{@gatewayKeyResolver}'
+                    redis-rate-limiter.replenishRate: ${GATEWAY_RATE_LIMIT_REPLENISH_RATE:20}
+                    redis-rate-limiter.burstCapacity: ${GATEWAY_RATE_LIMIT_BURST_CAPACITY:40}
+                    redis-rate-limiter.requestedTokens: 1
+                - name: RequestSize
+                  args:
+                    maxSize: ${GATEWAY_MAX_REQUEST_SIZE:20MB}
+            - id: node-bff-websocket
+              order: -10
+              uri: ${NODE_WS_URL:ws://localhost:3001}
+              predicates:
+                - Path=/socket.io/**
+                - Header=Upgrade, (?i)websocket
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: '#{@gatewayKeyResolver}'
+                    redis-rate-limiter.replenishRate: ${GATEWAY_WS_RATE_LIMIT_REPLENISH_RATE:5}
+                    redis-rate-limiter.burstCapacity: ${GATEWAY_WS_RATE_LIMIT_BURST_CAPACITY:10}
+                    redis-rate-limiter.requestedTokens: 1
+            - id: node-bff-socket-http
+              order: -5
+              uri: ${NODE_WS_HTTP_URL:http://localhost:3001}
+              predicates:
+                - Path=/socket.io/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: '#{@gatewayKeyResolver}'
+                    redis-rate-limiter.replenishRate: ${GATEWAY_WS_RATE_LIMIT_REPLENISH_RATE:5}
+                    redis-rate-limiter.burstCapacity: ${GATEWAY_WS_RATE_LIMIT_BURST_CAPACITY:10}
+                    redis-rate-limiter.requestedTokens: 1
 
 gateway:
   trusted-proxy-count: ${GATEWAY_TRUSTED_PROXY_COUNT:1}

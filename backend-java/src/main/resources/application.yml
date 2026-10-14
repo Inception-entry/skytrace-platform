@@ -14,6 +14,10 @@ spring:
   mvc:
     async:
       request-timeout: 300000
+  http:
+    converters:
+      # Boot 4 默认 Jackson 3。告警时间和 Rabbit 消息仍使用 Jackson 2 反序列化器。
+      preferred-json-mapper: jackson2
   servlet:
     multipart:
       # 单文件默认留在 Gateway/Nginx 20 MB 请求上限以内，为 multipart 边界预留空间。
