@@ -1,4 +1,4 @@
-FROM maven:3-eclipse-temurin-24 AS build
+FROM maven:3-eclipse-temurin-27 AS build
 WORKDIR /app
 COPY pom.xml .
 # 生产镜像只预拉 runtime（含 compile）依赖。dependency-plugin 3.10 禁止 -DexcludeScope=test。
