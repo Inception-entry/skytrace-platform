@@ -58,11 +58,11 @@ class GatewayJavaApplicationTests {
                             .isEqualTo("RequestRateLimiter");
                     assertThat(filter.getArgs())
                             .containsEntry(
-                                    "redis-rate-limiter.replenishrate",
+                                    "redis-rate-limiter.replenishRate",
                                     "1"
                             )
                             .containsEntry(
-                                    "redis-rate-limiter.burstcapacity",
+                                    "redis-rate-limiter.burstCapacity",
                                     "2"
                             );
                 });
