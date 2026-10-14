@@ -24,6 +24,10 @@
              Boot 4.1.1 的 Jackson 2 BOM 仍锁 2.21.5，2.21 线修复是 2.21.7。
              HTTP JSON 仍走 Jackson 2，见 spring.http.converters.preferred-json-mapper。 -->
         <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+        <!-- 同上五个 CVE 也影响 Boot 4.1.1 锁的 Jackson 3.1.5。3.1 线修复是 3.1.7。 -->
+        <jackson-bom.version>3.1.7</jackson-bom.version>
+        <!-- CVE-2026-68525: Boot 4.1.1 仍锁 Tomcat 11.0.24。11.0.25 起修复，当前 11.0 补丁是 11.0.27。 -->
+        <tomcat.version>11.0.27</tomcat.version>
     </properties>
     <dependencyManagement>
         <dependencies>

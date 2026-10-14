@@ -23,6 +23,8 @@
         <bouncycastle.version>1.86</bouncycastle.version>
         <!-- CVE-2026-89407 等：Boot 4.1.1 的 Jackson 2 BOM 仍锁 2.21.5，修复线是 2.21.7。 -->
         <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+        <!-- 同上 CVE 也影响 Boot 4.1.1 锁的 Jackson 3.1.5。3.1 线修复是 3.1.7。 -->
+        <jackson-bom.version>3.1.7</jackson-bom.version>
     </properties>
 
     <dependencyManagement>
