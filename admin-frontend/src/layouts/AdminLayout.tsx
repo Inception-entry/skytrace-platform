@@ -20,6 +20,7 @@ import { useAuthStore } from '../store/auth'
 import { useThemeStore } from '../store/theme'
 import { me, updateProfile, changePassword } from '../api/auth'
 import { uploadAvatar } from '../api/upload'
+import { logClientError } from '../utils/client-log'
 import { collectOpenKeys, menuTreeToItems } from '../utils/menu'
 import { SkyTraceLogo } from '../components/SkyTraceLogo'
 
@@ -51,7 +52,8 @@ export function AdminLayout() {
     }
     me()
       .then(setUser)
-      .catch(() => {
+      .catch((error: unknown) => {
+        logClientError('auth.profile', error, '获取用户信息失败')
         message.error('获取用户信息失败')
         logout()
       })
@@ -81,7 +83,8 @@ export function AdminLayout() {
       setAvatarUrl(uploaded.url)
       setAvatarKey(uploaded.objectKey)
       message.success('头像上传成功')
-    } catch {
+    } catch (error) {
+      logClientError('profile.avatar', error, '头像上传失败')
       message.error('头像上传失败')
     } finally {
       setUploading(false)
@@ -98,7 +101,8 @@ export function AdminLayout() {
       setUser({ ...user!, ...updated })
       message.success('资料保存成功')
       setProfileOpen(false)
-    } catch {
+    } catch (error) {
+      logClientError('profile.save', error, '保存资料失败')
       message.error('保存失败')
     }
   }
@@ -112,6 +116,7 @@ export function AdminLayout() {
       setProfileOpen(false)
       logout()
     } catch (err: unknown) {
+      logClientError('profile.password', err, '密码修改失败')
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       message.error(msg ?? '密码修改失败')
     }

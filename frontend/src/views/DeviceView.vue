@@ -156,6 +156,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { logClientError } from '@/utils/client-log'
 import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
@@ -208,6 +209,7 @@ async function refresh(silent = false) {
     devices.value = next
   } catch (error) {
     if (abort.signal.aborted || seq !== refreshSeq) return
+    logClientError('devices.refresh', error)
     if (!silent) {
       errorMessage.value =
         error instanceof Error ? error.message : t('devices.loadFailed')
@@ -263,6 +265,7 @@ async function saveDevice() {
     closeForm()
     await refresh()
   } catch (error) {
+    logClientError('devices.save', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('devices.saveFailed')
   } finally {
@@ -286,6 +289,7 @@ async function sendHeartbeat(deviceCode: string) {
     }
     await refresh()
   } catch (error) {
+    logClientError('devices.heartbeat', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('devices.heartbeatFailed')
   } finally {
@@ -305,6 +309,7 @@ async function removeDevice(deviceCode: string) {
     successMessage.value = t('devices.deleteSuccess')
     await refresh()
   } catch (error) {
+    logClientError('devices.delete', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('devices.deleteFailed')
   } finally {

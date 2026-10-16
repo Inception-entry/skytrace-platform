@@ -3,6 +3,7 @@ import {
   getAccessToken,
 } from '@/auth/keycloak'
 import { redirectToAuthorizationPage } from '@/auth/authorization-navigation'
+import { logClientError } from '@/utils/client-log'
 
 interface RealtimeConnectionError extends Error {
   data?: {
@@ -124,7 +125,7 @@ export function onAlarmCreated(listener: (alarm: unknown) => void) {
       }
     })
     .catch((error: unknown) => {
-      console.error('无法订阅实时告警', error)
+      logClientError('realtime.alarm', error, '无法订阅实时告警')
     })
   return () => {
     active = false
@@ -154,7 +155,7 @@ export function onDeviceTelemetry(
       }
     })
     .catch((error: unknown) => {
-      console.error('无法订阅设备遥测', error)
+      logClientError('realtime.telemetry', error, '无法订阅设备遥测')
     })
   return () => {
     active = false
@@ -169,7 +170,7 @@ async function handleConnectionError(error: RealtimeConnectionError) {
     return
   }
   if (status !== 401) {
-    console.error('Socket.IO 连接失败', error.data?.message ?? error.message)
+    logClientError('realtime.socket', error, error.data?.message ?? error.message)
     if (status === 503) {
       scheduleReconnect(2_000)
     }

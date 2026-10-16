@@ -149,6 +149,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { logClientError } from '@/utils/client-log'
 import { useTranslation } from 'i18next-vue'
 import {
   deleteKnowledgeDocument,
@@ -191,6 +192,7 @@ async function loadDocuments() {
   try {
     documents.value = await getKnowledgeDocuments()
   } catch (error) {
+    logClientError('knowledge.load', error)
     errorMessage.value = errorText(error, t('knowledge.loadFailed'))
   } finally {
     loadingDocuments.value = false
@@ -212,6 +214,7 @@ async function uploadDocument() {
     if (fileInput.value) fileInput.value.value = ''
     await loadDocuments()
   } catch (error) {
+    logClientError('knowledge.upload', error)
     errorMessage.value = errorText(error, t('knowledge.uploadFailed'))
   } finally {
     uploading.value = false
@@ -228,6 +231,7 @@ async function runSearch() {
     results.value = await searchKnowledge(currentQuery)
     hasSearched.value = true
   } catch (error) {
+    logClientError('knowledge.search', error)
     errorMessage.value = errorText(error, t('knowledge.searchFailed'))
   } finally {
     searching.value = false
@@ -249,6 +253,7 @@ async function removeDocument(document: KnowledgeDocument) {
     )
     await loadDocuments()
   } catch (error) {
+    logClientError('knowledge.delete', error)
     errorMessage.value = errorText(error, t('knowledge.deleteFailed'))
   } finally {
     deletingId.value = ''

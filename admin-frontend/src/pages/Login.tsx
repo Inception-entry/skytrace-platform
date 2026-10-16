@@ -14,6 +14,7 @@ import {
 } from '../api/sessionRevoke'
 import { useAuthStore } from '../store/auth'
 import { SkyTraceLogo } from '../components/SkyTraceLogo'
+import { logClientError } from '../utils/client-log'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -39,6 +40,7 @@ export function LoginPage() {
       )
       navigate('/', { replace: true })
     } catch (error) {
+      logClientError('auth.login', error)
       message.error(loginFailureMessage(error))
     } finally {
       setSubmitting(false)

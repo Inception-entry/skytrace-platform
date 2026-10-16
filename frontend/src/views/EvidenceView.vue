@@ -602,6 +602,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { logClientError } from '@/utils/client-log'
 import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
@@ -702,6 +703,7 @@ async function loadTags() {
   try {
     availableTags.value = await listEvidenceTags()
   } catch (error) {
+    logClientError('evidence.tags', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.loadTagsFailed')
   }
@@ -726,6 +728,7 @@ async function loadPage(nextPage: number) {
     page.value = result.page
     totalPages.value = result.totalPages
   } catch (error) {
+    logClientError('evidence.load', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.loadFailed')
   } finally {
@@ -747,6 +750,7 @@ async function startArchive() {
     archiveLookupCode.value = archiveJob.value.jobCode
     scheduleArchivePolling()
   } catch (error) {
+    logClientError('evidence.archiveCreate', error)
     archiveError.value =
       error instanceof Error ? error.message : t('evidence.archiveCreateFailed')
   } finally {
@@ -770,6 +774,7 @@ async function refreshArchiveJob(silent: boolean) {
     if (archiveDisposed) return
     scheduleArchivePolling()
   } catch (error) {
+    logClientError('evidence.archiveQuery', error)
     archiveError.value =
       error instanceof Error ? error.message : t('evidence.archiveQueryFailed')
     stopArchivePolling()
@@ -806,6 +811,7 @@ async function downloadArchive(kind: 'package' | 'manifest') {
       : await createEvidenceArchiveManifestUrl(archiveJob.value.jobCode)
     window.open(access.url, '_blank', 'noopener')
   } catch (error) {
+    logClientError('evidence.archiveDownload', error)
     archiveError.value =
       error instanceof Error ? error.message : t('evidence.archiveDownloadFailed')
   } finally {
@@ -879,6 +885,7 @@ async function openDetail(evidenceCode: string) {
     syncMetaForm(detail.value)
     previewUrl.value = ''
   } catch (error) {
+    logClientError('evidence.load', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.loadFailed')
   } finally {
@@ -901,6 +908,7 @@ async function saveMetadata() {
     syncMetaForm(detail.value)
     await loadPage(page.value)
   } catch (error) {
+    logClientError('evidence.saveMetadata', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.saveMetadataFailed')
   } finally {
@@ -920,6 +928,7 @@ async function batchReview(reviewStatus: EvidenceReviewStatus) {
     clearSelection()
     await loadPage(page.value)
   } catch (error) {
+    logClientError('evidence.batch', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.batchFailed')
   } finally {
@@ -954,6 +963,7 @@ async function batchTag() {
     clearSelection()
     await loadPage(page.value)
   } catch (error) {
+    logClientError('evidence.batch', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.batchFailed')
   } finally {
@@ -972,6 +982,7 @@ async function preview(evidenceCode: string) {
     }
     previewUrl.value = access.url
   } catch (error) {
+    logClientError('evidence.preview', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.previewFailed')
   } finally {
@@ -986,6 +997,7 @@ async function download(evidenceCode: string) {
     const access = await createEvidenceDownloadUrl(evidenceCode)
     window.open(access.url, '_blank', 'noopener')
   } catch (error) {
+    logClientError('evidence.download', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.downloadFailed')
   } finally {
@@ -1009,6 +1021,7 @@ async function remove(evidenceCode: string) {
     )
     await loadPage(page.value)
   } catch (error) {
+    logClientError('evidence.delete', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.deleteFailed')
   } finally {
@@ -1023,6 +1036,7 @@ async function restore(evidenceCode: string) {
     await restoreEvidence(evidenceCode)
     await loadPage(page.value)
   } catch (error) {
+    logClientError('evidence.restore', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('evidence.restoreFailed')
   } finally {

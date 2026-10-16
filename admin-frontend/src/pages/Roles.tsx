@@ -9,6 +9,7 @@ import { flatMenuToTree } from '../utils/menu'
 import type { Role } from '../types'
 import { PageHeader } from '../components/PageHeader'
 import { usePermission } from '../hooks/usePermission'
+import { logClientError } from '../utils/client-log'
 
 const statusOptions = [
   { label: '启用', value: 1 },
@@ -40,6 +41,8 @@ export function RolesPage() {
       setTotal(res.total)
       setPage(res.page)
       setPageSize(res.pageSize)
+    } catch (error) {
+      logClientError('roles.load', error, '角色列表加载失败')
     } finally {
       setLoading(false)
     }
@@ -74,7 +77,8 @@ export function RolesPage() {
       message.success('操作成功')
       setOpen(false)
       loadData()
-    } catch {
+    } catch (error) {
+      logClientError('roles.save', error, '角色保存失败')
       message.error('操作失败')
     }
   }
@@ -112,7 +116,8 @@ export function RolesPage() {
                 try {
                   await rolesApi.remove(row.id)
                   loadData()
-                } catch {
+                } catch (error) {
+                  logClientError('roles.delete', error, '角色删除失败')
                   message.error('删除失败')
                 }
               }}
@@ -222,9 +227,14 @@ export function RolesPage() {
             type="primary"
             onClick={async () => {
               if (!assignRole) return
-              await rolesApi.assignMenus(assignRole.id, checkedKeys)
-              message.success('权限保存成功')
-              setAssignRole(null)
+              try {
+                await rolesApi.assignMenus(assignRole.id, checkedKeys)
+                message.success('权限保存成功')
+                setAssignRole(null)
+              } catch (error) {
+                logClientError('roles.assignMenus', error, '角色权限保存失败')
+                message.error('权限保存失败')
+              }
             }}
           >
             保 存

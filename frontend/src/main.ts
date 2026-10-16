@@ -10,6 +10,7 @@ import { initializeAuthentication } from '@/auth/keycloak'
 import { connectAlarmRealtime } from '@/realtime/socket'
 import { useThemeStoreWithOut } from '@/store/modules/theme'
 import { useLangStoreWithOut } from '@/store/modules/lang'
+import { installClientLog, logClientError } from '@/utils/client-log'
 
 import '@/style/common.scss'
 import '@/style/reset.scss'
@@ -26,6 +27,10 @@ async function bootstrap() {
   await langStore.hydrate()
 
   const app = createApp(App)
+  installClientLog()
+  app.config.errorHandler = (error, _instance, info) => {
+    logClientError('vue', error, info)
+  }
 
   app.use(store).use(router).use(I18NextVue, { i18next }).use(cesiumVue)
 
@@ -41,12 +46,12 @@ async function bootstrap() {
   register(app)
   app.mount('#app')
   void connectAlarmRealtime().catch((error: unknown) => {
-    console.error(i18next.t('auth.realtimeFailed'), error)
+    logClientError('realtime', error, i18next.t('auth.realtimeFailed'))
   })
 }
 
 void bootstrap().catch((error: unknown) => {
-  console.error(error)
+  logClientError('boot', error)
   const root = document.getElementById('app')
   if (root) {
     root.textContent = i18next.t('auth.bootFailed')

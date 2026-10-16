@@ -9,6 +9,7 @@ import { MenusModule } from './menus/menus.module'
 import { LogsModule } from './logs/logs.module'
 import { DashboardModule } from './dashboard/dashboard.module'
 import { UploadModule } from './upload/upload.module'
+import { ClientLogModule } from './client-log/client-log.module'
 import { HealthController } from './health/health.controller'
 import { MetricsController } from './metrics/metrics.controller'
 import { OperationLogInterceptor } from './common/interceptors/operation-log.interceptor'
@@ -24,6 +25,7 @@ import { OperationLogInterceptor } from './common/interceptors/operation-log.int
     LogsModule,
     DashboardModule,
     UploadModule,
+    ClientLogModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [

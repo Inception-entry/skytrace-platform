@@ -1,5 +1,6 @@
 import Keycloak from 'keycloak-js'
 import { reactive, readonly } from 'vue'
+import { logClientError } from '@/utils/client-log'
 
 interface SkyTraceConfig {
   keycloakUrl?: string
@@ -110,6 +111,7 @@ export async function getAccessToken(forceRefresh = false) {
   try {
     await refreshToken(forceRefresh ? -1 : 30)
   } catch (error: unknown) {
+    logClientError('auth', error, '访问令牌刷新失败')
     throw new AuthenticationRequiredError('访问令牌刷新失败', error)
   }
   if (!keycloak.token) {

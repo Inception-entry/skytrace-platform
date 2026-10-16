@@ -6,6 +6,7 @@ import * as logsApi from '../api/logs'
 import type { OperationLog } from '../types'
 import { PageHeader } from '../components/PageHeader'
 import { usePermission } from '../hooks/usePermission'
+import { logClientError } from '../utils/client-log'
 
 const { RangePicker } = DatePicker
 
@@ -46,6 +47,8 @@ export function LogsPage() {
       setTotal(res.total)
       setPage(res.page)
       setPageSize(res.pageSize)
+    } catch (error) {
+      logClientError('logs.load', error, '操作日志加载失败')
     } finally {
       setLoading(false)
     }
@@ -136,9 +139,14 @@ export function LogsPage() {
             <Popconfirm
               title="确定清空所有操作日志吗？"
               onConfirm={async () => {
-                const res = await logsApi.clear()
-                message.success(`已清除 ${res.count} 条日志`)
-                loadData()
+                try {
+                  const res = await logsApi.clear()
+                  message.success(`已清除 ${res.count} 条日志`)
+                  loadData()
+                } catch (error) {
+                  logClientError('logs.clear', error, '清空操作日志失败')
+                  message.error('清空日志失败')
+                }
               }}
             >
               <Button icon={<ClearOutlined />} danger>

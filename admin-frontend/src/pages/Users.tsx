@@ -7,6 +7,7 @@ import * as rolesApi from '../api/roles'
 import type { Role, User } from '../types'
 import { PageHeader } from '../components/PageHeader'
 import { usePermission } from '../hooks/usePermission'
+import { logClientError } from '../utils/client-log'
 
 const statusOptions = [
   { label: '启用', value: 1 },
@@ -38,6 +39,8 @@ export function UsersPage() {
       setTotal(res.total)
       setPage(res.page)
       setPageSize(res.pageSize)
+    } catch (error) {
+      logClientError('users.load', error, '用户列表加载失败')
     } finally {
       setLoading(false)
     }
@@ -70,7 +73,8 @@ export function UsersPage() {
       message.success('操作成功')
       setOpen(false)
       loadData()
-    } catch {
+    } catch (error) {
+      logClientError('users.save', error, '用户保存失败')
       message.error('操作失败')
     }
   }
@@ -117,7 +121,8 @@ export function UsersPage() {
                 try {
                   await usersApi.remove(row.id)
                   loadData()
-                } catch {
+                } catch (error) {
+                  logClientError('users.delete', error, '用户删除失败')
                   message.error('删除失败')
                 }
               }}
@@ -248,7 +253,8 @@ export function UsersPage() {
                 message.success('角色已更新，对方需重新登录')
                 setAssignUser(null)
                 loadData()
-              } catch {
+              } catch (error) {
+                logClientError('users.assignRoles', error, '角色分配失败')
                 message.error('分配失败')
               } finally {
                 setAssignSaving(false)

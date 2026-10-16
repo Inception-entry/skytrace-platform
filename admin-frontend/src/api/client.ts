@@ -4,6 +4,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios'
 import { useAuthStore } from '../store/auth'
+import { logClientError, logClientWarn } from '../utils/client-log'
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
@@ -56,6 +57,7 @@ export function attachAdminAuthInterceptors(
         deps.setTokens(tokens.access_token, tokens.refresh_token)
         return tokens.access_token
       } catch (error) {
+        logClientError('auth.refresh', error)
         deps.onSessionExpired()
         throw error
       }
@@ -83,6 +85,7 @@ export function attachAdminAuthInterceptors(
         original._retry ||
         isAuthHandshake(original)
       ) {
+        logAdminHttpError(error)
         return Promise.reject(error)
       }
 
@@ -92,6 +95,7 @@ export function attachAdminAuthInterceptors(
         original.headers.Authorization = `Bearer ${token}`
         return client(original)
       } catch (refreshError) {
+        logClientError('auth.refreshRetry', refreshError)
         return Promise.reject(refreshError)
       }
     },
@@ -110,5 +114,16 @@ attachAdminAuthInterceptors(client, {
   onSessionExpired: () => useAuthStore.getState().logout(),
   refreshTokens: defaultRefreshTokens,
 })
+
+function logAdminHttpError(error: AxiosError): void {
+  const status = error.response?.status
+  const method = error.config?.method?.toUpperCase() ?? 'HTTP'
+  const url = error.config?.url ?? ''
+  if (status != null && status < 500) {
+    logClientWarn('http', `${method} ${url} ${status}`)
+    return
+  }
+  logClientError('http', error, `${method} ${url} ${status ?? 'network'}`)
+}
 
 export default client

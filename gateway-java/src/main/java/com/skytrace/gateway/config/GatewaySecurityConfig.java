@@ -68,6 +68,8 @@ public class GatewaySecurityConfig {
                                 "/actuator/info",
                                 "/api/health"
                         ).permitAll()
+                        // 浏览器错误上报不携带业务权限。Node 限长、脱敏、限流后写入标准输出。
+                        .pathMatchers(HttpMethod.POST, "/api/client-logs").permitAll()
                         // 浏览器把 JWT 放在 Socket.IO auth payload 中，
                         // 由 Node BFF 握手中间件完成验签和角色校验。
                         .pathMatchers("/socket.io/**").permitAll()

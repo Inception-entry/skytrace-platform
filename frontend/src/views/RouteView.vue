@@ -120,6 +120,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { logClientError } from '@/utils/client-log'
 import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
@@ -159,6 +160,7 @@ async function refresh() {
   try {
     routes.value = await getRoutes()
   } catch (error) {
+    logClientError('routes.load', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('routes.loadFailed')
   } finally {
@@ -223,6 +225,7 @@ async function saveRoute() {
     closeForm()
     await refresh()
   } catch (error) {
+    logClientError('routes.save', error)
     errorMessage.value =
       error instanceof Error ? error.message : t('routes.saveFailed')
   } finally {

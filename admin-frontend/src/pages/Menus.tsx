@@ -6,6 +6,7 @@ import * as menusApi from '../api/menus'
 import type { FlatMenu } from '../types'
 import { PageHeader } from '../components/PageHeader'
 import { usePermission } from '../hooks/usePermission'
+import { logClientError } from '../utils/client-log'
 
 const typeMap = { 1: { text: '目录', color: 'blue' }, 2: { text: '菜单', color: 'green' }, 3: { text: '按钮', color: 'orange' } }
 const visibleOptions = [
@@ -38,6 +39,8 @@ export function MenusPage() {
         : data
       setMenus(filtered)
       setAllMenus(data)
+    } catch (error) {
+      logClientError('menus.load', error, '菜单加载失败')
     } finally {
       setLoading(false)
     }
@@ -65,7 +68,8 @@ export function MenusPage() {
       message.success('操作成功')
       setOpen(false)
       loadData()
-    } catch {
+    } catch (error) {
+      logClientError('menus.save', error, '菜单保存失败')
       message.error('操作失败')
     }
   }
@@ -107,7 +111,8 @@ export function MenusPage() {
                 try {
                   await menusApi.remove(row.id)
                   loadData()
-                } catch {
+                } catch (error) {
+                  logClientError('menus.delete', error, '菜单删除失败')
                   message.error('删除失败')
                 }
               }}

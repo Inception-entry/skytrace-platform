@@ -135,6 +135,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
+import { logClientError } from '@/utils/client-log'
 import { useTranslation } from 'i18next-vue'
 import { streamInspectionAnalysis } from '@/api/inspection-task'
 
@@ -257,6 +258,7 @@ const sendMessage = async () => {
     if (error instanceof Error && error.name === 'AbortError') {
       return
     }
+    logClientError('chat.stream', error)
     const message = messages.value.find(
       item => item.id === assistantId,
     )

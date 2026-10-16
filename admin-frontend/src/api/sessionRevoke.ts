@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { logClientWarn } from '../utils/client-log'
 
 export const ADMIN_LOGOUT_PATH = '/admin-api/auth/logout'
 export const REVOKE_TIMEOUT_MS = 5000
@@ -28,7 +29,7 @@ export async function revokeAdminSession(
 }
 
 export function reportServerRevocationFailure(error: unknown): void {
-  console.warn('[admin] failed to revoke server session', error)
+  logClientWarn('auth.logout', '服务端会话撤销失败', error)
 }
 
 export async function endAdminSession(deps: {

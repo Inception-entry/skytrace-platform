@@ -392,6 +392,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { logClientError } from '@/utils/client-log'
 import { useTranslation } from 'i18next-vue'
 import { authenticationState } from '@/auth/keycloak'
 import {
@@ -515,6 +516,7 @@ const loadDevices = async () => {
   try {
     devices.value = await getDevices()
   } catch (error) {
+    logClientError('tasks.devices', error)
     errorMessage.value = errorText(error, t('tasks.loadDevicesFailed'))
   }
 }
@@ -525,6 +527,7 @@ const loadRoutes = async () => {
   try {
     routes.value = await getRoutes()
   } catch (error) {
+    logClientError('tasks.routes', error)
     errorMessage.value = errorText(error, t('tasks.loadRoutesFailed'))
   }
 }
@@ -545,6 +548,7 @@ const loadTasks = async (options?: { includeRoutes?: boolean; silent?: boolean }
     tasks.value = taskList
   } catch (error) {
     if (taskPollDisposed || silent) return
+    logClientError('tasks.list', error)
     errorMessage.value = errorText(error, t('tasks.loadFailed'))
   } finally {
     if (!silent && !taskPollDisposed) loading.value = false
@@ -573,6 +577,7 @@ const loadTaskAlarms = async (taskCode: string) => {
     taskAlarms.value = alarms.filter(alarm => alarm.taskCode === taskCode)
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') return
+    logClientError('tasks.alarms', error)
     if (selectedTaskCode.value === taskCode) taskAlarms.value = []
   }
 }
@@ -595,6 +600,7 @@ const selectReplayTask = async (taskCode: string) => {
   try {
     replayPoints.value = await getTaskTelemetryTrack(taskCode)
   } catch (error) {
+    logClientError('tasks.replay', error)
     errorMessage.value = errorText(error, t('tasks.replayLoadFailed'))
   } finally {
     replayLoading.value = false
@@ -611,6 +617,7 @@ const loadEvidence = async (taskCode: string) => {
   try {
     evidenceList.value = await getEvidence({ taskCode })
   } catch (error) {
+    logClientError('tasks.evidence', error)
     evidenceList.value = []
     errorMessage.value = errorText(error, t('tasks.loadEvidenceFailed'))
   } finally {
@@ -631,6 +638,7 @@ const handleEvidenceUpload = async (event: Event) => {
     successMessage.value = t('tasks.evidenceUploaded', { code: selectedTaskCode.value })
     await loadEvidence(selectedTaskCode.value)
   } catch (error) {
+    logClientError('tasks.uploadEvidence', error)
     errorMessage.value = errorText(error, t('tasks.uploadEvidenceFailed'))
   } finally {
     loading.value = false
@@ -674,6 +682,7 @@ const saveTask = async () => {
     resetForm()
     await loadTasks()
   } catch (error) {
+    logClientError('tasks.save', error)
     errorMessage.value = errorText(error, t('tasks.saveFailed'))
     loading.value = false
   }
@@ -692,6 +701,7 @@ async function openEvidence(item: EvidenceAsset) {
     const access = await createEvidencePreviewUrl(item.evidenceCode)
     window.open(access.url, '_blank', 'noopener')
   } catch (error) {
+    logClientError('tasks.openEvidence', error)
     errorMessage.value = errorText(error, t('tasks.openEvidenceFailed'))
   } finally {
     evidenceOpeningCode.value = ''
@@ -743,6 +753,7 @@ const runTaskAction = async (
     successMessage.value = t('tasks.actionDone', { code: taskCode, action: successText })
     await waitForStatusChange(taskCode, previousStatus)
   } catch (error) {
+    logClientError('tasks.action', error, failureText)
     errorMessage.value = errorText(error, failureText)
   } finally {
     loading.value = false

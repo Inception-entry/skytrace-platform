@@ -188,6 +188,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { logClientError } from '@/utils/client-log'
 import { useTranslation } from 'i18next-vue'
 import {
   getAdminOverview,
@@ -256,6 +257,7 @@ async function refreshAll() {
     overview.value = summary
     auditPage.value = audits
   } catch (error) {
+    logClientError('audit.load', error)
     errorMessage.value = error instanceof Error
       ? error.message
       : t('audit.loadFailed')

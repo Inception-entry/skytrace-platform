@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/auth'
 import { stats } from '../api/dashboard'
 import type { DashboardStats } from '../types'
 import { PageHeader } from '../components/PageHeader'
+import { logClientError } from '../utils/client-log'
 
 const cards = [
   { key: 'user', title: '活跃用户', icon: <TeamOutlined />, color: '#1677ff', get: (d: DashboardStats | null) => d?.userCount },
@@ -18,7 +19,9 @@ export function DashboardPage() {
   const [data, setData] = useState<DashboardStats | null>(null)
 
   useEffect(() => {
-    stats().then(setData).catch(() => {})
+    stats().then(setData).catch((error: unknown) => {
+      logClientError('dashboard.stats', error, '仪表盘统计加载失败')
+    })
   }, [])
 
   return (

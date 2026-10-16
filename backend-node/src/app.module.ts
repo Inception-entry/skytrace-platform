@@ -12,6 +12,7 @@ import { InspectionTaskModule } from './inspection-task/inspection-task.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { AdminModule } from './admin/admin.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { ClientLogModule } from './client-log/client-log.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RealtimeModule } from './realtime/realtime.module';
     KnowledgeModule,
     AdminModule,
     RealtimeModule,
+    ClientLogModule,
   ],
 })
 export class AppModule {}

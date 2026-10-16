@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authenticationState } from '@/auth/keycloak'
+import { logClientWarn } from '@/utils/client-log'
 
 const routes = [
   {
@@ -91,6 +92,7 @@ router.beforeEach((to) => {
     return true
   }
 
+  logClientWarn('router', `角色不足，拒绝打开 ${to.fullPath}`)
   return {
     path: '/403',
     query: {

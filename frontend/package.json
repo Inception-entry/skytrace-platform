@@ -46,7 +46,7 @@
     "vue-tsc": "^3.3.13"
   },
   "overrides": {
-    "dompurify": "3.4.16",
+    "dompurify": "3.4.17",
     "source-map-js": "1.2.2"
   }
 }

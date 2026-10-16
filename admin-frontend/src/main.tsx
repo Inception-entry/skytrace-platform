@@ -5,6 +5,7 @@ import zhCN from 'antd/locale/zh_CN'
 import App from './App'
 import { useThemeStore } from './store/theme'
 import { getAdminTheme } from './theme/tokens'
+import { installClientLog } from './utils/client-log'
 import './styles/global.css'
 
 function RootApp() {
@@ -23,6 +24,8 @@ function RootApp() {
     </ConfigProvider>
   )
 }
+
+installClientLog()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1,4 +1,5 @@
 import { authorizedFetch } from '@/api/http'
+import { logClientError } from '@/utils/client-log'
 
 export interface InspectionTask {
   taskCode: string
@@ -247,6 +248,7 @@ async function consumeEventStream(
       }
     }
   } catch (error) {
+    logClientError('tasks.analysisStream', error)
     await reader.cancel().catch(() => undefined)
     throw error
   } finally {
