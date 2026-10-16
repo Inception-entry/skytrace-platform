@@ -5,6 +5,8 @@ import com.skytrace.backend.task.repository.InspectionTaskRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Component("inspectionTaskActivities")
 public class InspectionTaskActivitiesImpl
         implements InspectionTaskActivities {
@@ -50,5 +52,16 @@ public class InspectionTaskActivitiesImpl
                 ));
 
         task.changeStatus(status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long plannedTimeoutMillis(String taskCode) {
+        return repository.findByTaskCode(taskCode)
+                .map(task -> InspectionRunTimeouts.millis(
+                        task.getPlanEndTime(),
+                        LocalDateTime.now()
+                ))
+                .orElse(InspectionRunTimeouts.MAX.toMillis());
     }
 }

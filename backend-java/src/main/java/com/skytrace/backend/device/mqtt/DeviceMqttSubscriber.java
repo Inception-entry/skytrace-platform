@@ -221,6 +221,10 @@ public class DeviceMqttSubscriber {
         String statusFilter = prefix + "status";
         String telemetryFilter = prefix + "telemetry";
 
+        heartbeatFilter = shared(heartbeatFilter);
+        statusFilter = shared(statusFilter);
+        telemetryFilter = shared(telemetryFilter);
+
         mqttClient.subscribe(heartbeatFilter, 0, (topic, message) ->
                 handler.onMessage(
                         topic,
@@ -242,5 +246,12 @@ public class DeviceMqttSubscriber {
 
         log.info("MQTT 已订阅: {} , {} , {}",
                 heartbeatFilter, statusFilter, telemetryFilter);
+    }
+
+    private String shared(String filter) {
+        if (!properties.isSharedSubscription()) {
+            return filter;
+        }
+        return "$share/skytrace-backend/" + filter;
     }
 }

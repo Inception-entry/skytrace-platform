@@ -1,0 +1,2 @@
+ALTER TABLE evidence_asset
+    ADD COLUMN object_status VARCHAR(32) NOT NULL DEFAULT 'AVAILABLE';

@@ -14,6 +14,7 @@ const mockClient = {
   makeBucket: jest.fn(),
   setBucketPolicy: jest.fn(),
   putObject: jest.fn(),
+  presignedGetObject: jest.fn(),
 }
 
 jest.mock('minio', () => ({
@@ -39,6 +40,10 @@ describe('UploadService', () => {
     mockClient.bucketExists.mockResolvedValue(true)
     mockClient.makeBucket.mockResolvedValue(undefined)
     mockClient.setBucketPolicy.mockResolvedValue(undefined)
+    mockClient.presignedGetObject.mockImplementation(
+      async (_bucket: string, objectName: string) =>
+        `https://minio.example/${objectName}?sig=1`,
+    )
     mockClient.putObject.mockImplementation(async (_bucket, _name, stream) => {
       await new Promise((resolve, reject) => {
         stream.on('error', reject)
@@ -87,9 +92,11 @@ describe('UploadService', () => {
   }
 
   it('stores jpeg magic as image/jpeg with a canonical .jpg object name', async () => {
-    const url = await service.uploadAvatar(jpegOnDisk(), 9)
+    const uploaded = await service.uploadAvatar(jpegOnDisk(), 9)
 
-    expect(url).toMatch(/^\/files\/admin-avatars\/9\/[0-9a-f-]+\.jpg$/)
+    expect(uploaded.objectKey).toMatch(/^9\/[0-9a-f-]+\.jpg$/)
+    expect(uploaded.url).toBe(`https://minio.example/${uploaded.objectKey}?sig=1`)
+    expect(mockClient.setBucketPolicy).not.toHaveBeenCalled()
     expect(mockClient.putObject).toHaveBeenCalledWith(
       'admin-avatars',
       expect.stringMatching(/^9\/[0-9a-f-]+\.jpg$/),

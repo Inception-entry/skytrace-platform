@@ -37,6 +37,7 @@ export function AdminLayout() {
   const [profileForm] = Form.useForm()
   const [passwordForm] = Form.useForm()
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarKey, setAvatarKey] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export function AdminLayout() {
   function openProfile() {
     profileForm.setFieldsValue({ nickname: user?.nickname ?? '', email: user?.email ?? '' })
     setAvatarUrl(user?.avatar ?? null)
+    setAvatarKey(null)
     setProfileOpen(true)
   }
 
@@ -75,8 +77,9 @@ export function AdminLayout() {
     if (!file) return
     setUploading(true)
     try {
-      const url = await uploadAvatar(file)
-      setAvatarUrl(url)
+      const uploaded = await uploadAvatar(file)
+      setAvatarUrl(uploaded.url)
+      setAvatarKey(uploaded.objectKey)
       message.success('头像上传成功')
     } catch {
       message.error('头像上传失败')
@@ -88,7 +91,10 @@ export function AdminLayout() {
   async function handleSaveProfile() {
     const values = await profileForm.validateFields()
     try {
-      const updated = await updateProfile({ ...values, avatar: avatarUrl ?? undefined })
+      const updated = await updateProfile({
+        ...values,
+        ...(avatarKey ? { avatar: avatarKey } : {}),
+      })
       setUser({ ...user!, ...updated })
       message.success('资料保存成功')
       setProfileOpen(false)

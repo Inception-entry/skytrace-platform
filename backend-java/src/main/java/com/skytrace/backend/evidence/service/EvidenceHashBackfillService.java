@@ -3,6 +3,7 @@ package com.skytrace.backend.evidence.service;
 import com.skytrace.backend.evidence.EvidenceMaintenanceProperties;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
+import com.skytrace.backend.evidence.domain.EvidenceObjectStatus;
 import com.skytrace.backend.evidence.dto.EvidenceHashBackfillResponse;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import org.slf4j.Logger;
@@ -61,6 +62,9 @@ public class EvidenceHashBackfillService {
         int succeeded = 0;
         List<String> failures = new ArrayList<>();
         for (EvidenceAsset candidate : candidates) {
+            if (candidate.getObjectStatus() != EvidenceObjectStatus.AVAILABLE) {
+                continue;
+            }
             // 原子 UPDATE 确保多个应用实例不会同时下载和计算同一个对象。
             int updated = repository.claimHashBackfill(
                     candidate.getId(),

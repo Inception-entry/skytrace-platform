@@ -5,6 +5,7 @@ import com.skytrace.backend.evidence.domain.EvidenceArchiveJobStatus;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveScopeType;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
+import com.skytrace.backend.evidence.domain.EvidenceObjectStatus;
 import com.skytrace.backend.evidence.repository.EvidenceArchiveJobRepository;
 import com.skytrace.backend.evidence.repository.EvidenceAssetRepository;
 import com.skytrace.backend.evidence.service.EvidenceArchivePackageService;
@@ -147,7 +148,10 @@ public class EvidenceArchiveActivitiesImpl implements EvidenceArchiveActivities 
             case CASE -> throw new IllegalArgumentException(
                     "当前版本暂不支持 CASE 归档范围"
             );
-        };
+        }.stream()
+                .filter(asset -> asset.getObjectStatus()
+                        == EvidenceObjectStatus.AVAILABLE)
+                .toList();
     }
 
     private EvidenceArchiveJob requireJob(String jobCode) {

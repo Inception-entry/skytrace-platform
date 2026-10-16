@@ -122,6 +122,13 @@ class EvidenceCommandServiceTest {
     @Test
     void uploadStoresOutsideTransactionThenEnqueuesDerivative() {
         stubStoredObject();
+        when(storageService.evidenceBucket()).thenReturn("skytrace-evidence");
+        when(repository.findByEvidenceCode(any()))
+                .thenAnswer(invocation -> {
+                    EvidenceAsset reserved = new EvidenceAsset();
+                    reserved.setEvidenceCode(invocation.getArgument(0));
+                    return java.util.Optional.of(reserved);
+                });
         when(repository.save(any(EvidenceAsset.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(storageService.legacyPublicPath("skytrace-evidence", "tasks/a.jpg"))
@@ -138,7 +145,15 @@ class EvidenceCommandServiceTest {
     @Test
     void uploadDeletesObjectWhenPersistFails() {
         stubStoredObject();
+        when(storageService.evidenceBucket()).thenReturn("skytrace-evidence");
+        when(repository.findByEvidenceCode(any()))
+                .thenAnswer(invocation -> {
+                    EvidenceAsset reserved = new EvidenceAsset();
+                    reserved.setEvidenceCode(invocation.getArgument(0));
+                    return java.util.Optional.of(reserved);
+                });
         when(repository.save(any(EvidenceAsset.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0))
                 .thenThrow(new RuntimeException("db down"));
 
         assertThatThrownBy(() -> service.upload(sampleFile(), "TASK-1", null, null))
@@ -152,7 +167,15 @@ class EvidenceCommandServiceTest {
     @Test
     void uploadRecordsOrphanWhenPersistAndDeleteFail() {
         stubStoredObject();
+        when(storageService.evidenceBucket()).thenReturn("skytrace-evidence");
+        when(repository.findByEvidenceCode(any()))
+                .thenAnswer(invocation -> {
+                    EvidenceAsset reserved = new EvidenceAsset();
+                    reserved.setEvidenceCode(invocation.getArgument(0));
+                    return java.util.Optional.of(reserved);
+                });
         when(repository.save(any(EvidenceAsset.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0))
                 .thenThrow(new RuntimeException("db down"));
         doThrow(new RuntimeException("minio down"))
                 .when(storageService)

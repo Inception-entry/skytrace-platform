@@ -2,6 +2,7 @@ package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.alarm.repository.AlarmEventRepository;
 import com.skytrace.backend.common.DatabaseTimes;
+import com.skytrace.backend.common.upload.ContentDispositionNames;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJob;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJobStatus;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveScopeType;
@@ -83,7 +84,7 @@ public class EvidenceArchiveService {
         return buildUrl(
                 job.getOutputBucket(),
                 job.getOutputObjectKey(),
-                "attachment; filename=\"" + filenameOf(job.getOutputObjectKey()) + "\""
+                ContentDispositionNames.attachment(filenameOf(job.getOutputObjectKey()))
         );
     }
 
@@ -93,7 +94,7 @@ public class EvidenceArchiveService {
         return buildUrl(
                 job.getOutputBucket(),
                 job.getManifestObjectKey(),
-                "attachment; filename=\"" + filenameOf(job.getManifestObjectKey()) + "\""
+                ContentDispositionNames.attachment(filenameOf(job.getManifestObjectKey()))
         );
     }
 

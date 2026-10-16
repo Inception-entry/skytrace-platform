@@ -2,6 +2,7 @@ package com.skytrace.backend.evidence.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skytrace.backend.common.upload.UploadMagic;
+import com.skytrace.backend.common.upload.ZipEntryNames;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJob;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
 import org.springframework.stereotype.Service;
@@ -49,8 +50,10 @@ public class EvidenceManifestService {
                         asset.getBucket(),
                         asset.getObjectKey(),
                         // ZIP 内部路径以 evidenceCode 为准，避免原始文件名重复或包含不安全字符。
-                        "files/" + asset.getEvidenceCode()
-                                + resolveExtension(asset)
+                        ZipEntryNames.requireSafe(
+                                "files/" + asset.getEvidenceCode()
+                                        + resolveExtension(asset)
+                        )
                 ))
                 .toList();
     }

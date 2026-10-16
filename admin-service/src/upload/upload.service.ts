@@ -11,18 +11,27 @@ import { avatarReadStream, type InspectedAvatarUpload } from './avatar-disk'
 @Injectable()
 export class UploadService implements OnModuleInit {
   private readonly client: Minio.Client
+  private readonly presignClient: Minio.Client
   private readonly bucket: string
   private bucketReady: Promise<void> | null = null
 
   constructor(private readonly config: ConfigService) {
     this.bucket = config.get('MINIO_ADMIN_BUCKET', 'admin-avatars')
+    const accessKey = config.get('MINIO_ACCESS_KEY', '')
+    const secretKey = config.get('MINIO_SECRET_KEY', '')
     this.client = new Minio.Client({
       endPoint: config.get('MINIO_ENDPOINT', 'minio'),
       port: parseInt(config.get('MINIO_PORT', '9000')),
       useSSL: config.get('MINIO_USE_SSL', 'false') === 'true',
-      accessKey: config.get('MINIO_ACCESS_KEY', ''),
-      secretKey: config.get('MINIO_SECRET_KEY', ''),
+      accessKey,
+      secretKey,
     })
+    this.presignClient = presignClient(
+      config.get('MINIO_PUBLIC_ENDPOINT', ''),
+      this.client,
+      accessKey,
+      secretKey,
+    )
   }
 
   async onModuleInit() {
@@ -33,7 +42,10 @@ export class UploadService implements OnModuleInit {
     }
   }
 
-  async uploadAvatar(file: InspectedAvatarUpload, userId: number): Promise<string> {
+  async uploadAvatar(
+    file: InspectedAvatarUpload,
+    userId: number,
+  ): Promise<{ objectKey: string; url: string }> {
     if (!file) throw new BadRequestException('未上传文件')
 
     await this.ensureBucket()
@@ -50,8 +62,26 @@ export class UploadService implements OnModuleInit {
       stream.destroy()
     }
 
-    // Served via nginx /files/ → minio:9000
-    return `/files/${this.bucket}/${objectName}`
+    return {
+      objectKey: objectName,
+      url: await this.presign(objectName),
+    }
+  }
+
+  async displayUrl(stored: string | null): Promise<string | null> {
+    const objectKey = objectKeyOf(stored, this.bucket)
+    if (!objectKey) {
+      return stored
+    }
+    try {
+      return await this.presign(objectKey)
+    } catch {
+      return null
+    }
+  }
+
+  private presign(objectName: string): Promise<string> {
+    return this.presignClient.presignedGetObject(this.bucket, objectName, 60 * 60)
   }
 
   private ensureBucket() {
@@ -73,19 +103,38 @@ export class UploadService implements OnModuleInit {
     } catch (error) {
       if (!isBucketAlreadyExists(error)) throw error
     }
-    await this.client.setBucketPolicy(
-      this.bucket,
-      JSON.stringify({
-        Version: '2012-10-17',
-        Statement: [
-          {
-            Effect: 'Allow',
-            Principal: '*',
-            Action: ['s3:GetObject'],
-            Resource: [`arn:aws:s3:::${this.bucket}/*`],
-          },
-        ],
-      }),
-    )
+    // 新建桶默认私有。不要写入 Statement 为空的策略，MinIO 会直接返回 400。
   }
+}
+
+function presignClient(
+  publicEndpoint: string,
+  internal: Minio.Client,
+  accessKey: string,
+  secretKey: string,
+): Minio.Client {
+  if (!publicEndpoint) {
+    return internal
+  }
+  const url = new URL(publicEndpoint)
+  const useSSL = url.protocol === 'https:'
+  return new Minio.Client({
+    endPoint: url.hostname,
+    port: url.port ? parseInt(url.port, 10) : (useSSL ? 443 : 80),
+    useSSL,
+    accessKey,
+    secretKey,
+  })
+}
+
+function objectKeyOf(stored: string | null, bucket: string): string | null {
+  if (!stored) return null
+  const publicPrefix = `/files/${bucket}/`
+  if (stored.startsWith(publicPrefix)) {
+    return stored.slice(publicPrefix.length)
+  }
+  if (/^\d+\/[0-9a-f-]+\.(jpg|png|webp)$/.test(stored)) {
+    return stored
+  }
+  return null
 }

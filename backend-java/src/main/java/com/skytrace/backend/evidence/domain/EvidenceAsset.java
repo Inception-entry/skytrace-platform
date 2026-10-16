@@ -37,6 +37,10 @@ public class EvidenceAsset {
     @Column(name = "source_type", nullable = false, length = 32)
     private EvidenceSourceType sourceType = EvidenceSourceType.MANUAL_UPLOAD;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "object_status", nullable = false, length = 32)
+    private EvidenceObjectStatus objectStatus = EvidenceObjectStatus.AVAILABLE;
+
     @Column(name = "content_hash", length = 128)
     private String contentHash;
 
@@ -190,6 +194,14 @@ public class EvidenceAsset {
 
     public void setSourceType(EvidenceSourceType sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public EvidenceObjectStatus getObjectStatus() {
+        return objectStatus;
+    }
+
+    public void setObjectStatus(EvidenceObjectStatus objectStatus) {
+        this.objectStatus = objectStatus;
     }
 
     public String getContentHash() {

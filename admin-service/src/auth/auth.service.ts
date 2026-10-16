@@ -10,6 +10,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
 import { DUMMY_PASSWORD_HASH } from './dummy-password-hash'
 import { resolveJwtSecrets, type JwtSecrets } from './jwt-secrets'
+import { UploadService } from '../upload/upload.service'
 
 interface AccessJwtPayload {
   sub: number
@@ -59,6 +60,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private uploadService: UploadService,
     config: ConfigService,
   ) {
     this.secrets = resolveJwtSecrets({
@@ -179,7 +181,7 @@ export class AuthService {
       username: user.username,
       nickname: user.nickname,
       email: user.email,
-      avatar: user.avatar,
+      avatar: await this.uploadService.displayUrl(user.avatar),
     }
   }
 
@@ -228,7 +230,7 @@ export class AuthService {
       username: user.username,
       nickname: user.nickname,
       email: user.email,
-      avatar: user.avatar,
+      avatar: await this.uploadService.displayUrl(user.avatar),
       roles,
       permissions,
       menus,

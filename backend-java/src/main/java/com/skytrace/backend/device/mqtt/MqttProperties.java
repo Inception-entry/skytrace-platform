@@ -12,6 +12,8 @@ public class MqttProperties {
     private String password = "";
     /** 仅用于本地自签 mqtts；生产必须为 false 并配置受信 CA。 */
     private boolean tlsInsecure = false;
+    /** 多实例时用共享订阅，避免每台 Java 都收到同一条遥测。 */
+    private boolean sharedSubscription = true;
 
     public boolean isEnabled() {
         return enabled;
@@ -67,5 +69,13 @@ public class MqttProperties {
 
     public void setTlsInsecure(boolean tlsInsecure) {
         this.tlsInsecure = tlsInsecure;
+    }
+
+    public boolean isSharedSubscription() {
+        return sharedSubscription;
+    }
+
+    public void setSharedSubscription(boolean sharedSubscription) {
+        this.sharedSubscription = sharedSubscription;
     }
 }

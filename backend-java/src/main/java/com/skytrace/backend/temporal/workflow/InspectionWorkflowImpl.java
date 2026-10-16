@@ -52,7 +52,16 @@ public class InspectionWorkflowImpl implements InspectionWorkflow {
         startedAtEpochMs = Workflow.currentTimeMillis();
         activities.updateStatus(taskCode, status);
 
-        boolean completedInTime = Workflow.await(MAX_RUN_DURATION, () -> finished);
+        int timeoutVersion = Workflow.getVersion(
+                "planned-timeout",
+                Workflow.DEFAULT_VERSION,
+                1
+        );
+        Duration timeout = MAX_RUN_DURATION;
+        if (timeoutVersion == 1) {
+            timeout = Duration.ofMillis(activities.plannedTimeoutMillis(taskCode));
+        }
+        boolean completedInTime = Workflow.await(timeout, () -> finished);
         if (!completedInTime && !finished) {
             status = "TIMED_OUT";
             finishReason = "max_run_duration_exceeded";

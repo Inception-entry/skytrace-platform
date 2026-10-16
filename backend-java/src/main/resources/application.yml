@@ -69,6 +69,8 @@ app:
     issuer-uri: ${AUTH_JWT_ISSUER_URI:http://localhost:8180/realms/skytrace}
     audience: ${AUTH_JWT_AUDIENCE:skytrace-web}
     client-id: ${AUTH_JWT_CLIENT_ID:skytrace-web}
+    jwks-refresh-cooldown-ms: ${AUTH_JWKS_REFRESH_COOLDOWN_MS:10000}
+    jwks-unknown-ttl-ms: ${AUTH_JWKS_UNKNOWN_TTL_MS:30000}
   ai:
     base-url: ${AI_BASE_URL:http://localhost:8000}
     connect-timeout: ${AI_CONNECT_TIMEOUT:3s}
@@ -129,6 +131,7 @@ app:
     username: ${MQTT_USERNAME:}
     password: ${MQTT_PASSWORD:}
     tls-insecure: ${MQTT_TLS_INSECURE:false}
+    shared-subscription: ${MQTT_SHARED_SUBSCRIPTION:true}
 
 management:
   endpoints:

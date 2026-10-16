@@ -1,8 +1,10 @@
 package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
+import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
 import com.skytrace.backend.evidence.domain.EvidenceDerivativeStatus;
+import com.skytrace.backend.evidence.domain.EvidenceObjectStatus;
 import com.skytrace.backend.evidence.domain.EvidenceReviewStatus;
 import com.skytrace.backend.evidence.domain.EvidenceSourceType;
 import com.skytrace.backend.evidence.dto.EvidenceUploadResponse;
@@ -60,41 +62,96 @@ public class EvidenceCommandService {
             String taskCode,
             String alarmEventCode,
             String deviceCode) {
-        EvidenceStorageService.StoredObject stored =
-                storageService.store(file, taskCode);
+        String evidenceCode = nextEvidenceCode();
+        transactionTemplate.executeWithoutResult(status ->
+                reserveUpload(evidenceCode, taskCode, alarmEventCode, deviceCode)
+        );
+        EvidenceStorageService.StoredObject stored;
+        try {
+            stored = storageService.store(file, taskCode);
+        } catch (RuntimeException exception) {
+            markFailed(evidenceCode);
+            throw exception;
+        }
         try {
             return transactionTemplate.execute(status ->
-                    persistUpload(stored, taskCode, alarmEventCode, deviceCode)
+                    persistUpload(
+                            evidenceCode,
+                            stored,
+                            taskCode,
+                            alarmEventCode,
+                            deviceCode
+                    )
             );
         } catch (RuntimeException exception) {
             compensateStoredObject(stored);
+            markFailed(evidenceCode);
             throw exception;
         }
     }
 
-    private EvidenceUploadResponse persistUpload(
-            EvidenceStorageService.StoredObject stored,
+    private void reserveUpload(
+            String evidenceCode,
             String taskCode,
             String alarmEventCode,
             String deviceCode) {
         EvidenceActorContext actor = actorContextService.current();
-
         EvidenceAsset asset = new EvidenceAsset();
-        asset.setEvidenceCode(nextEvidenceCode());
-        asset.setObjectKey(stored.objectKey());
-        asset.setBucket(stored.bucket());
-        asset.setAssetType(stored.assetType());
+        asset.setEvidenceCode(evidenceCode);
+        asset.setObjectKey("pending/" + evidenceCode);
+        asset.setBucket(storageService.evidenceBucket());
+        asset.setObjectStatus(EvidenceObjectStatus.PENDING_UPLOAD);
+        asset.setAssetType(EvidenceAssetType.IMAGE);
         asset.setSourceType(EvidenceSourceType.MANUAL_UPLOAD);
         asset.setReviewStatus(EvidenceReviewStatus.PENDING);
-        asset.setContentType(stored.contentType());
-        asset.setOriginalFilename(stored.originalFilename());
-        asset.setSizeBytes(stored.sizeBytes());
+        asset.setContentType("application/octet-stream");
+        asset.setSizeBytes(0);
         asset.setTaskCode(blankToNull(taskCode));
         asset.setAlarmEventCode(blankToNull(alarmEventCode));
         asset.setDeviceCode(blankToNull(deviceCode));
         asset.setUploadedBy(actor.actorId());
         asset.setUploadedByName(actor.username());
         asset.setDerivativeStatus(EvidenceDerivativeStatus.PENDING);
+        repository.save(asset);
+    }
+
+    private void markFailed(String evidenceCode) {
+        try {
+            transactionTemplate.executeWithoutResult(status ->
+                    repository.findByEvidenceCode(evidenceCode).ifPresent(asset -> {
+                        asset.setObjectStatus(EvidenceObjectStatus.FAILED);
+                        repository.save(asset);
+                    })
+            );
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "event=evidence_mark_failed evidenceCode={} reason={}",
+                    evidenceCode,
+                    exception.toString()
+            );
+        }
+    }
+
+    private EvidenceUploadResponse persistUpload(
+            String evidenceCode,
+            EvidenceStorageService.StoredObject stored,
+            String taskCode,
+            String alarmEventCode,
+            String deviceCode) {
+        EvidenceAsset asset = repository.findByEvidenceCode(evidenceCode)
+                .orElseThrow(() -> new IllegalStateException(
+                        "证据上传预留记录不存在"
+                ));
+        asset.setObjectKey(stored.objectKey());
+        asset.setBucket(stored.bucket());
+        asset.setAssetType(stored.assetType());
+        asset.setObjectStatus(EvidenceObjectStatus.AVAILABLE);
+        asset.setContentType(stored.contentType());
+        asset.setOriginalFilename(stored.originalFilename());
+        asset.setSizeBytes(stored.sizeBytes());
+        asset.setTaskCode(blankToNull(taskCode));
+        asset.setAlarmEventCode(blankToNull(alarmEventCode));
+        asset.setDeviceCode(blankToNull(deviceCode));
         repository.save(asset);
         accessLogService.recordUpload(asset);
         outboxWriter.enqueueDerivative(asset.getEvidenceCode());

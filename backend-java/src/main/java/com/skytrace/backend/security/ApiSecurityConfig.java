@@ -118,7 +118,11 @@ public class ApiSecurityConfig {
             @Value("${app.security.issuer-uri}")
             String issuerUri,
             @Value("${app.security.audience}")
-            String audience) {
+            String audience,
+            @Value("${app.security.jwks-refresh-cooldown-ms:10000}")
+            long jwksRefreshCooldownMs,
+            @Value("${app.security.jwks-unknown-ttl-ms:30000}")
+            long jwksUnknownTtlMs) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder
                 .withJwkSetUri(jwkSetUri)
                 .build();
@@ -128,7 +132,11 @@ public class ApiSecurityConfig {
                 issuerValidator,
                 audienceValidator(audience)
         ));
-        return decoder;
+        return new CooldownJwtDecoder(
+                decoder,
+                jwksRefreshCooldownMs,
+                jwksUnknownTtlMs
+        );
     }
 
     private OAuth2TokenValidator<Jwt> audienceValidator(

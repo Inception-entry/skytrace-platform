@@ -2,6 +2,7 @@ package com.skytrace.backend.evidence.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skytrace.backend.common.upload.ZipEntryNames;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJob;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJobStatus;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
@@ -144,9 +145,12 @@ public class EvidenceArchiveIntegrityService {
         ); ZipInputStream zip = new ZipInputStream(source)) {
             // 只读取第一个小条目，不解压后续大文件；完整 ZIP 已在前一步完成 SHA-256 校验。
             ZipEntry firstEntry = zip.getNextEntry();
+            String entryName = firstEntry == null
+                    ? null
+                    : ZipEntryNames.requireSafe(firstEntry.getName());
             if (firstEntry == null
                     || firstEntry.isDirectory()
-                    || !MANIFEST_ENTRY.equals(firstEntry.getName())) {
+                    || !MANIFEST_ENTRY.equals(entryName)) {
                 throw new IllegalStateException(
                         "归档包首个条目不是 manifest.json"
                 );

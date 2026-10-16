@@ -72,6 +72,10 @@ public class EvidenceStorageService {
     ) {
     }
 
+    public String evidenceBucket() {
+        return properties.getEvidenceBucket();
+    }
+
     public StoredObject store(
             MultipartFile file,
             String taskCode) {

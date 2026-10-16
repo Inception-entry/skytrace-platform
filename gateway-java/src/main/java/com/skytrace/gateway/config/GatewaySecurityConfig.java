@@ -1,5 +1,6 @@
 package com.skytrace.gateway.config;
 
+import com.skytrace.gateway.security.CooldownReactiveJwtDecoder;
 import com.skytrace.gateway.security.GatewaySecurityErrorHandler;
 import com.skytrace.gateway.security.KeycloakRealmRoleConverter;
 import org.springframework.beans.factory.annotation.Value;
@@ -135,7 +136,11 @@ public class GatewaySecurityConfig {
             @Value("${gateway.security.issuer-uri:}")
             String issuerUri,
             @Value("${gateway.security.audience:}")
-            String audience) {
+            String audience,
+            @Value("${gateway.security.jwks-refresh-cooldown-ms:10000}")
+            long jwksRefreshCooldownMs,
+            @Value("${gateway.security.jwks-unknown-ttl-ms:30000}")
+            long jwksUnknownTtlMs) {
         if (!StringUtils.hasText(jwkSetUri)) {
             throw new IllegalStateException(
                     "启用 Gateway 鉴权时必须配置 GATEWAY_JWT_JWK_SET_URI"
@@ -160,7 +165,11 @@ public class GatewaySecurityConfig {
         } else {
             decoder.setJwtValidator(issuerValidator);
         }
-        return decoder;
+        return new CooldownReactiveJwtDecoder(
+                decoder,
+                jwksRefreshCooldownMs,
+                jwksUnknownTtlMs
+        );
     }
 
     private OAuth2TokenValidator<Jwt> audienceValidator(String audience) {

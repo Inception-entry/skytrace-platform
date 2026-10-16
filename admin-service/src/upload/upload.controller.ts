@@ -16,9 +16,9 @@ export class UploadController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
   ) {
-    const url = await withAvatarDiskUpload(file, (part) =>
+    const uploaded = await withAvatarDiskUpload(file, (part) =>
       this.uploadService.uploadAvatar(part, user.id),
     )
-    return { url }
+    return uploaded
   }
 }

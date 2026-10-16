@@ -2,6 +2,7 @@ package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.common.DatabaseTimes;
 import com.skytrace.backend.evidence.domain.EvidenceAsset;
+import com.skytrace.backend.evidence.domain.EvidenceObjectStatus;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveStatus;
 import com.skytrace.backend.evidence.domain.EvidenceReviewStatus;
@@ -72,7 +73,11 @@ public class EvidenceQueryService {
                             alarm
                     );
         }
-        return assets.stream().map(this::toLegacyResponse).toList();
+        return assets.stream()
+                .filter(asset -> asset.getObjectStatus()
+                        == EvidenceObjectStatus.AVAILABLE)
+                .map(this::toLegacyResponse)
+                .toList();
     }
 
     public EvidencePageResponse search(EvidenceSearchRequest request) {
@@ -115,7 +120,8 @@ public class EvidenceQueryService {
 
     public EvidenceAsset requireActive(String evidenceCode) {
         EvidenceAsset asset = requireAny(evidenceCode);
-        if (asset.isDeleted()) {
+        if (asset.isDeleted()
+                || asset.getObjectStatus() != EvidenceObjectStatus.AVAILABLE) {
             throw new NoSuchElementException("证据不存在或已删除");
         }
         return asset;
@@ -140,6 +146,10 @@ public class EvidenceQueryService {
             if (!includeDeleted) {
                 predicates.add(cb.isFalse(root.get("deleted")));
             }
+            predicates.add(cb.equal(
+                    root.get("objectStatus"),
+                    EvidenceObjectStatus.AVAILABLE
+            ));
             String taskCode = blankToNull(request.taskCode());
             if (taskCode != null) {
                 predicates.add(cb.equal(root.get("taskCode"), taskCode));

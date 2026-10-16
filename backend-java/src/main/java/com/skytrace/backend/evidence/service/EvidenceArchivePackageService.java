@@ -1,6 +1,7 @@
 package com.skytrace.backend.evidence.service;
 
 import com.skytrace.backend.evidence.MinioProperties;
+import com.skytrace.backend.common.upload.ZipEntryNames;
 import com.skytrace.backend.evidence.domain.EvidenceArchiveJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -278,7 +279,7 @@ public class EvidenceArchivePackageService {
             EvidenceManifestService.ArchivedEvidenceFile file,
             byte[] transferBuffer) throws IOException {
         // archivePath 同时出现在 manifest、checksums 和 ZIP 中，三处必须完全一致。
-        zip.putNextEntry(new ZipEntry(file.archivePath()));
+        zip.putNextEntry(new ZipEntry(ZipEntryNames.requireSafe(file.archivePath())));
         // MinIO 返回的流只在当前 entry 生命周期内保持打开。
         try (InputStream source = storageService.getObjectStream(
                 file.bucket(),
@@ -296,7 +297,7 @@ public class EvidenceArchivePackageService {
             String name,
             byte[] content) throws IOException {
         // manifest 和 checksums 体积很小，可以直接写入当前 ZIP entry。
-        zip.putNextEntry(new ZipEntry(name));
+        zip.putNextEntry(new ZipEntry(ZipEntryNames.requireSafe(name)));
         // 写入调用方已经生成好的 UTF-8 元数据字节。
         zip.write(content);
         // 成功写完的 entry 必须显式结束，后续条目才能拥有独立边界。

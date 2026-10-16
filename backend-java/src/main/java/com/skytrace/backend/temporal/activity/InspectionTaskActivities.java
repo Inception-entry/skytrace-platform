@@ -17,4 +17,10 @@ public interface InspectionTaskActivities {
 
     @ActivityMethod
     void updateStatus(String taskCode, String status);
+
+    /**
+     * 本次运行最多再等待的毫秒数，按计划结束时间夹在 1 分钟到 24 小时之间。
+     */
+    @ActivityMethod
+    long plannedTimeoutMillis(String taskCode);
 }

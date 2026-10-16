@@ -7,6 +7,7 @@ import * as bcrypt from 'bcryptjs'
 import { AuthService } from './auth.service'
 import { DUMMY_PASSWORD_HASH } from './dummy-password-hash'
 import { PrismaService } from '../prisma/prisma.service'
+import { UploadService } from '../upload/upload.service'
 
 const mockPrisma: {
   user: { findUnique: jest.Mock; findUniqueOrThrow: jest.Mock; update: jest.Mock }
@@ -75,6 +76,12 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
         { provide: ConfigService, useValue: mockConfig },
+        {
+          provide: UploadService,
+          useValue: {
+            displayUrl: async (stored: string | null) => stored,
+          },
+        },
       ],
     }).compile()
 

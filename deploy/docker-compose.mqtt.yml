@@ -50,6 +50,7 @@ services:
       MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-skytrace-backend-java}
       MQTT_USERNAME: ${MQTT_BACKEND_USERNAME:-backend}
       MQTT_PASSWORD: ${MQTT_BACKEND_PASSWORD:-skytrace-mqtt-backend}
+      MQTT_SHARED_SUBSCRIPTION: ${MQTT_SHARED_SUBSCRIPTION:-true}
     depends_on:
       mqtt:
         condition: service_started
