@@ -136,8 +136,8 @@ public class EvidenceArchiveActivitiesImpl implements EvidenceArchiveActivities 
     }
 
     private List<EvidenceAsset> loadAssets(EvidenceArchiveJob job) {
-        return switch (job.getScopeType()) {
-            // 第一版只支持按任务或告警做确定性归档，避免开放复杂条件导出。
+        // 第一版只支持按任务或告警做确定性归档，避免开放复杂条件导出。
+        List<EvidenceAsset> assets = switch (job.getScopeType()) {
             case TASK -> assetRepository.findByTaskCodeAndDeletedFalseOrderByCreatedAtAsc(
                     job.getScopeValue()
             );
@@ -148,7 +148,8 @@ public class EvidenceArchiveActivitiesImpl implements EvidenceArchiveActivities 
             case CASE -> throw new IllegalArgumentException(
                     "当前版本暂不支持 CASE 归档范围"
             );
-        }.stream()
+        };
+        return assets.stream()
                 .filter(asset -> asset.getObjectStatus()
                         == EvidenceObjectStatus.AVAILABLE)
                 .toList();

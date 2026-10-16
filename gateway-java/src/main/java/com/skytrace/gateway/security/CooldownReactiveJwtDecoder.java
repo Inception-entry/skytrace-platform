@@ -1,6 +1,7 @@
 package com.skytrace.gateway.security;
 
 import com.nimbusds.jwt.JWTParser;
+import com.nimbusds.jwt.SignedJWT;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -97,7 +98,10 @@ public final class CooldownReactiveJwtDecoder implements ReactiveJwtDecoder {
 
     private static String headerKid(String token) {
         try {
-            String kid = JWTParser.parse(token).getHeader().getKeyID();
+            if (!(JWTParser.parse(token) instanceof SignedJWT signed)) {
+                throw unknownKid();
+            }
+            String kid = signed.getHeader().getKeyID();
             if (kid == null || kid.isBlank() || kid.length() > MAX_KID_LENGTH) {
                 throw unknownKid();
             }

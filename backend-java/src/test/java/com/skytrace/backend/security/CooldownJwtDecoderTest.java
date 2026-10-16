@@ -59,7 +59,7 @@ class CooldownJwtDecoderTest {
 
     private static String unsignedToken(String kid) {
         String header = Base64.getUrlEncoder().withoutPadding().encodeToString(
-                ("{\"alg\":\"none\",\"kid\":\"" + kid + "\"}")
+                ("{\"alg\":\"HS256\",\"kid\":\"" + kid + "\"}")
                         .getBytes(StandardCharsets.UTF_8)
         );
         String payload = Base64.getUrlEncoder().withoutPadding().encodeToString(
