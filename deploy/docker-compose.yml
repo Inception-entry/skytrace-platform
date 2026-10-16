@@ -30,6 +30,11 @@ services:
       - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
     networks:
       - backend
 
@@ -76,6 +81,12 @@ services:
       - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
     networks:
       - backend
 
@@ -271,13 +282,19 @@ services:
       - "127.0.0.1:${JAVA_PORT}:8080"
     expose:
       - "8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
       minio:
         condition: service_started
       temporal:
@@ -328,13 +345,13 @@ services:
       start_period: 10s
     depends_on:
       backend-java:
-        condition: service_started
+        condition: service_healthy
       keycloak:
         condition: service_started
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     networks:
       - backend
 
@@ -385,7 +402,7 @@ services:
       keycloak:
         condition: service_started
       redis:
-        condition: service_started
+        condition: service_healthy
     networks:
       - edge
       - backend
@@ -453,7 +470,7 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     networks:
       - backend
 
