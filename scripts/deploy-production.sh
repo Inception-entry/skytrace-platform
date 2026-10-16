@@ -132,6 +132,10 @@ rollback_service() {
 rollback_release() {
   local failed="$1"
   echo "=== Deploy failed at ${failed}; rolling back this release ==="
+  if [[ -f .pending-db-backup ]]; then
+    echo "本次发布前备份：$(tr -d '\r\n' < .pending-db-backup)"
+    echo "若 backend-java 已经跑过 Flyway，只退镜像不够，需先按该备份恢复业务库。"
+  fi
   if [[ -z "${PREV_TAG:-}" ]]; then
     echo "No previous IMAGE_TAG in .current-image-tag; cannot unwind partial deploy" >&2
     return 1
@@ -181,6 +185,19 @@ main() {
 
   echo "=== Production deploy: ${IMAGE_TAG} (digest pinned) ==="
 
+  if [[ "${SKYTRACE_PREDEPLOY_BACKUP:-}" == "1" ]]; then
+    local backup_log
+    backup_log="$(bash "${REPO_ROOT}/scripts/mysql-backup.sh")"
+    printf '%s\n' "$backup_log"
+    local backup_object
+    backup_object="$(printf '%s\n' "$backup_log" | awk -F': ' '/^Uploaded to MinIO: /{print $2; exit}')"
+    if [[ -z "$backup_object" ]]; then
+      echo "预发布备份没有得到 MinIO 对象路径" >&2
+      exit 1
+    fi
+    printf '%s\n' "$backup_object" > .pending-db-backup
+  fi
+
   # Pull all new images first (fail-fast before touching any running container)
   compose pull
 
@@ -199,6 +216,18 @@ main() {
 
   echo "${IMAGE_TAG}" > .current-image-tag
   cp "${app_dir}/.release-manifest.json" .current-release-manifest
+  local predeploy_backup=""
+  if [[ -f .pending-db-backup ]]; then
+    predeploy_backup="$(tr -d '\r\n' < .pending-db-backup)"
+  fi
+  python3 "${REPO_ROOT}/scripts/schema_rollback_gate.py" record \
+    --compat "${REPO_ROOT}/deploy/schema-compat.json" \
+    --tag "${IMAGE_TAG}" \
+    --previous-tag="${PREV_TAG}" \
+    --stack production \
+    --backup="${predeploy_backup}" \
+    --output "${app_dir}/.current-release-record"
+  rm -f .pending-db-backup
 
   if [[ -f deploy/.env ]]; then
     set +e

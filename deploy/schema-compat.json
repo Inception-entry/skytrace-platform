@@ -1,0 +1,4 @@
+{
+  "flywayVersion": 25,
+  "imageRollbackSafeThrough": 25
+}

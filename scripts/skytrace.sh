@@ -7,6 +7,7 @@ ENV_FILE="${SKYTRACE_ENV_FILE:-$ROOT_DIR/deploy/.env}"
 COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.yml"
 MQTT_COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.mqtt.yml"
 MQTT_TLS_COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.mqtt-tls.yml"
+MONITORING_COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.monitoring.yml"
 
 compose() {
   docker compose \
@@ -30,6 +31,14 @@ compose_mqtt_tls() {
     -f "$COMPOSE_FILE" \
     -f "$MQTT_COMPOSE_FILE" \
     -f "$MQTT_TLS_COMPOSE_FILE" \
+    "$@"
+}
+
+compose_monitoring() {
+  docker compose \
+    --env-file "$ENV_FILE" \
+    -f "$COMPOSE_FILE" \
+    -f "$MONITORING_COMPOSE_FILE" \
     "$@"
 }
 
@@ -60,6 +69,10 @@ show_help() {
   skytrace.sh mqtt-tls-start       同上，并启用本地自签 mqtts（需先 mqtt-gen-certs）
   skytrace.sh mqtt-stop            停止 Mosquitto + device-sim
   skytrace.sh mqtt-logs            查看 MQTT / device-sim 日志
+  skytrace.sh backup               备份 MySQL 业务库到 MinIO
+  skytrace.sh rollback-plan        查看发布机上的回退单（只判断，不改运行中的服务）
+  skytrace.sh monitoring-start     启动 Prometheus / Grafana / Loki
+  skytrace.sh monitoring-stop      停止监控栈
   skytrace.sh cleanup              停栈并清理 orphan（端口 500 时先跑这个）
   skytrace.sh help                 显示帮助
 
@@ -272,6 +285,28 @@ print(token)
       exit 1
     fi
     compose_mqtt logs -f mqtt device-sim
+    ;;
+  backup)
+    bash "$ROOT_DIR/scripts/mysql-backup.sh"
+    ;;
+  rollback-plan)
+    APP_DIR="${APP_DIR:-$ROOT_DIR}" bash "$ROOT_DIR/scripts/rollback-release.sh" --plan "${1:-production}"
+    ;;
+  monitoring-start)
+    if [[ ! -f "$MONITORING_COMPOSE_FILE" ]]; then
+      echo "缺少监控叠加文件：$MONITORING_COMPOSE_FILE"
+      exit 1
+    fi
+    compose_monitoring up -d
+    echo "监控栈已启动。Grafana 默认 http://127.0.0.1:$(env_value_or_default GRAFANA_PORT 3030)"
+    ;;
+  monitoring-stop)
+    if [[ ! -f "$MONITORING_COMPOSE_FILE" ]]; then
+      echo "缺少监控叠加文件：$MONITORING_COMPOSE_FILE"
+      exit 1
+    fi
+    compose_monitoring stop prometheus grafana loki promtail alertmanager cadvisor node-exporter || true
+    echo "监控栈已停止"
     ;;
   help | -h | --help)
     show_help

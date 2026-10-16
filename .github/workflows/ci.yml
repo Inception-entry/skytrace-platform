@@ -278,11 +278,7 @@ jobs:
             http://127.0.0.1:11434/api/tags 30 "Ollama mock"
 
       - name: Validate Compose configuration
-        run: |
-          docker compose \
-            --env-file "$SKYTRACE_ENV_FILE" \
-            -f deploy/docker-compose.yml \
-            config --quiet
+        run: bash scripts/ci/validate-compose-overlays.sh
 
       - name: Build application images
         run: |

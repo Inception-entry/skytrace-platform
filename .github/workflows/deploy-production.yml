@@ -65,7 +65,7 @@ jobs:
           host: ${{ secrets.PROD_SSH_HOST }}
           username: ${{ secrets.PROD_SSH_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          envs: IMAGE_TAG,REGISTRY,SKYTRACE_DOMAIN,GHCR_PAT,GHCR_USER
+          envs: IMAGE_TAG,REGISTRY,SKYTRACE_DOMAIN,GHCR_PAT,GHCR_USER,SKYTRACE_PREDEPLOY_BACKUP
           script: |
             set -euo pipefail
             echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
@@ -79,6 +79,7 @@ jobs:
           SKYTRACE_DOMAIN: ${{ secrets.PROD_DOMAIN }}
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
           GHCR_USER: ${{ github.repository_owner }}
+          SKYTRACE_PREDEPLOY_BACKUP: "1"
 
       - name: Tag release in git
         if: steps.config.outputs.enabled == 'true'

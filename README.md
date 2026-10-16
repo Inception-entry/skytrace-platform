@@ -1,12 +1,26 @@
 # SkyTrace（天巡智控）
 
-SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计追溯”的全栈平台，中文产品名为“天巡智控”。它不是单一服务，而是一套由业务端、独立后台、网关、核心业务、AI 服务和本地基础设施组成的可运行架构。
+SkyTrace（天巡智控）是一套可本地跑起来的无人机巡检平台：三维航迹、实时告警、证据归档、知识库问答和审计追溯放在同一套系统里。业务端、管理端、网关、核心业务、AI 服务和本地基础设施可以一起启动。
 
-当前平台版本：**1.3.0**（发版说明见 `[docs/releases/v1.3.0.md](docs/releases/v1.3.0.md)`。历史见 `[v1.2.2.md](docs/releases/v1.2.2.md)`、`[v1.2.1.md](docs/releases/v1.2.1.md)`、`[v1.2.0.md](docs/releases/v1.2.0.md)`、`[v1.1.0.md](docs/releases/v1.1.0.md)`、`[v1.0.0.md](docs/releases/v1.0.0.md)`）。
+英文检索可以用 **SkyTrace**、**UAV inspection platform**、**drone inspection**、**3D flight tracking**。中文检索可以用 **天巡智控**、**无人机巡检**、**实时告警**、**证据链**、**巡检知识库**。
 
-运维速查见 `[docs/ops.md](docs/ops.md)`。
-数据治理（MySQL 备份、MinIO 生命周期、Qdrant 重建）见 `[docs/data-governance.md](docs/data-governance.md)`。
-测试分层与任务/航线/遥测覆盖见 `[docs/testing.md](docs/testing.md)`。
+## 技术关键词
+
+| 场景 | 关键词 |
+| --- | --- |
+| 三维与实时 | Vue 3、TypeScript、Cesium、航迹回放、MQTT、Mosquitto、Socket.IO、Redis |
+| 业务与编排 | Spring Boot、Spring Cloud Gateway、NestJS、Temporal、MySQL、RabbitMQ、巡检任务、航线 |
+| 身份与权限 | Keycloak、OIDC、JWT、RBAC、Nginx |
+| AI 与证据 | FastAPI、LangChain、Ollama、Qdrant、RAG、YOLO、MinIO、证据归档 |
+| 后台与运维 | React、Ant Design、Prisma、PostgreSQL、Docker Compose、Prometheus、Grafana、Loki |
+
+仓库名 `skytrace-platform`，产品名 SkyTrace / 天巡智控。下面的架构图和目录按这些服务展开。
+
+当前平台版本：**1.3.0**（发版说明见 [docs/releases/v1.3.0.md](docs/releases/v1.3.0.md)。历史见 [v1.2.2.md](docs/releases/v1.2.2.md)、[v1.2.1.md](docs/releases/v1.2.1.md)、[v1.2.0.md](docs/releases/v1.2.0.md)、[v1.1.0.md](docs/releases/v1.1.0.md)、[v1.0.0.md](docs/releases/v1.0.0.md)）。
+
+运维速查见 [docs/ops.md](docs/ops.md)。
+数据治理（MySQL 备份、MinIO 生命周期、Qdrant 重建）见 [docs/data-governance.md](docs/data-governance.md)。
+测试分层与任务/航线/遥测覆盖见 [docs/testing.md](docs/testing.md)。
 
 ## 技术架构
 
@@ -29,7 +43,7 @@ SkyTrace 是面向“无人机巡检、实时告警、AI 辅助分析与审计�
 - **独立后台**：React + Ant Design 管理端与 NestJS 管理服务，使用 PostgreSQL、Prisma 和 MinIO 管理用户、角色、菜单、操作日志及头像上传。
 - **部署与运维**：Docker Compose 提供本地、预发、生产与监控覆盖层；CI 包含各服务测试、依赖/镜像安全扫描、全栈与 Playwright 验收。
 
-服务职责、调用链和现阶段边界见 `[docs/architecture.md](docs/architecture.md)`；鉴权配置见 `[docs/gateway.md](docs/gateway.md)`。
+服务职责、调用链和现阶段边界见 [docs/architecture.md](docs/architecture.md)；鉴权配置见 [docs/gateway.md](docs/gateway.md)。
 
 ## 目录结构
 
@@ -165,7 +179,7 @@ Compose 会启动业务端、系统管理后台、Gateway、Node BFF、Java、AI
 ollama pull nomic-embed-text
 ```
 
-启动后访问 `http://localhost:8888/knowledge` 上传和检索文档。详细说明见 `[docs/knowledge-base.md](docs/knowledge-base.md)`。
+启动后访问 `http://localhost:8888/knowledge` 上传和检索文档。详细说明见 [docs/knowledge-base.md](docs/knowledge-base.md)。
 
 ### YOLO26 视觉推理
 
@@ -194,7 +208,7 @@ export AI_VISION_BACKEND=yolo26 AI_VISION_MODEL=yolo26n.pt AI_VISION_DEVICE=cpu
 
 > Gateway、Node、Java 与基础设施的宿主机端口只绑定到
 > `127.0.0.1`。局域网/公网业务入口只有 Nginx。Vue 使用 Keycloak PKCE
-> 登录，具体配置见 `[docs/gateway.md](docs/gateway.md)`。
+> 登录，具体配置见 [docs/gateway.md](docs/gateway.md)。
 
 > `scripts/skytrace.sh` 可以从任意目录调用，默认使用项目中的 `deploy/.env`
 > 和 Compose 文件；CI 可以通过 `SKYTRACE_ENV_FILE` 指定一次性的隔离配置。
@@ -222,7 +236,7 @@ MQTT 实时遥测链路同样是可选覆盖层，启动后 Mosquitto 与设备�
 ./scripts/skytrace.sh mqtt-stop
 ```
 
-主题划分、账号 ACL 与 TLS 证书生成见 `[docs/mqtt-device-sim-guide.md](docs/mqtt-device-sim-guide.md)`。
+主题划分、账号 ACL 与 TLS 证书生成见 [docs/mqtt-device-sim-guide.md](docs/mqtt-device-sim-guide.md)。
 
 预发和生产环境使用预构建镜像与 Caddy HTTPS 入口。生产部署还应叠加资源限制和生产模式 Keycloak：
 
@@ -502,7 +516,7 @@ Node BFF 会自动补充缺失的 `eventTime`。直接请求 Java 服务时，�
 
 
 多实例部署时 Node BFF 通过 Redis 适配器同步 Socket.IO 事件，由 `SOCKETIO_REDIS_ADAPTER`
-控制（默认开启）。扩容注意事项见 `[docs/horizontal-scaling.md](docs/horizontal-scaling.md)`。
+控制（默认开启）。扩容注意事项见 [docs/horizontal-scaling.md](docs/horizontal-scaling.md)。
 
 
 

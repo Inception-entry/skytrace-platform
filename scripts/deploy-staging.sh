@@ -106,6 +106,18 @@ prepare_overlay \
 DIGEST_OVERLAY="${APP_DIR}/.release-images.yml"
 
 echo "=== Deploying ${IMAGE_TAG} (digest pinned) ==="
+
+if [[ "${SKYTRACE_PREDEPLOY_BACKUP:-}" == "1" ]]; then
+  backup_log="$(bash "${REPO_ROOT}/scripts/mysql-backup.sh")"
+  printf '%s\n' "$backup_log"
+  backup_object="$(printf '%s\n' "$backup_log" | awk -F': ' '/^Uploaded to MinIO: /{print $2; exit}')"
+  if [[ -z "$backup_object" ]]; then
+    echo "预发布备份没有得到 MinIO 对象路径" >&2
+    exit 1
+  fi
+  printf '%s\n' "$backup_object" > .pending-db-backup
+fi
+
 compose pull
 compose up -d --no-build --remove-orphans
 
@@ -125,6 +137,18 @@ done
 
 echo "${IMAGE_TAG}" > .current-image-tag
 cp "${APP_DIR}/.release-manifest.json" .current-release-manifest
+predeploy_backup=""
+if [[ -f .pending-db-backup ]]; then
+  predeploy_backup="$(tr -d '\r\n' < .pending-db-backup)"
+fi
+python3 "${REPO_ROOT}/scripts/schema_rollback_gate.py" record \
+  --compat "${REPO_ROOT}/deploy/schema-compat.json" \
+  --tag "${IMAGE_TAG}" \
+  --previous-tag="${PREV_TAG}" \
+  --stack staging \
+  --backup="${predeploy_backup}" \
+  --output "${APP_DIR}/.current-release-record"
+rm -f .pending-db-backup
 trap - ERR
 
 if [[ -f deploy/.env ]]; then

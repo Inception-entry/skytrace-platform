@@ -95,10 +95,14 @@ export IMAGE_TAG=main-<sha> REGISTRY=ghcr.io/<org>/skytrace-platform SKYTRACE_DO
 
 ### 手动回滚
 
-1. 确认目标 tag：`cat .current-image-tag` 与 GHCR 可用 tag
-2. `IMAGE_TAG=<previous> ./scripts/deploy-production.sh`（或 staging）；`<previous>` 也必须是 `main-<sha>`，不能再发 `latest`
-3. 验证：`/gateway-health`、关键 Java `/api/health`、关键任务列表
-4. 若涉及 Flyway 不兼容的降级，**禁止**直接回滚代码；先评估迁移可逆性或恢复 DB 备份
+成功部署会在发布目录写下 `.current-release-record`：上一镜像 tag、旧代码还能跑的 Flyway 版本、可选的发布前备份对象。应用镜像七个一起退；MySQL、Keycloak、Temporal、MQTT、监控不跟这次镜像走。
+
+1. 在发布机上看判断，不改正在跑的容器：`scripts/rollback-release.sh --plan production`（预发把 `production` 换成 `staging`）
+2. 输出是「可以只退镜像」时，同一环境变量下执行 `scripts/rollback-release.sh production`。它读取回退单里的上一 tag，再走对应的发布脚本
+3. 输出要求先恢复库时，用回退单里的备份对象跑 `scripts/restore-backup.sh`，不要只退镜像
+4. 生产工作流已设置 `SKYTRACE_PREDEPLOY_BACKUP=1`。手工发布要绑定备份时同样加上这个变量。脚本默认不备份，避免没有 `mysqldump` / `mc` 的机器把发布卡死。回退单里的 Compose 文件只覆盖这次发布的七个应用镜像；MQTT 和监控写在 `outsideRelease`，不跟这次回退走
+5. 加列、加表可以继续把 `deploy/schema-compat.json` 的 `imageRollbackSafeThrough` 和 `flywayVersion` 一起往上加。删列、改类型时，把 `imageRollbackSafeThrough` 停在旧代码仍能读写的版本
+6. 验证：`/gateway-health`、关键 Java `/api/health`、关键任务列表
 
 ## 6. 备份与恢复
 
@@ -163,6 +167,7 @@ docker compose --env-file deploy/.env \
 ### Grafana
 
 - 数据源：Prometheus / Loki（自动 provisioning）
+- 浏览器警告和错误除了留在控制台，还会送到 `backend-node`、`admin-service` 的标准输出。Loki 里搜 `[skytrace-web]` 或 `[skytrace-admin]`。不入库
 - 预置：`SkyTrace Overview`（存活、HTTP 5xx、JVM Heap）
 - 账号：`admin` / `GRAFANA_ADMIN_PASSWORD`
 
