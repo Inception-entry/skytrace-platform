@@ -34,7 +34,9 @@ FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN rm -f tsconfig.tsbuildinfo \
+    && npm run build \
+    && test -f dist/main.js
 
 FROM node:20-alpine
 WORKDIR /app

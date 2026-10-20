@@ -1,0 +1,12 @@
+[Unit]
+Description=Ollama for SkyTrace Docker services
+
+[Service]
+Type=simple
+Environment=OLLAMA_HOST=172.17.0.1:11434
+ExecStart=%h/.local/bin/ollama serve
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=default.target
