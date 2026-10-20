@@ -22,15 +22,15 @@
     "js-cookie": "^3.0.5",
     "keycloak-js": "26.2.4",
     "pinia": "^4.0.3",
-    "vue": "^3.5.43",
+    "vue": "^3.5.44",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^22.20.5",
-    "@typescript-eslint/eslint-plugin": "^8.71.1",
+    "@typescript-eslint/eslint-plugin": "^8.71.2",
     "@typescript-eslint/parser": "^8.71.0",
-    "@vitejs/plugin-vue": "^6.0.9",
+    "@vitejs/plugin-vue": "^6.0.10",
     "@vue/runtime-core": "^3.5.43",
     "@vue/tsconfig": "^0.9.1",
     "eslint": "^8.57.1",
