@@ -117,8 +117,7 @@ skytrace-platform/
 本地开发：
 
 - JDK 21、Maven 3.9+
-- Node.js 20+、npm
-- 前端推荐 Node.js 22+
+- Node.js 20+、npm（BFF）；管理 API 与前端需要 Node.js 22.12+
 - Ollama，以及 `my-drone-expert` 和 `nomic-embed-text` 模型
 
 
@@ -255,8 +254,8 @@ docker compose --env-file deploy/.env \
 
 - Java 21：Spring Boot 与 Spring Cloud Gateway 的测试和 Maven 打包；
 - Python 3.12：AI 服务测试；
-- Node.js 20：BFF 与管理 API 的 lint、测试及依赖审计；
-- Node.js 22：Vue 业务端和 React 管理端的类型检查、构建及依赖审计。
+- Node.js 20：BFF 的 lint、测试及依赖审计；
+- Node.js 22：管理 API 的 lint、测试及依赖审计，以及 Vue 业务端和 React 管理端的类型检查、构建及依赖审计。
 
 上述任务全部通过后，`Docker full-stack integration` 会继续执行：
 
