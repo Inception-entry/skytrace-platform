@@ -172,7 +172,22 @@ cp deploy/.env.example deploy/.env
 
 Compose 会启动业务端、系统管理后台、Gateway、Node BFF、Java、AI、Keycloak 及其依赖服务。业务端由 Nginx 托管，并将 `/api/` 与 `/socket.io/` 统一代理到 Gateway，再由 Gateway 路由到 Node BFF。业务端审计中心为 `http://localhost:8888/audit`；系统管理后台通过 `http://localhost:8889` 访问，API 前缀为 `/admin-api`。
 
-首次使用知识库前需要准备本地嵌入模型：
+AI 容器通过 Docker 网关连接宿主机 Ollama。WSL Ubuntu 中若 Ollama 安装在
+`~/.local/bin/ollama`，且默认 Docker 网关为 `172.17.0.1`，可启用仓库提供的
+用户级自启动服务：
+
+```bash
+systemctl --user link "$PWD/deploy/systemd/skytrace-ollama.service"
+systemctl --user enable --now skytrace-ollama.service
+OLLAMA_HOST=172.17.0.1:11434 ollama create my-drone-expert -f Modelfile
+OLLAMA_HOST=172.17.0.1:11434 ollama pull nomic-embed-text
+```
+
+若 `docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}'`
+显示其他地址，先修改服务文件中的 `OLLAMA_HOST`，再执行 `systemctl --user daemon-reload`
+和 `systemctl --user restart skytrace-ollama.service`。此监听地址只供本机容器访问。
+
+其他 Ollama 部署方式在首次使用知识库前也需准备本地嵌入模型：
 
 ```bash
 ollama pull nomic-embed-text
