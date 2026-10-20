@@ -9,6 +9,8 @@ import { DUMMY_PASSWORD_HASH } from './dummy-password-hash'
 import { PrismaService } from '../prisma/prisma.service'
 import { UploadService } from '../upload/upload.service'
 
+jest.mock('minio', () => ({ Client: jest.fn() }))
+
 const mockPrisma: {
   user: { findUnique: jest.Mock; findUniqueOrThrow: jest.Mock; update: jest.Mock }
   refreshToken: {

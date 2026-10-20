@@ -2,6 +2,8 @@ import { UnauthorizedException } from '@nestjs/common'
 import { AuthService } from '../auth.service'
 import { LocalStrategy } from './local.strategy'
 
+jest.mock('minio', () => ({ Client: jest.fn() }))
+
 describe('LocalStrategy', () => {
   const authService = { validateUser: jest.fn() }
   const strategy = new LocalStrategy(authService as unknown as AuthService)
