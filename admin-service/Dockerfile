@@ -1,6 +1,7 @@
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
+COPY scripts/install-minio-compat.cjs ./scripts/install-minio-compat.cjs
 # registry 偶发断连时重试。
 RUN set -eu; \
     npm_retry() { \
@@ -14,9 +15,10 @@ RUN set -eu; \
     }; \
     npm_retry npm ci
 
-FROM node:20-alpine AS production-deps
+FROM node:22-alpine AS production-deps
 WORKDIR /app
 COPY package*.json ./
+COPY scripts/install-minio-compat.cjs ./scripts/install-minio-compat.cjs
 RUN set -eu; \
     npm_retry() { \
       i=0; \
@@ -30,7 +32,7 @@ RUN set -eu; \
     npm_retry npm ci --omit=dev; \
     npm cache clean --force
 
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -40,7 +42,7 @@ RUN rm -f tsconfig.tsbuildinfo \
     && npm run build \
     && test -f dist/main.js
 
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apk upgrade --no-cache \

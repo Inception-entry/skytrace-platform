@@ -10,6 +10,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "postinstall": "node scripts/install-minio-compat.cjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
@@ -55,6 +56,9 @@
   },
   "prisma": {
     "seed": "ts-node --transpile-only prisma/seed.ts"
+  },
+  "engines": {
+    "node": ">=22.12"
   },
   "overrides": {
     "lodash": "^4.18.1",
