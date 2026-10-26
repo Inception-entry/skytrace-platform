@@ -16,7 +16,7 @@ dependencies = [
     "qdrant-client>=1.18,<2",
     "redis>=5,<8",
     "aio-pika>=9.4,<11",
-    "pillow>=10.4,<13",
+    "pillow>=10.4,<14",
     "uvicorn[standard]>=0.35,<1",
     "urllib3>=2.8.0,<3",
 ]
