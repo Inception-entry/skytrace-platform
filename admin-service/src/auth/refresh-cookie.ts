@@ -1,7 +1,18 @@
 export const REFRESH_COOKIE_NAME = 'skytrace_admin_refresh'
 export const REFRESH_COOKIE_PATH = '/admin-api'
 export const CSRF_HEADER = 'x-skytrace-csrf'
+export const COOKIE_SESSION_HEADER = 'x-skytrace-session'
 const REFRESH_MAX_AGE_SEC = 7 * 24 * 60 * 60
+
+export function sessionResponse(tokens: {
+  access_token: string
+  refresh_token: string
+  expires_in: number
+}, cookieOnly: boolean) {
+  return cookieOnly
+    ? { access_token: tokens.access_token, expires_in: tokens.expires_in }
+    : tokens
+}
 
 export type RefreshCredential =
   | { ok: true; token: string; via: 'body' | 'cookie' }

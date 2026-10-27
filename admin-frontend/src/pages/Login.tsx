@@ -18,22 +18,21 @@ import { logClientError } from '../utils/client-log'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { setTokens, setUser } = useAuthStore()
+  const { setSession } = useAuthStore()
   const [submitting, setSubmitting] = useState(false)
 
   async function handleLogin(values: { username: string; password: string }) {
     if (submitting) return
     setSubmitting(true)
+    const version = useAuthStore.getState().sessionVersion
     try {
       await establishAdminSession(
         {
           login,
           loadMe: loadAdminProfile,
-          commit: (tokens, user) => {
-            setTokens(tokens.access_token, tokens.refresh_token)
-            setUser(user)
-          },
+          commit: setSession,
           rollback: revokeAdminSession,
+          isCurrent: () => useAuthStore.getState().sessionVersion === version,
           onRollbackFailure: reportServerRevocationFailure,
         },
         values,
