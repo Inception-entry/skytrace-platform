@@ -1,177 +1,131 @@
-import axios, {
-  AxiosError,
-  type AxiosResponse,
-  type InternalAxiosRequestConfig,
-} from 'axios'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  attachAdminAuthInterceptors,
-  type AuthRefreshDeps,
-} from './client'
+import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
+import { describe, expect, it, vi } from 'vitest'
+import { attachAdminAuthInterceptors } from './client'
 
 type MockResult = { status: number; data?: unknown }
 
 function authorization(config: InternalAxiosRequestConfig): string {
-  const headers = config.headers
-  if (headers && typeof headers.get === 'function') {
-    return String(headers.get('Authorization') ?? '')
-  }
-  return String(
-    (headers as Record<string, string> | undefined)?.Authorization ?? '',
-  )
+  return String(config.headers.get('Authorization') ?? '')
 }
 
-function createMockClient(handler: (config: InternalAxiosRequestConfig) => Promise<MockResult>) {
-  return axios.create({
+function createHarness(options: {
+  accessToken?: string | null
+  refresh?: () => Promise<string>
+  handler?: (config: InternalAxiosRequestConfig) => Promise<MockResult>
+} = {}) {
+  let accessToken = options.accessToken === undefined ? 'expired-access' : options.accessToken
+  let version = 0
+  const onSessionExpired = vi.fn(() => { accessToken = null; version += 1 })
+  const refresh = vi.fn(options.refresh ?? (async () => 'new-access'))
+  const handler = options.handler ?? (async config =>
+    authorization(config) === 'Bearer new-access' ? { status: 200, data: { ok: true } } : { status: 401 })
+  const client = axios.create({
     baseURL: '/admin-api',
     adapter: async config => {
       const result = await handler(config)
-      const response = {
-        data: result.data ?? {},
-        status: result.status,
-        statusText: result.status >= 400 ? 'Error' : 'OK',
-        headers: {},
-        config,
-      } as AxiosResponse
-      if (result.status >= 400) {
-        throw new AxiosError(
-          `Request failed with status code ${result.status}`,
-          String(result.status),
-          config,
-          null,
-          response,
-        )
-      }
+      const response = { data: result.data ?? {}, status: result.status, statusText: 'test', headers: {}, config } as AxiosResponse
+      if (result.status >= 400) throw new AxiosError('request failed', String(result.status), config, null, response)
       return response
     },
   })
-}
-
-function createHarness(
-  options?: {
-    accessToken?: string | null
-    refreshToken?: string | null
-    refreshTokens?: AuthRefreshDeps['refreshTokens']
-    handler?: (config: InternalAxiosRequestConfig) => Promise<MockResult>
-  },
-) {
-  let accessToken: string | null = options?.accessToken ?? 'expired-access'
-  let refreshToken: string | null = options?.refreshToken === undefined
-    ? 'refresh-1'
-    : options.refreshToken
-  const onSessionExpired = vi.fn(() => {
-    accessToken = null
-    refreshToken = null
-  })
-  const refreshTokens = options?.refreshTokens
-    ?? vi.fn(async () => ({
-      access_token: 'new-access',
-      refresh_token: 'new-refresh',
-    }))
-  const handler = options?.handler ?? (async config => {
-    if (authorization(config) === 'Bearer new-access') {
-      return { status: 200, data: { ok: true } }
-    }
-    return { status: 401, data: { message: 'expired' } }
-  })
-  const client = attachAdminAuthInterceptors(createMockClient(handler), {
+  attachAdminAuthInterceptors(client, {
     getAccessToken: () => accessToken,
-    getRefreshToken: () => refreshToken,
-    setTokens: (access, refresh) => {
-      accessToken = access
-      refreshToken = refresh
-    },
+    getSessionVersion: () => version,
     onSessionExpired,
-    refreshTokens,
+    refreshAccessToken: async () => { accessToken = await refresh(); return accessToken },
   })
-  return { client, onSessionExpired, refreshTokens }
+  return {
+    client, refresh, onSessionExpired,
+    changeSession: () => { version += 1; accessToken = 'another-user-access' },
+  }
 }
 
-afterEach(() => {
-  vi.useRealTimers()
-})
+function rejectedSession() {
+  return Object.assign(new Error('expired cookie'), { response: { status: 401 } })
+}
 
-describe('admin auth refresh interceptor', () => {
-  it('rejects a 401 with no refresh token and does not hang the next 401', async () => {
-    const { client, onSessionExpired, refreshTokens } = createHarness({
-      refreshToken: null,
-    })
-
-    await expect(client.get('/users')).rejects.toThrow('NO_REFRESH_TOKEN')
-    await expect(client.get('/users')).rejects.toThrow('NO_REFRESH_TOKEN')
-    expect(refreshTokens).not.toHaveBeenCalled()
-    expect(onSessionExpired).toHaveBeenCalled()
+describe('admin cookie refresh interceptor', () => {
+  it('can refresh using only the browser cookie after in-memory state is lost', async () => {
+    const { client, refresh } = createHarness({ accessToken: null })
+    await expect(client.get('/users')).resolves.toMatchObject({ data: { ok: true } })
+    expect(refresh).toHaveBeenCalledOnce()
   })
 
-  it('rejects queued 401s when refresh fails instead of leaving them pending', async () => {
-    const refreshError = new Error('refresh-failed')
-    const { client, onSessionExpired, refreshTokens } = createHarness({
-      refreshTokens: vi.fn(async () => {
-        throw refreshError
-      }),
-    })
-
-    const first = client.get('/users')
-    const second = client.get('/roles')
-    await expect(first).rejects.toBe(refreshError)
-    await expect(second).rejects.toBe(refreshError)
-    expect(refreshTokens).toHaveBeenCalledTimes(1)
-    expect(onSessionExpired).toHaveBeenCalledTimes(1)
+  it('rejects all queued requests when the cookie is expired', async () => {
+    const error = rejectedSession()
+    const { client, refresh, onSessionExpired } = createHarness({ refresh: async () => { throw error } })
+    const results = await Promise.allSettled([client.get('/users'), client.get('/roles')])
+    expect(results).toEqual([{ status: 'rejected', reason: error }, { status: 'rejected', reason: error }])
+    expect(refresh).toHaveBeenCalledOnce()
+    expect(onSessionExpired).toHaveBeenCalledOnce()
   })
 
-  it('single-flights ten concurrent 401s and replays all of them', async () => {
-    let inFlight = 0
-    let maxInFlight = 0
-    const refreshTokens = vi.fn(async () => {
-      inFlight += 1
-      maxInFlight = Math.max(maxInFlight, inFlight)
-      await new Promise(resolve => setTimeout(resolve, 30))
-      inFlight -= 1
-      return { access_token: 'new-access', refresh_token: 'new-refresh' }
+  it('single-flights ten concurrent 401s and replays them', async () => {
+    const { client, refresh } = createHarness({
+      refresh: async () => { await new Promise(resolve => setTimeout(resolve, 20)); return 'new-access' },
     })
-    const { client } = createHarness({ refreshTokens })
-
-    const results = await Promise.all(
-      Array.from({ length: 10 }, () => client.get('/users')),
-    )
-
-    expect(results.map(result => result.data)).toEqual(
-      Array.from({ length: 10 }, () => ({ ok: true })),
-    )
-    expect(refreshTokens).toHaveBeenCalledTimes(1)
-    expect(maxInFlight).toBe(1)
+    const results = await Promise.all(Array.from({ length: 10 }, () => client.get('/users')))
+    expect(results.every(result => result.status === 200)).toBe(true)
+    expect(refresh).toHaveBeenCalledOnce()
   })
 
-  it('does not loop when the replayed request is still 401', async () => {
-    const refreshTokens = vi.fn(async () => ({
-      access_token: 'new-access',
-      refresh_token: 'new-refresh',
-    }))
+  it('does not revoke the session on a temporary refresh failure and can retry', async () => {
+    let attempt = 0
+    const error = Object.assign(new Error('unavailable'), { response: { status: 503 } })
     const { client, onSessionExpired } = createHarness({
-      refreshTokens,
-      handler: async () => ({ status: 401, data: { message: 'still-expired' } }),
+      refresh: async () => { if (++attempt === 1) throw error; return 'new-access' },
     })
+    await expect(client.get('/users')).rejects.toBe(error)
+    expect(onSessionExpired).not.toHaveBeenCalled()
+    await expect(client.get('/users')).resolves.toMatchObject({ status: 200 })
+  })
 
-    await expect(client.get('/users')).rejects.toMatchObject({
-      response: { status: 401 },
-    })
-    expect(refreshTokens).toHaveBeenCalledTimes(1)
+  it('stops after one replay and expires a still-rejected session', async () => {
+    const { client, refresh, onSessionExpired } = createHarness({ handler: async () => ({ status: 401 }) })
+    await expect(client.get('/users')).rejects.toMatchObject({ response: { status: 401 } })
+    expect(refresh).toHaveBeenCalledOnce()
+    expect(onSessionExpired).toHaveBeenCalledOnce()
+  })
+
+  it('does not refresh authentication handshake errors', async () => {
+    const { client, refresh, onSessionExpired } = createHarness()
+    for (const url of ['/auth/login', '/auth/refresh', '/auth/logout', '/auth/session/logout']) {
+      await expect(client.post(url, {})).rejects.toMatchObject({ response: { status: 401 } })
+    }
+    expect(refresh).not.toHaveBeenCalled()
     expect(onSessionExpired).not.toHaveBeenCalled()
   })
 
-  it('does not refresh login, refresh or logout 401s', async () => {
-    const { client, refreshTokens, onSessionExpired } = createHarness()
+  it('reuses a refreshed token when an older request returns a late 401', async () => {
+    let release!: () => void
+    const delayed = new Promise<void>(resolve => { release = resolve })
+    const { client, refresh } = createHarness({
+      handler: async config => {
+        if (authorization(config) === 'Bearer new-access') return { status: 200 }
+        if (config.url === '/slow') await delayed
+        return { status: 401 }
+      },
+    })
+    const slow = client.get('/slow')
+    await client.get('/fast')
+    release()
+    await expect(slow).resolves.toMatchObject({ status: 200 })
+    expect(refresh).toHaveBeenCalledOnce()
+  })
 
-    await expect(client.post('/auth/login', {})).rejects.toMatchObject({
-      response: { status: 401 },
+  it('never retries a previous user request with a different session', async () => {
+    let release!: () => void
+    let started!: () => void
+    const delayed = new Promise<void>(resolve => { release = resolve })
+    const entered = new Promise<void>(resolve => { started = resolve })
+    const { client, refresh, changeSession } = createHarness({
+      handler: async () => { started(); await delayed; return { status: 401 } },
     })
-    await expect(client.post('/auth/refresh', {})).rejects.toMatchObject({
-      response: { status: 401 },
-    })
-    await expect(client.post('/auth/logout', {})).rejects.toMatchObject({
-      response: { status: 401 },
-    })
-    expect(refreshTokens).not.toHaveBeenCalled()
-    expect(onSessionExpired).not.toHaveBeenCalled()
+    const pending = client.get('/users')
+    await entered
+    changeSession()
+    release()
+    await expect(pending).rejects.toThrow('SESSION_CHANGED')
+    expect(refresh).not.toHaveBeenCalled()
   })
 })
