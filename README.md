@@ -270,7 +270,13 @@ docker compose --env-file deploy/.env \
 - Java 21：Spring Boot 与 Spring Cloud Gateway 的测试和 Maven 打包；
 - Python 3.12：AI 服务测试；
 - Node.js 20：BFF 的 lint、测试及依赖审计；
-- Node.js 22：管理 API 的 lint、测试及依赖审计，以及 Vue 业务端和 React 管理端的类型检查、构建及依赖审计。
+- Node.js 22：管理 API 的 lint、编译、测试、MinIO 运行时兼容检查及依赖审计，以及 Vue 业务端和 React 管理端的类型检查、构建及依赖审计。
+
+管理 API 的认证单测会 mock MinIO；真实依赖另由 `cd admin-service && npm run check:runtime`
+验证，包括客户端初始化、对象键解码和 JSONL 流解析。该检查无需启动 MinIO，生产依赖安装
+（`npm ci --omit=dev`）后也可执行。
+管理 API 使用独立的非增量生产编译配置，并检查 `dist/main.js` 是否生成；CI 连续构建两次，
+防止清理输出目录后沿用旧缓存、编译成功却没有产物。
 
 上述任务全部通过后，`Docker full-stack integration` 会继续执行：
 
