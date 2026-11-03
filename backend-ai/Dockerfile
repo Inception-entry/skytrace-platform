@@ -37,7 +37,8 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
       uv sync --locked --group vision --no-dev; \
     else \
       uv sync --locked --no-dev; \
-    fi
+    fi \
+    && uv cache clean
 
 ENV PATH="/app/.venv/bin:$PATH" \
     HOME=/tmp
