@@ -1598,15 +1598,15 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28,<1" },
     { name = "langchain-ollama", specifier = ">=1,<2" },
     { name = "langchain-text-splitters", specifier = ">=1,<2" },
-    { name = "msgpack", specifier = ">=1.2.3,<2" },
+    { name = "msgpack", specifier = ">=1.2.3" },
     { name = "pillow", specifier = ">=13,<14" },
     { name = "pydantic-settings", specifier = ">=2.10,<3" },
     { name = "pypdf", specifier = ">=6.21.4,<7" },
     { name = "python-multipart", specifier = ">=0.0.20,<1" },
     { name = "qdrant-client", specifier = ">=1.18,<2" },
     { name = "redis", specifier = ">=5,<8" },
-    { name = "setuptools", specifier = ">=78.1.1,<84" },
-    { name = "urllib3", specifier = ">=2.8.0,<3" },
+    { name = "setuptools", specifier = ">=78.1.1" },
+    { name = "urllib3", specifier = ">=2.8.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35,<1" },
 ]
 
