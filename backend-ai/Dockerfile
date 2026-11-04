@@ -27,6 +27,9 @@ RUN set -eux; \
     apt_retry install -y --no-install-recommends ffmpeg; \
     rm -rf /var/lib/apt/lists/*
 
+# 👉 在这里升级系统的 pip 和 setuptools，修复 Trivy 扫出的高危漏洞
+RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools>=78.1.1"
+
 COPY pyproject.toml uv.lock ./
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
       uv sync --locked --group vision --no-dev --no-install-project; \
