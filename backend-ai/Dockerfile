@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.13.1 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.7 AS uv
 
 FROM python:3.12-slim
 
@@ -11,7 +11,9 @@ ARG INSTALL_VISION=0
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_PYTHON=/usr/local/bin/python \
+    UV_PYTHON_DOWNLOADS=never
 
 RUN set -eux; \
     apt_retry() { apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 "$@"; }; \
@@ -37,7 +39,8 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
       uv sync --locked --group vision --no-dev; \
     else \
       uv sync --locked --no-dev; \
-    fi
+    fi \
+    && uv cache clean
 
 ENV PATH="/app/.venv/bin:$PATH" \
     HOME=/tmp

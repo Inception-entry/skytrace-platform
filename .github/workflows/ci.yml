@@ -347,6 +347,13 @@ jobs:
               "$image"
           done
 
+      - name: Reclaim Docker build cache before integration stack
+        run: |
+          docker system df
+          docker builder prune --all --force
+          docker image prune --force
+          df -h /
+
       - name: Start backend integration stack
         run: |
           scripts/ci/compose-with-retry.sh \

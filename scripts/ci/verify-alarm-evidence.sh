@@ -43,7 +43,7 @@ api_request() {
   local path="$2"
   local body="${3:-}"
   local -a arguments=(
-    --fail
+    --fail-with-body
     --silent
     --show-error
     -X "$method"
@@ -53,7 +53,12 @@ api_request() {
   if [[ -n "$body" ]]; then
     arguments+=(-H "Content-Type: application/json" --data "$body")
   fi
-  curl "${arguments[@]}" "$GATEWAY_URL$path"
+  local response
+  if ! response="$(curl "${arguments[@]}" "$GATEWAY_URL$path")"; then
+    printf '%s\n' "$response" >&2
+    return 1
+  fi
+  printf '%s' "$response"
 }
 
 create_payload="$(
@@ -69,15 +74,35 @@ api_request POST "/api/inspection-tasks/$TASK_CODE/start" '{}' >/dev/null
 printf '巡检任务已启动：%s\n' "$TASK_CODE"
 
 evidence_file="$(mktemp --suffix=.png)"
-printf '\x89PNG\r\n\x1a\n' > "$evidence_file"
-evidence_response="$(
-  curl --fail --silent --show-error \
+python3 - "$evidence_file" <<'PY'
+import binascii
+import struct
+import sys
+import zlib
+
+def chunk(kind, data):
+    payload = kind + data
+    return struct.pack(">I", len(data)) + payload + struct.pack(">I", binascii.crc32(payload) & 0xFFFFFFFF)
+
+png = b"\x89PNG\r\n\x1a\n"
+png += chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+png += chunk(b"IDAT", zlib.compress(b"\x00\x00\x00\x00\xff"))
+png += chunk(b"IEND", b"")
+with open(sys.argv[1], "wb") as image:
+    image.write(png)
+PY
+if ! evidence_response="$(
+  curl --fail-with-body --silent --show-error \
     -X POST \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -F "file=@${evidence_file};type=image/png" \
     -F "taskCode=${TASK_CODE}" \
     "$GATEWAY_URL/api/evidence"
-)"
+)"; then
+  printf '%s\n' "$evidence_response" >&2
+  rm -f "$evidence_file"
+  exit 1
+fi
 rm -f "$evidence_file"
 object_key="$(json_value data.objectKey <<<"$evidence_response")"
 if [[ -z "$object_key" ]]; then
