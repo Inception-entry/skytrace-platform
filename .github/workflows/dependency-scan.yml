@@ -32,20 +32,57 @@ jobs:
             path: backend-ai
     steps:
       - uses: actions/checkout@v6
+      - name: Install Trivy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=v0.74.0
+          ver="${version#v}"
+          asset="trivy_${ver}_Linux-64bit.tar.gz"
+          checksums="trivy_${ver}_checksums.txt"
+          dest="${RUNNER_TEMP}/trivy-install"
+          mkdir -p "$dest"
+          download() {
+            gh release download "$version" \
+              --repo aquasecurity/trivy \
+              --pattern "$asset" \
+              --pattern "$checksums" \
+              --dir "$dest" \
+              --clobber
+          }
+          for attempt in 1 2 3; do
+            if download; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "failed to download Trivy ${version}" >&2
+              exit 1
+            fi
+            sleep $((attempt * 5))
+          done
+          (
+            cd "$dest"
+            sha256sum --ignore-missing -c "$checksums"
+            tar -xzf "$asset" trivy
+            mkdir -p "$HOME/.local/bin"
+            install -m 0755 trivy "$HOME/.local/bin/trivy"
+          )
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/trivy" --version
       - name: Scan ${{ matrix.name }} dependencies
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: ${{ matrix.path }}
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          exit-code: '1'
-          ignore-unfixed: true
-          format: sarif
-          limit-severities-for-sarif: true
-          output: trivy-${{ matrix.name }}.sarif
+        run: |
+          trivy fs \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --format sarif \
+            --limit-severities-for-sarif \
+            --output "trivy-${{ matrix.name }}.sarif" \
+            "${{ matrix.path }}"
       - name: Upload SARIF results
-        if: always()
+        if: always() && hashFiles(format('trivy-{0}.sarif', matrix.name)) != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-${{ matrix.name }}.sarif
