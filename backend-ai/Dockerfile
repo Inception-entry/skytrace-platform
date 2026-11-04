@@ -12,8 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=never \
-    UV_PYTHON_PREFERENCE=only-system
+    UV_PYTHON=/usr/local/bin/python \
+    UV_PYTHON_DOWNLOADS=never
 
 RUN set -eux; \
     apt_retry() { apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 "$@"; }; \
