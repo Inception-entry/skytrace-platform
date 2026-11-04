@@ -32,6 +32,16 @@ jobs:
             path: backend-ai
     steps:
       - uses: actions/checkout@v6
+      - name: Set up Java and Maven cache
+        if: endsWith(matrix.name, '-java')
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Populate Maven dependency cache
+        if: endsWith(matrix.name, '-java')
+        run: scripts/ci/mvn-with-retry.sh -f "${{ matrix.path }}/pom.xml" dependency:resolve
       - name: Install Trivy
         env:
           GH_TOKEN: ${{ github.token }}
