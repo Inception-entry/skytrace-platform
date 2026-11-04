@@ -47,6 +47,7 @@
   },
   "overrides": {
     "dompurify": "3.4.17",
+    "js-yaml": "^4.3.2",
     "source-map-js": "1.2.2"
   }
 }
