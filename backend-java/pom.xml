@@ -15,7 +15,7 @@
     <properties>
         <java.version>21</java.version>
         <temporal.version>1.40.0</temporal.version>
-        <minio.version>8.6.0</minio.version>
+        <minio.version>9.0.4</minio.version>
         <!-- CVE-2025-14813: override MinIO's transitive 1.81 -->
         <bouncycastle.version>1.86</bouncycastle.version>
         <!-- CVE-2026-63337 / CVE-2026-69219 / CVE-2026-69220: Boot 4.1.1 仍锁 5.30.0 -->
