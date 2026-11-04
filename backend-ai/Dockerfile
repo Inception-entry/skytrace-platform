@@ -12,7 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=never
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PYTHON_PREFERENCE=only-system
 
 RUN set -eux; \
     apt_retry() { apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 "$@"; }; \
@@ -28,16 +29,16 @@ RUN set -eux; \
 
 COPY pyproject.toml uv.lock ./
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
-      uv sync --python /usr/local/bin/python3.12 --locked --group vision --no-dev --no-install-project; \
+      uv sync --locked --group vision --no-dev --no-install-project; \
     else \
-      uv sync --python /usr/local/bin/python3.12 --locked --no-dev --no-install-project; \
+      uv sync --locked --no-dev --no-install-project; \
     fi
 
 COPY app ./app
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
-      uv sync --python /usr/local/bin/python3.12 --locked --group vision --no-dev; \
+      uv sync --locked --group vision --no-dev; \
     else \
-      uv sync --python /usr/local/bin/python3.12 --locked --no-dev; \
+      uv sync --locked --no-dev; \
     fi \
     && uv cache clean
 
