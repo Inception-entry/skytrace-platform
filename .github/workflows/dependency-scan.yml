@@ -78,7 +78,6 @@ jobs:
             --exit-code 1 \
             --ignore-unfixed \
             --format sarif \
-            --limit-severities-for-sarif \
             --output "trivy-${{ matrix.name }}.sarif" \
             "${{ matrix.path }}"
       - name: Upload SARIF results
