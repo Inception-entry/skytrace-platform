@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.13.1 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.7 AS uv
 
 FROM python:3.13-slim
 
@@ -11,7 +11,8 @@ ARG INSTALL_VISION=0
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
 
 RUN set -eux; \
     apt_retry() { apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 "$@"; }; \
@@ -27,16 +28,16 @@ RUN set -eux; \
 
 COPY pyproject.toml uv.lock ./
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
-      uv sync --locked --group vision --no-dev --no-install-project; \
+      uv sync --python /usr/local/bin/python3.12 --locked --group vision --no-dev --no-install-project; \
     else \
-      uv sync --locked --no-dev --no-install-project; \
+      uv sync --python /usr/local/bin/python3.12 --locked --no-dev --no-install-project; \
     fi
 
 COPY app ./app
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
-      uv sync --locked --group vision --no-dev; \
+      uv sync --python /usr/local/bin/python3.12 --locked --group vision --no-dev; \
     else \
-      uv sync --locked --no-dev; \
+      uv sync --python /usr/local/bin/python3.12 --locked --no-dev; \
     fi \
     && uv cache clean
 
