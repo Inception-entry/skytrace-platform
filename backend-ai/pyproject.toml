@@ -5,18 +5,21 @@ description = "SkyTrace AI service powered by LangChain and Ollama"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "anyio>=4.14.2",
+    "certifi>=2026.10.18,<2027",
     "h2>=4.4.1",
     "fastapi>=0.116,<1",
     "httpx>=0.28,<1",
     "langchain-ollama>=1,<2",
     "langchain-text-splitters>=1,<2",
+    "msgpack>=1.2.3,<2",
     "pydantic-settings>=2.10,<3",
-    "pypdf>=6.19.0,<7",
+    "pypdf>=6.21.4,<7",
     "python-multipart>=0.0.20,<1",
     "qdrant-client>=1.18,<2",
     "redis>=5,<8",
+    "setuptools>=78.1.1,<84",
     "aio-pika>=9.4,<11",
-    "pillow>=10.4,<13",
+    "pillow>=13,<14",
     "uvicorn[standard]>=0.35,<1",
     "urllib3>=2.8.0,<3",
 ]
