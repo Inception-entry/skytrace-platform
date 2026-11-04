@@ -5,38 +5,20 @@ import axios, {
 } from 'axios'
 import { useAuthStore } from '../store/auth'
 import { logClientError, logClientWarn } from '../utils/client-log'
+import { isSessionRejected } from './cookieSession'
 
-type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
+type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean; _sessionVersion?: number }
 
 export type AuthRefreshDeps = {
   getAccessToken: () => string | null
-  getRefreshToken: () => string | null
-  setTokens: (accessToken: string, refreshToken: string) => void
+  getSessionVersion: () => number
   onSessionExpired: () => void
-  refreshTokens: (refreshToken: string) => Promise<{
-    access_token: string
-    refresh_token: string
-  }>
+  refreshAccessToken: () => Promise<string>
 }
 
 function isAuthHandshake(config: InternalAxiosRequestConfig): boolean {
   const path = `${config.baseURL ?? ''}${config.url ?? ''}`
-  return /\/auth\/(login|refresh|logout)(?:\?|$)/.test(path)
-}
-
-async function defaultRefreshTokens(refreshToken: string) {
-  const { data } = await axios.post<{
-    access_token: string
-    refresh_token: string
-  }>(
-    '/admin-api/auth/refresh',
-    refreshToken ? { refresh_token: refreshToken } : {},
-    {
-      withCredentials: true,
-      headers: { 'X-Skytrace-CSRF': '1' },
-    },
-  )
-  return data
+  return /\/auth\/(login|refresh|logout|session\/logout)(?:\?|$)/.test(path)
 }
 
 export function attachAdminAuthInterceptors(
@@ -47,18 +29,11 @@ export function attachAdminAuthInterceptors(
 
   function refreshOnce(): Promise<string> {
     refreshPromise ??= (async () => {
-      const refreshToken = deps.getRefreshToken()
-      if (!refreshToken) {
-        deps.onSessionExpired()
-        throw new Error('NO_REFRESH_TOKEN')
-      }
       try {
-        const tokens = await deps.refreshTokens(refreshToken)
-        deps.setTokens(tokens.access_token, tokens.refresh_token)
-        return tokens.access_token
+        return await deps.refreshAccessToken()
       } catch (error) {
         logClientError('auth.refresh', error)
-        deps.onSessionExpired()
+        if (isSessionRejected(error)) deps.onSessionExpired()
         throw error
       }
     })().finally(() => {
@@ -68,6 +43,12 @@ export function attachAdminAuthInterceptors(
   }
 
   client.interceptors.request.use(config => {
+    const request = config as RetryConfig
+    const version = deps.getSessionVersion()
+    if (request._sessionVersion !== undefined && request._sessionVersion !== version) {
+      return Promise.reject(new Error('SESSION_CHANGED'))
+    }
+    request._sessionVersion = version
     const token = deps.getAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -85,13 +66,22 @@ export function attachAdminAuthInterceptors(
         original._retry ||
         isAuthHandshake(original)
       ) {
+        if (error.response?.status === 401 && original?._retry
+          && original._sessionVersion === deps.getSessionVersion()) deps.onSessionExpired()
         logAdminHttpError(error)
         return Promise.reject(error)
       }
 
       original._retry = true
+      if (original._sessionVersion !== deps.getSessionVersion()) {
+        return Promise.reject(new Error('SESSION_CHANGED'))
+      }
       try {
-        const token = await refreshOnce()
+        // A delayed 401 may arrive after another request already refreshed.
+        const current = deps.getAccessToken()
+        const token = current && original.headers.Authorization !== `Bearer ${current}`
+          ? current
+          : await refreshOnce()
         original.headers.Authorization = `Bearer ${token}`
         return client(original)
       } catch (refreshError) {
@@ -108,11 +98,9 @@ const client = axios.create({ baseURL: '/admin-api', withCredentials: true })
 
 attachAdminAuthInterceptors(client, {
   getAccessToken: () => useAuthStore.getState().accessToken,
-  getRefreshToken: () => useAuthStore.getState().refreshToken,
-  setTokens: (accessToken, refreshToken) =>
-    useAuthStore.getState().setTokens(accessToken, refreshToken),
-  onSessionExpired: () => useAuthStore.getState().logout(),
-  refreshTokens: defaultRefreshTokens,
+  getSessionVersion: () => useAuthStore.getState().sessionVersion,
+  onSessionExpired: () => useAuthStore.getState().expireSession(),
+  refreshAccessToken: () => useAuthStore.getState().refreshAccessToken(),
 })
 
 function logAdminHttpError(error: AxiosError): void {

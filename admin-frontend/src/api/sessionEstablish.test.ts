@@ -4,6 +4,7 @@ import {
   ADMIN_ME_PATH,
   AdminLoginRejectedError,
   AdminProfileLoadError,
+  AdminSessionChangedError,
   establishAdminSession,
   loadAdminProfile,
   loginFailureMessage,
@@ -58,10 +59,9 @@ describe('establishAdminSession', () => {
     expect(rollback).not.toHaveBeenCalled()
   })
 
-  it('rolls back captured tokens and never commits when /me fails', async () => {
+  it('rolls back the cookie session and never commits when /me fails', async () => {
     const login = vi.fn(async () => ({
       access_token: 'access-1',
-      refresh_token: 'refresh-1',
       expires_in: 900,
     }))
     const loadMe = vi.fn(async () => {
@@ -77,16 +77,12 @@ describe('establishAdminSession', () => {
       ),
     ).rejects.toBeInstanceOf(AdminProfileLoadError)
     expect(commit).not.toHaveBeenCalled()
-    expect(rollback).toHaveBeenCalledWith({
-      accessToken: 'access-1',
-      refreshToken: 'refresh-1',
-    })
+    expect(rollback).toHaveBeenCalledWith()
   })
 
   it('commits only after login and /me both succeed', async () => {
     const tokens = {
       access_token: 'access-1',
-      refresh_token: 'refresh-1',
       expires_in: 900,
     }
     const login = vi.fn(async () => tokens)
@@ -112,7 +108,6 @@ describe('establishAdminSession', () => {
         {
           login: async () => ({
             access_token: 'access-1',
-            refresh_token: 'refresh-1',
             expires_in: 900,
           }),
           loadMe: async () => {
@@ -129,6 +124,37 @@ describe('establishAdminSession', () => {
     ).rejects.toBeInstanceOf(AdminProfileLoadError)
     expect(onRollbackFailure).toHaveBeenCalledWith(rollbackError)
   })
+
+  it('ignores a login response after another tab changes the session', async () => {
+    let current = true
+    const loadMe = vi.fn()
+    const commit = vi.fn()
+    const rollback = vi.fn()
+    await expect(establishAdminSession({
+      login: async () => { current = false; return { access_token: 'old', expires_in: 900 } },
+      loadMe, commit, rollback, isCurrent: () => current,
+    }, { username: 'admin', password: 'ok' })).rejects.toBeInstanceOf(AdminSessionChangedError)
+    expect(loadMe).not.toHaveBeenCalled()
+    expect(commit).not.toHaveBeenCalled()
+    expect(rollback).not.toHaveBeenCalled()
+  })
+
+  it.each([false, true])('never commits or revokes a changed session after /me settles (failure=%s)', async fail => {
+    let current = true
+    const commit = vi.fn()
+    const rollback = vi.fn()
+    await expect(establishAdminSession({
+      login: async () => ({ access_token: 'old', expires_in: 900 }),
+      loadMe: async () => {
+        current = false
+        if (fail) throw new Error('old profile failed')
+        return user
+      },
+      commit, rollback, isCurrent: () => current,
+    }, { username: 'admin', password: 'ok' })).rejects.toBeInstanceOf(AdminSessionChangedError)
+    expect(commit).not.toHaveBeenCalled()
+    expect(rollback).not.toHaveBeenCalled()
+  })
 })
 
 describe('loginFailureMessage', () => {
@@ -138,6 +164,9 @@ describe('loginFailureMessage', () => {
     )
     expect(loginFailureMessage(new AdminProfileLoadError())).toBe(
       '登录成功但无法获取用户信息，已撤销会话',
+    )
+    expect(loginFailureMessage(new AdminSessionChangedError())).toBe(
+      '会话已在其他页面变更，请重新登录',
     )
   })
 })

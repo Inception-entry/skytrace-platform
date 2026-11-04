@@ -1,31 +1,22 @@
 import axios from 'axios'
 import { logClientWarn } from '../utils/client-log'
+import { withAdminSessionLock } from './cookieSession'
 
-export const ADMIN_LOGOUT_PATH = '/admin-api/auth/logout'
+export const ADMIN_LOGOUT_PATH = '/admin-api/auth/session/logout'
 export const REVOKE_TIMEOUT_MS = 5000
 
-export type AdminSessionTokens = {
-  accessToken: string | null
-  refreshToken: string | null
-}
-
-export async function revokeAdminSession(
-  tokens: AdminSessionTokens,
-): Promise<void> {
-  await axios.post(
+export async function revokeAdminSession(): Promise<void> {
+  await withAdminSessionLock(() => axios.post(
     ADMIN_LOGOUT_PATH,
-    tokens.refreshToken ? { refresh_token: tokens.refreshToken } : {},
+    {},
     {
       timeout: REVOKE_TIMEOUT_MS,
       withCredentials: true,
       headers: {
         'X-Skytrace-CSRF': '1',
-        ...(tokens.accessToken
-          ? { Authorization: `Bearer ${tokens.accessToken}` }
-          : {}),
       },
     },
-  )
+  ))
 }
 
 export function reportServerRevocationFailure(error: unknown): void {
@@ -33,16 +24,18 @@ export function reportServerRevocationFailure(error: unknown): void {
 }
 
 export async function endAdminSession(deps: {
-  getTokens: () => AdminSessionTokens
   clearLocalAuth: () => void
-  revokeSession: (tokens: AdminSessionTokens) => Promise<void>
+  waitForRefresh?: () => Promise<unknown>
+  revokeSession: () => Promise<void>
   redirectToLogin: () => void
+  // eslint-disable-next-line no-unused-vars
   onRevokeFailure?: (error: unknown) => void
 }): Promise<void> {
-  const tokens = deps.getTokens()
   deps.clearLocalAuth()
+  // Let a pending rotation finish before clearing the browser's current cookie.
+  await deps.waitForRefresh?.().catch(() => {})
   try {
-    await deps.revokeSession(tokens)
+    await deps.revokeSession()
   } catch (error) {
     deps.onRevokeFailure?.(error)
   } finally {
