@@ -12,11 +12,13 @@ import { ChangePasswordDto } from './dto/change-password.dto'
 import { Log } from '../common/decorators/log.decorator'
 import {
   CSRF_HEADER,
+  COOKIE_SESSION_HEADER,
   readCookie,
   REFRESH_COOKIE_NAME,
   refreshClearCookie,
   refreshSetCookie,
   resolveRefreshCredential,
+  sessionResponse,
 } from './refresh-cookie'
 
 @Controller('auth')
@@ -28,10 +30,15 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @Log('系统', '登录')
-  async login(@CurrentUser() user: RequestUser, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @CurrentUser() user: RequestUser,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const tokens = await this.authService.login(user.id, user.username)
+    res.setHeader('Cache-Control', 'no-store')
     res.setHeader('Set-Cookie', refreshSetCookie(tokens.refresh_token))
-    return tokens
+    return sessionResponse(tokens, req.get(COOKIE_SESSION_HEADER) === 'cookie')
   }
 
   @AuthRateLimit('refresh')
@@ -45,9 +52,30 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const credential = this.credential(dto, req)
-    const tokens = await this.authService.refresh(credential.token)
-    res.setHeader('Set-Cookie', refreshSetCookie(tokens.refresh_token))
-    return tokens
+    res.setHeader('Cache-Control', 'no-store')
+    try {
+      const tokens = await this.authService.refresh(credential.token)
+      res.setHeader('Set-Cookie', refreshSetCookie(tokens.refresh_token))
+      // A cookie must never be exchangeable for a JS-readable refresh token.
+      return sessionResponse(tokens, credential.via === 'cookie')
+    } catch (error) {
+      if (credential.via === 'cookie' && error instanceof UnauthorizedException) {
+        res.setHeader('Set-Cookie', refreshClearCookie())
+      }
+      throw error
+    }
+  }
+
+  @Post('session/logout')
+  @Log('系统', 'Cookie 会话登出')
+  @HttpCode(204)
+  async logoutCookieSession(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    // The refresh cookie authenticates this operation; access tokens may have
+    // expired or may not exist yet when rolling back a failed /me request.
+    const credential = this.credential({}, req)
+    res.setHeader('Cache-Control', 'no-store')
+    await this.authService.logout(credential.token)
+    res.setHeader('Set-Cookie', refreshClearCookie())
   }
 
   @UseGuards(JwtAuthGuard)

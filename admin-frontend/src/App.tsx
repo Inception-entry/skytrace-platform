@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Button, Result, Spin } from 'antd'
 import { AdminLayout } from './layouts/AdminLayout'
 import { LoginPage } from './pages/Login'
 import { DashboardPage } from './pages/Dashboard'
@@ -8,13 +10,30 @@ import { MenusPage } from './pages/Menus'
 import { LogsPage } from './pages/Logs'
 import { RequirePermission } from './components/RequirePermission'
 import { useAuthStore } from './store/auth'
+import { subscribeToSessionChange } from './store/sessionSignals'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { accessToken } = useAuthStore()
-  return accessToken ? <>{children}</> : <Navigate to="/login" replace />
+  const { accessToken, user, status, restoreSession } = useAuthStore()
+  useEffect(() => {
+    if (status === 'unknown') void restoreSession()
+  }, [status, restoreSession])
+
+  if (status === 'unknown' || status === 'restoring' || status === 'logging-out') {
+    return <div role="status" style={{ padding: 48, textAlign: 'center' }}>
+      <Spin /> {status === 'logging-out' ? '正在退出登录…' : '正在恢复会话…'}
+    </div>
+  }
+  if (status === 'unavailable') {
+    return <Result status="warning" title="暂时无法恢复会话" subTitle="请检查网络后重试。"
+      extra={<Button onClick={() => void restoreSession()}>重试</Button>} />
+  }
+  return accessToken && user ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 export default function App() {
+  useEffect(() => subscribeToSessionChange(() => {
+    useAuthStore.getState().expireSession()
+  }), [])
   return (
     <BrowserRouter>
       <Routes>
