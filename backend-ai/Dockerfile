@@ -45,14 +45,14 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
     fi \
     && uv cache clean
 
-# 💥 核心修复：1. 强行物理删除系统全局 Python 路径里 70.3.0 的残余目录
+# 1. 物理删除系统全局里所有可能残留的 70.3.0 元数据
 RUN rm -rf /usr/local/lib/python3.12/site-packages/setuptools-70.3.0* \
            /usr/local/lib/python3.12/site-packages/setuptools \
            /usr/lib/python3/dist-packages/setuptools*
 
-# 💥 核心修复：2. 强制在全局环境与虚拟环境中同时覆盖安装最新安全版本
-RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade "setuptools>=78.1.1" \
-    && /app/.venv/bin/python -m pip install --no-cache-dir --upgrade "setuptools>=78.1.1"
+# 2. 干净利落地使用 uv pip 升级虚拟环境中的 setuptools（不依赖 venv 自带 pip）
+RUN uv pip install --system --no-cache-dir --upgrade "setuptools>=78.1.1" \
+    && uv pip install --no-cache-dir --upgrade "setuptools>=78.1.1"
 
 ENV PATH="/app/.venv/bin:$PATH" \
     HOME=/tmp
