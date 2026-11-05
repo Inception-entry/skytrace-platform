@@ -43,13 +43,16 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
     else \
       uv sync --locked --no-dev; \
     fi \
-    # 2. 强制使用 uv pip 升级虚拟环境内的 setuptools
-    && uv pip install --no-cache-dir --upgrade "setuptools>=78.1.1" \
     && uv cache clean
 
-# 3. 兜底清除：强行抹除系统 site-packages 和 dist-packages 中可能残存的所有 70.3.0 旧版本目录
+# 💥 核心修复：1. 强行物理删除系统全局 Python 路径里 70.3.0 的残余目录
 RUN rm -rf /usr/local/lib/python3.12/site-packages/setuptools-70.3.0* \
-           /usr/lib/python3/dist-packages/setuptools-70.3.0*
+           /usr/local/lib/python3.12/site-packages/setuptools \
+           /usr/lib/python3/dist-packages/setuptools*
+
+# 💥 核心修复：2. 强制在全局环境与虚拟环境中同时覆盖安装最新安全版本
+RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade "setuptools>=78.1.1" \
+    && /app/.venv/bin/python -m pip install --no-cache-dir --upgrade "setuptools>=78.1.1"
 
 ENV PATH="/app/.venv/bin:$PATH" \
     HOME=/tmp
