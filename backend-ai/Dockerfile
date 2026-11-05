@@ -39,17 +39,12 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
 
 COPY app ./app
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
-      uv sync --locked --group vision --no-dev; \
+    uv sync --locked --group vision --no-dev; \
     else \
-      uv sync --locked --no-dev; \
+    uv sync --locked --no-dev; \
     fi \
+    && /app/.venv/bin/pip install --no-cache-dir --ignore-installed --upgrade "setuptools>=78.1.1" \
     && uv cache clean
-
-# 强行删除 Debian 系统自带的旧版 setuptools 残留（防止 Trivy 从系统路径扫描到）
-RUN rm -rf /usr/lib/python3/dist-packages/setuptools* /usr/local/lib/python3.12/site-packages/setuptools*
-
-# 👉 核心修复：在切用户前，强制忽略已安装的旧版本，彻底覆盖
-RUN pip install --no-cache-dir --ignore-installed --upgrade "setuptools>=78.1.1"
 
 ENV PATH="/app/.venv/bin:$PATH" \
     HOME=/tmp
