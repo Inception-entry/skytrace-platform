@@ -4,6 +4,7 @@ import com.skytrace.backend.common.ConflictException;
 import com.skytrace.backend.common.upload.UploadMagic;
 import com.skytrace.backend.evidence.MinioProperties;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
+import io.minio.http.Method;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
@@ -136,7 +137,7 @@ public class EvidenceStorageService {
         try {
             GetPresignedObjectUrlArgs.Builder builder =
                     GetPresignedObjectUrlArgs.builder()
-                            // 注意：这里不要再调用 .method(...)，直接删除以避免 Method 找不到符号
+                            .method(Method.GET)
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS);
