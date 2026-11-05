@@ -15,7 +15,6 @@ import io.minio.SetBucketPolicyArgs;
 import io.minio.StatObjectArgs;
 import io.minio.UploadObjectArgs;
 import io.minio.errors.ErrorResponseException;
-import io.minio.http.Method;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -137,7 +136,6 @@ public class EvidenceStorageService {
         try {
             GetPresignedObjectUrlArgs.Builder builder =
                     GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS);
