@@ -15,6 +15,7 @@ import io.minio.SetBucketPolicyArgs;
 import io.minio.StatObjectArgs;
 import io.minio.UploadObjectArgs;
 import io.minio.errors.ErrorResponseException;
+import io.minio.http.Method;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -133,27 +134,28 @@ public class EvidenceStorageService {
         String objectKey,
         int ttlSeconds,
         String contentDisposition) {
-    try {
-        GetPresignedObjectUrlArgs.Builder builder =
-                GetPresignedObjectUrlArgs.builder()
-                        .bucket(bucket)
-                        .object(objectKey)
-                        .expiry(ttlSeconds, TimeUnit.SECONDS);
-        if (contentDisposition != null && !contentDisposition.isBlank()) {
-            Map<String, String> extra = new LinkedHashMap<>();
-            extra.put(
-                    "response-content-disposition",
-                    contentDisposition
+        try {
+            GetPresignedObjectUrlArgs.Builder builder =
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET) // 必须显式指定 Method.GET 避免运行时报错
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .expiry(ttlSeconds, TimeUnit.SECONDS);
+            if (contentDisposition != null && !contentDisposition.isBlank()) {
+                Map<String, String> extra = new LinkedHashMap<>();
+                extra.put(
+                        "response-content-disposition",
+                        contentDisposition
+                );
+                builder.extraQueryParams(extra);
+            }
+            return presignClient.getPresignedObjectUrl(builder.build());
+        } catch (Exception exception) {
+            throw new ConflictException(
+                    "生成证据访问地址失败: " + exception.getMessage()
             );
-            builder.extraQueryParams(extra);
         }
-        return presignClient.getPresignedObjectUrl(builder.build());
-    } catch (Exception exception) {
-        throw new ConflictException(
-                "生成证据访问地址失败: " + exception.getMessage()
-        );
     }
-}
 
     public Instant expiresAt(int ttlSeconds) {
         return Instant.now().plusSeconds(ttlSeconds);
