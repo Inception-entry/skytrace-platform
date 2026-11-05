@@ -136,7 +136,7 @@ public class EvidenceStorageService {
         try {
             GetPresignedObjectUrlArgs.Builder builder =
                     GetPresignedObjectUrlArgs.builder()
-                            .method(io.minio.http.Method.GET) // 如果依然报错，可以直接改为 io.minio.Method.GET 或直接删除此行
+                            .method(io.minio.http.Method.GET)
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS);
