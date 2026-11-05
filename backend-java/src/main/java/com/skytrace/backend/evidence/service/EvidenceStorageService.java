@@ -4,7 +4,6 @@ import com.skytrace.backend.common.ConflictException;
 import com.skytrace.backend.common.upload.UploadMagic;
 import com.skytrace.backend.evidence.MinioProperties;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
-import io.minio.http.Method;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
@@ -130,32 +129,31 @@ public class EvidenceStorageService {
     }
 
     public String createPresignedGetUrl(
-            String bucket,
-            String objectKey,
-            int ttlSeconds,
-            String contentDisposition) {
-        try {
-            GetPresignedObjectUrlArgs.Builder builder =
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(bucket)
-                            .object(objectKey)
-                            .expiry(ttlSeconds, TimeUnit.SECONDS);
-            if (contentDisposition != null && !contentDisposition.isBlank()) {
-                Map<String, String> extra = new LinkedHashMap<>();
-                extra.put(
-                        "response-content-disposition",
-                        contentDisposition
-                );
-                builder.extraQueryParams(extra);
-            }
-            return presignClient.getPresignedObjectUrl(builder.build());
-        } catch (Exception exception) {
-            throw new ConflictException(
-                    "生成证据访问地址失败: " + exception.getMessage()
+        String bucket,
+        String objectKey,
+        int ttlSeconds,
+        String contentDisposition) {
+    try {
+        GetPresignedObjectUrlArgs.Builder builder =
+                GetPresignedObjectUrlArgs.builder()
+                        .bucket(bucket)
+                        .object(objectKey)
+                        .expiry(ttlSeconds, TimeUnit.SECONDS);
+        if (contentDisposition != null && !contentDisposition.isBlank()) {
+            Map<String, String> extra = new LinkedHashMap<>();
+            extra.put(
+                    "response-content-disposition",
+                    contentDisposition
             );
+            builder.extraQueryParams(extra);
         }
+        return presignClient.getPresignedObjectUrl(builder.build());
+    } catch (Exception exception) {
+        throw new ConflictException(
+                "生成证据访问地址失败: " + exception.getMessage()
+        );
     }
+}
 
     public Instant expiresAt(int ttlSeconds) {
         return Instant.now().plusSeconds(ttlSeconds);
