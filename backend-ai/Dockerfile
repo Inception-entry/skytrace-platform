@@ -43,7 +43,7 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
     else \
     uv sync --locked --no-dev; \
     fi \
-    && /app/.venv/bin/pip install --no-cache-dir --ignore-installed --upgrade "setuptools>=78.1.1" \
+    && uv pip install --no-cache-dir --upgrade "setuptools>=78.1.1" \
     && uv cache clean
 
 ENV PATH="/app/.venv/bin:$PATH" \
