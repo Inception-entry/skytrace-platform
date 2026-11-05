@@ -4,6 +4,7 @@ import com.skytrace.backend.common.ConflictException;
 import com.skytrace.backend.common.upload.UploadMagic;
 import com.skytrace.backend.evidence.MinioProperties;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
+import io.minio.http.Method;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
@@ -107,7 +108,7 @@ public class EvidenceStorageService {
                         PutObjectArgs.builder()
                                 .bucket(properties.getEvidenceBucket())
                                 .object(objectKey)
-                                .stream(body, file.getSize(), -1)
+                                .stream(body, file.getSize(), -1L) // 修正：第三个参数传入 -1L (Long 类型)
                                 .contentType(detected.contentType())
                                 .build()
                 );
@@ -130,14 +131,14 @@ public class EvidenceStorageService {
     }
 
     public String createPresignedGetUrl(
-            String bucket,
-            String objectKey,
-            int ttlSeconds,
-            String contentDisposition) {
+        String bucket,
+        String objectKey,
+        int ttlSeconds,
+        String contentDisposition) {
         try {
             GetPresignedObjectUrlArgs.Builder builder =
                     GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
+                            .method(Method.GET) // 必须显式指定 Method.GET 避免运行时报错
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS);
@@ -212,7 +213,7 @@ public class EvidenceStorageService {
                             .stream(
                                     new ByteArrayInputStream(bytes),
                                     bytes.length,
-                                    -1
+                                    -1L // 修正：传入 -1L
                             )
                             .contentType(contentType)
                             .build()
@@ -229,15 +230,12 @@ public class EvidenceStorageService {
             String objectKey,
             Path sourceFile,
             String contentType) {
-        // 在调用 MinIO 前先确认临时文件真实存在，避免把路径错误包装成难懂的 SDK 异常。
         if (sourceFile == null || !Files.isRegularFile(sourceFile)) {
             throw new IllegalArgumentException("待上传的本地文件不存在");
         }
 
         try {
-            // 上传前沿用现有逻辑确保目标证据桶已经创建。
             ensureBucket();
-            // uploadObject 让 MinIO SDK 直接读取磁盘文件，不需要先构造 byte[]。
             minioClient.uploadObject(
                     UploadObjectArgs.builder()
                             .bucket(bucket)
@@ -247,7 +245,6 @@ public class EvidenceStorageService {
                             .build()
             );
         } catch (Exception exception) {
-            // 统一转换成业务异常，让上层归档 Activity 可以记录失败状态并由 Temporal 重试。
             throw new ConflictException(
                     "上传本地归档文件失败: " + exception.getMessage()
             );
@@ -256,24 +253,20 @@ public class EvidenceStorageService {
 
     public boolean objectExists(String bucket, String objectKey) {
         try {
-            // statObject 只读取对象元数据，不会把对象内容下载到应用。
             minioClient.statObject(
                     StatObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
                             .build()
             );
-            // SDK 正常返回说明对象存在且调用方拥有读取权限。
             return true;
         } catch (ErrorResponseException exception) {
-            // MinIO 对不存在对象可能返回以下任一兼容 S3 的错误码。
             String code = exception.errorResponse().code();
             if ("NoSuchKey".equals(code)
                     || "NoSuchObject".equals(code)
                     || "NoSuchBucket".equals(code)) {
                 return false;
             }
-            // 权限、签名或服务端错误不能伪装成“不存在”，否则清理判断会失真。
             throw new ConflictException(
                     "检查证据对象失败: " + exception.getMessage()
             );
@@ -285,17 +278,14 @@ public class EvidenceStorageService {
     }
 
     public void removeEvidenceObject(String bucket, String objectKey) {
-        // 派生对象字段可能为空，清理调用方可以直接跳过而无需重复判空。
         if (objectKey == null || objectKey.isBlank()) {
             return;
         }
-        // 永远禁止维护任务通过这个方法删除 archives/ 下的归档保全产物。
         if (objectKey.startsWith("archives/")) {
             throw new IllegalArgumentException("清理任务禁止删除归档产物");
         }
 
         try {
-            // S3 删除不存在对象具有幂等语义，部分失败后的重试可以安全继续。
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(bucket)
@@ -341,16 +331,13 @@ public class EvidenceStorageService {
     }
 
     private static boolean sameEndpoint(String internal, String external) {
-        // 去掉末尾斜杠后再比较，避免纯格式差异创建第二个客户端。
         return normalizeEndpoint(internal).equals(normalizeEndpoint(external));
     }
 
     private static String normalizeEndpoint(String endpoint) {
-        // publicEndpoint 未配置时回退为空字符串，由配置默认值保证生产路径可用。
         if (endpoint == null) {
             return "";
         }
-        // MinIO endpoint 本身不需要尾部斜杠，统一后便于稳定比较。
         return endpoint.endsWith("/")
                 ? endpoint.substring(0, endpoint.length() - 1)
                 : endpoint;
