@@ -136,7 +136,7 @@ public class EvidenceStorageService {
         try {
             GetPresignedObjectUrlArgs.Builder builder =
                     GetPresignedObjectUrlArgs.builder()
-                            .method(io.minio.http.Method.GET) // 如果依然报错，可以直接改为 io.minio.Method.GET 或直接删除此行
+                            .method(io.minio.http.Method.GET)
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS);
@@ -210,8 +210,8 @@ public class EvidenceStorageService {
                             .object(objectKey)
                             .stream(
                                     new ByteArrayInputStream(bytes),
-                                    bytes.length,
-                                    -1L
+                                    (long) bytes.length, // 显式转换为 long 解决类型不匹配
+                                    -1L                  // 确保为 Long 类型
                             )
                             .contentType(contentType)
                             .build()
