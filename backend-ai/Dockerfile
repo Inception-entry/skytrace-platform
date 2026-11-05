@@ -27,8 +27,8 @@ RUN set -eux; \
     apt_retry install -y --no-install-recommends ffmpeg; \
     rm -rf /var/lib/apt/lists/*
 
-# 👉 在这里升级系统的 pip 和 setuptools，修复 Trivy 扫出的高危漏洞
-RUN pip install --no-cache-dir --ignore-installed --upgrade "pip>=26.0" "setuptools>=78.1.1"
+# 1. 在基础镜像层，强制忽略并升级全局系统解释器的 setuptools
+RUN pip install --no-cache-dir --break-system-packages --ignore-installed --upgrade "setuptools>=78.1.1"
 
 COPY pyproject.toml uv.lock ./
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
@@ -39,12 +39,17 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
 
 COPY app ./app
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
-    uv sync --locked --group vision --no-dev; \
+      uv sync --locked --group vision --no-dev; \
     else \
-    uv sync --locked --no-dev; \
+      uv sync --locked --no-dev; \
     fi \
+    # 2. 强制使用 uv pip 升级虚拟环境内的 setuptools
     && uv pip install --no-cache-dir --upgrade "setuptools>=78.1.1" \
     && uv cache clean
+
+# 3. 兜底清除：强行抹除系统 site-packages 和 dist-packages 中可能残存的所有 70.3.0 旧版本目录
+RUN rm -rf /usr/local/lib/python3.12/site-packages/setuptools-70.3.0* \
+           /usr/lib/python3/dist-packages/setuptools-70.3.0*
 
 ENV PATH="/app/.venv/bin:$PATH" \
     HOME=/tmp
