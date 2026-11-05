@@ -42,6 +42,9 @@ RUN if [ "$INSTALL_VISION" = "1" ]; then \
     fi \
     && uv cache clean
 
+# 👉 核心修复：在切用户前，强制忽略已安装的旧版本，彻底覆盖
+RUN pip install --no-cache-dir --ignore-installed --upgrade "setuptools>=78.1.1"
+
 ENV PATH="/app/.venv/bin:$PATH" \
     HOME=/tmp
 
