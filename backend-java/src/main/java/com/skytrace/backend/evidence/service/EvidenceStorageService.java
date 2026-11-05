@@ -4,7 +4,6 @@ import com.skytrace.backend.common.ConflictException;
 import com.skytrace.backend.common.upload.UploadMagic;
 import com.skytrace.backend.evidence.MinioProperties;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
-import io.minio.http.Method;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
@@ -16,7 +15,6 @@ import io.minio.SetBucketPolicyArgs;
 import io.minio.StatObjectArgs;
 import io.minio.UploadObjectArgs;
 import io.minio.errors.ErrorResponseException;
-import io.minio.http.Method;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -108,7 +106,7 @@ public class EvidenceStorageService {
                         PutObjectArgs.builder()
                                 .bucket(properties.getEvidenceBucket())
                                 .object(objectKey)
-                                .stream(body, file.getSize(), -1L) // 修正：第三个参数传入 -1L (Long 类型)
+                                .stream(body, file.getSize(), -1L)
                                 .contentType(detected.contentType())
                                 .build()
                 );
@@ -138,7 +136,7 @@ public class EvidenceStorageService {
         try {
             GetPresignedObjectUrlArgs.Builder builder =
                     GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET) // 必须显式指定 Method.GET 避免运行时报错
+                            .method(io.minio.http.Method.GET)
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS);
@@ -212,8 +210,8 @@ public class EvidenceStorageService {
                             .object(objectKey)
                             .stream(
                                     new ByteArrayInputStream(bytes),
-                                    bytes.length,
-                                    -1L // 修正：传入 -1L
+                                    (long) bytes.length, // 显式转换为 long 解决类型不匹配
+                                    -1L                  // 确保为 Long 类型
                             )
                             .contentType(contentType)
                             .build()
