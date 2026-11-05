@@ -4,6 +4,7 @@ import com.skytrace.backend.common.ConflictException;
 import com.skytrace.backend.common.upload.UploadMagic;
 import com.skytrace.backend.evidence.MinioProperties;
 import com.skytrace.backend.evidence.domain.EvidenceAssetType;
+import io.minio.http.Method;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
