@@ -30,6 +30,7 @@ public class ApiSecurityConfig {
     public SecurityFilterChain permitAllFilterChain(
             HttpSecurity http) throws Exception {
         return http
+                // 安全配置：安全总开关关闭时，禁用 CSRF 并放行所有请求
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()
@@ -48,10 +49,16 @@ public class ApiSecurityConfig {
             JwtAuthenticationConverter jwtAuthenticationConverter,
             ApiSecurityErrorHandler errorHandler) throws Exception {
         return http
+                // 1. 禁用 CSRF：
+                // 本系统采用基于无状态 Token (JWT) 的认证架构，客户端通过请求头（Authorization: Bearer <token>）传递凭证，
+                // 不依赖 Cookie 或 HttpSession 维持会话，因此跨站请求伪造（CSRF）攻击无法利用，此处关闭是安全的。
                 .csrf(csrf -> csrf.disable())
+                
+                // 2. 强制将会话策略设为无状态 (STATELESS)，不创建或使用任何 HttpSession
                 .sessionManagement(session -> session.sessionCreationPolicy(
                         SessionCreationPolicy.STATELESS
                 ))
+                
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(errorHandler)
                         .accessDeniedHandler(errorHandler)
