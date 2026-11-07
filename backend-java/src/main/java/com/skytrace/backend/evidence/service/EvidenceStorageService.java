@@ -1,38 +1,34 @@
-// ==================== 项目自定义异常与工具包 ====================
-import com.skytrace.backend.common.ConflictException; // 自定义业务冲突异常（通常用于处理数据冲突、操作失败等并向前端抛出 409 状态码）
-import com.skytrace.backend.common.upload.UploadMagic; // 上传文件魔数（Magic Number）检测工具类，用于通过文件头部二进制特征识别真实 MIME 类型
-import com.skytrace.backend.evidence.MinioProperties;    // MinIO 配置属性绑定类（读取配置文件中的 endpoint、bucket、AK/SK 等）
-import com.skytrace.backend.evidence.domain.EvidenceAssetType; // 证据资产类型枚举（根据文件类型分类如：图片、视频、文档等）
+package com.skytrace.backend.evidence.service;
 
-// ==================== MinIO Java SDK 相关类 ====================
-import io.minio.BucketExistsArgs;          // 用于构建“检查存储桶是否存在”的参数对象
-import io.minio.GetObjectArgs;             // 用于构建“获取对象（文件流）”的参数对象
-import io.minio.GetPresignedObjectUrlArgs; // 用于构建“生成预签名访问 URL”的参数对象
-import io.minio.MakeBucketArgs;          // 用于构建“创建存储桶”的参数对象
-import io.minio.MinioClient;               // MinIO 核心客户端类，提供所有与对象存储交互的底层 API
-import io.minio.PutObjectArgs;             // 用于构建“上传/写入对象”的参数对象
-import io.minio.RemoveObjectArgs;          // 用于构建“删除对象”的参数对象
-import io.minio.SetBucketPolicyArgs;       // 用于构建“设置存储桶访问策略（如公共读）”的参数对象
-import io.minio.StatObjectArgs;            // 用于构建“获取对象元数据（文件状态）”的参数对象
-import io.minio.UploadObjectArgs;          // 用于构建“上传本地文件到对象存储”的参数对象
-import io.minio.errors.ErrorResponseException; // MinIO 服务端返回的特定错误异常（如 NoSuchKey、NoSuchBucket 等）
+import com.skytrace.backend.common.ConflictException;
+import com.skytrace.backend.common.upload.UploadMagic;
+import com.skytrace.backend.evidence.MinioProperties;
+import com.skytrace.backend.evidence.domain.EvidenceAssetType;
+import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
+import io.minio.SetBucketPolicyArgs;
+import io.minio.StatObjectArgs;
+import io.minio.UploadObjectArgs;
+import io.minio.errors.ErrorResponseException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-// ==================== Spring Framework 核心及 Boot 注解 ====================
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean; // 条件注解：仅当 Spring 容器中存在指定 Bean 时才实例化当前类
-import org.springframework.stereotype.Service; // 声明当前类是一个 Spring Service 组件（业务层 Bean）
-import org.springframework.web.multipart.MultipartFile; // Spring MVC 用于处理文件上传的对象封装
-
-// ==================== Java 标准库（IO 流、NIO 文件、时间及集合） ====================
-import java.io.ByteArrayInputStream; // 字节数组输入流，用于将 byte[] 包装为 InputStream 供 SDK 上传
-import java.io.InputStream;        // Java 标准输入流抽象基类
-import java.io.SequenceInputStream;  // 顺序输入流，用于将多个输入流（如魔数头部 + 剩余输入流）串联成一个流
-import java.nio.file.Files;        // NIO 文件操作工具类（判断文件是否存在、是否为常规文件等）
-import java.nio.file.Path;         // NIO 文件路径抽象接口
-import java.time.Instant;          // Java 8 时间戳类（用于精确表示时间点，计算 URL 过期时间）
-import java.util.LinkedHashMap;    // 有序的 Map 集合实现类（用于保持查询参数的组装顺序）
-import java.util.Map;              // Map 映射接口
-import java.util.UUID;             // 通用唯一识别码生成器（用于生成全局唯一的对象存储文件名）
-import java.util.concurrent.TimeUnit; // 并发包中的时间单位枚举（如配置预签名 URL 过期的秒数）
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 证据文件存储服务组件
