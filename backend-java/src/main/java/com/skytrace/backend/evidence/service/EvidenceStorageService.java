@@ -30,29 +30,51 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 证据文件存储服务组件
+ * <p>
+ * 负责与 MinIO 对象存储服务交互，提供文件的流式上传（带魔数自动检测）、
+ * 预签名 URL 生成（支持内外网 Endpoint 分离）、对象存在性检查、删除及下载等核心功能。
+ * </p>
+ * 使用 {@link ConditionalOnBean} 注解，只有当容器中存在 {@link MinioClient} Bean 时才会激活本服务。
+ */
 @Service
 @ConditionalOnBean(MinioClient.class)
 public class EvidenceStorageService {
 
+    /** 内部访问专用的 MinIO 客户端（用于常规的上传、下载、状态检查等高带宽/内网操作） */
     private final MinioClient minioClient;
+    
+    /** 用于生成预签名 URL 的专用 MinIO 客户端（若配了外网公网地址，则使用外网 Endpoint 构造，确保浏览器能正确访问） */
     private final MinioClient presignClient;
+    
+    /** MinIO 配置属性实体类，包含 Bucket 名称、Endpoint、AK/SK 等配置信息 */
     private final MinioProperties properties;
 
+    /**
+     * 构造函数：初始化 MinIO 客户端及预签名客户端
+     * 
+     * @param minioClient 注入的默认 MinIO 客户端
+     * @param properties  MinIO 配置属性
+     */
     public EvidenceStorageService(
             MinioClient minioClient,
             MinioProperties properties) {
         this.minioClient = minioClient;
         this.properties = properties;
-        // 内外地址相同时复用注入的客户端，单元测试也能继续捕获 Mock 调用。
+        
+        // 核心设计：如果内外网地址相同，直接复用注入的客户端；
+        // 如果不同，则单独构建一个指向公共公网地址（publicEndpoint）的客户端，
+        // 从而确保生成的签名 URL 中的 Host 是浏览器实际能访问的公网地址，同时在单元测试中也能被 Mock 捕获。
         this.presignClient = sameEndpoint(
                 properties.getEndpoint(),
                 properties.getPublicEndpoint()
         )
                 ? minioClient
                 : MinioClient.builder()
-                        // 签名 URL 中的 host 必须是浏览器实际访问的公共地址。
+                        // 签名 URL 中的 host 必须是浏览器实际访问的公共地址
                         .endpoint(properties.getPublicEndpoint())
-                        // 指定 Region 后，SDK 不会尝试连接公共地址进行区域探测。
+                        // 指定 Region 后，SDK 不会尝试连接公共地址进行冗余的区域探测
                         .region(properties.getRegion())
                         .credentials(
                                 properties.getAccessKey(),
@@ -61,47 +83,80 @@ public class EvidenceStorageService {
                         .build();
     }
 
+    /**
+     * 存储对象元数据记录（Record），用于封装文件上传成功后的核心基础信息
+     */
     public record StoredObject(
-            String objectKey,
-            String bucket,
-            String contentType,
-            long sizeBytes,
-            String originalFilename,
-            EvidenceAssetType assetType
+            String objectKey,           // 存储在 MinIO 中的唯一对象路径/Key
+            String bucket,              // 存储所在的 Bucket 名称
+            String contentType,         // 文件实际检测出来的 MIME 类型
+            long sizeBytes,             // 文件大小（字节数）
+            String originalFilename,    // 客户端上传时的原始文件名
+            EvidenceAssetType assetType // 证据资产类型枚举（如：图片、视频、文档等）
     ) {
     }
 
+    /**
+     * 获取当前配置的默认证据存储 Bucket 名称
+     */
     public String evidenceBucket() {
         return properties.getEvidenceBucket();
     }
 
+    /**
+     * 上传证据文件核心方法
+     * <p>
+     * 流程：
+     * 1. 校验文件是否为空。
+     * 2. 读取文件头部 16 字节通过魔数（Magic Number）识别真实文件类型，防止恶意伪造后缀。
+     * 3. 确保目标 Bucket 存在及配置了访问策略。
+     * 4. 组装 ObjectKey（按 taskCode 归类目录 + UUID + 真实后缀）。
+     * 5. 将读取了头部的字节流与剩余流通过 {@link SequenceInputStream} 拼回并上传至 MinIO。
+     * </p>
+     * 
+     * @param file     前端上传的 MultipartFile 文件对象
+     * @param taskCode 任务编码（用作存储路径前缀，若为空则归入 unassigned）
+     * @return 包含文件存储详情的 {@link StoredObject} 对象
+     */
     public StoredObject store(
             MultipartFile file,
             String taskCode) {
+        // 1. 校验文件有效性
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("未上传证据文件");
         }
 
         try {
+            // 2. 根据 taskCode 确定存储前缀（子目录）
             String prefix = (taskCode == null || taskCode.isBlank())
                     ? "unassigned"
                     : taskCode.trim();
 
+            // 3. 读取流并检测文件真实类型
             try (InputStream inputStream = file.getInputStream()) {
+                // 读取前 16 字节用于魔数检测
                 byte[] header = inputStream.readNBytes(16);
                 UploadMagic.Detected detected = UploadMagic.inspect(
                         header,
                         UploadMagic.Kind.EVIDENCE
                 );
+                
+                // 4. 确保存储桶存在并正确配置策略
                 ensureBucket();
+                
+                // 5. 拼接生成唯一的对象存储 Key (格式: prefix/UUID.ext)
                 String objectKey = prefix
                         + "/"
                         + UUID.randomUUID()
                         + detected.extension();
+                        
+                // 6. 构造组合流：将之前读走的 16 字节头部和剩余的输入流重新拼接起来，避免文件头部丢失
                 InputStream body = new SequenceInputStream(
                         new ByteArrayInputStream(header),
                         inputStream
                 );
+                
+                // 7. 执行 MinIO 文件上传
                 minioClient.putObject(
                         PutObjectArgs.builder()
                                 .bucket(properties.getEvidenceBucket())
@@ -110,6 +165,8 @@ public class EvidenceStorageService {
                                 .contentType(detected.contentType())
                                 .build()
                 );
+                
+                // 8. 返回封装好的存储对象元数据
                 return new StoredObject(
                         objectKey,
                         properties.getEvidenceBucket(),
@@ -120,14 +177,25 @@ public class EvidenceStorageService {
                 );
             }
         } catch (IllegalArgumentException exception) {
+            // 直接抛出非法的参数异常
             throw exception;
         } catch (Exception exception) {
+            // 捕获其他底层异常并包装为业务冲突异常
             throw new ConflictException(
                     "证据上传失败: " + exception.getMessage()
             );
         }
     }
 
+    /**
+     * 生成带有时效性的文件 GET 预签名访问 URL（用于前端安全预览或下载）
+     * 
+     * @param bucket             Bucket 名称
+     * @param objectKey          对象 Key
+     * @param ttlSeconds         URL 过期时间（秒）
+     * @param contentDisposition 响应头的 Content-Disposition（例如控制是内联预览还是强制下载附件）
+     * @return 可直接访问的完整预签名 URL 字符串
+     */
     public String createPresignedGetUrl(
         String bucket,
         String objectKey,
@@ -140,6 +208,8 @@ public class EvidenceStorageService {
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS);
+                            
+            // 如果指定了内容处置头（如文件名重命名、下载等），则加入到签名查询参数中
             if (contentDisposition != null && !contentDisposition.isBlank()) {
                 Map<String, String> extra = new LinkedHashMap<>();
                 extra.put(
@@ -148,6 +218,7 @@ public class EvidenceStorageService {
                 );
                 builder.extraQueryParams(extra);
             }
+            // 使用 presignClient（公网客户端）生成最终的 URL
             return presignClient.getPresignedObjectUrl(builder.build());
         } catch (Exception exception) {
             throw new ConflictException(
@@ -156,22 +227,40 @@ public class EvidenceStorageService {
         }
     }
 
+    /**
+     * 计算指定 TTL 秒数之后的过期时间点
+     * 
+     * @param ttlSeconds 有效秒数
+     * @return 过期时间 {@link Instant}
+     */
     public Instant expiresAt(int ttlSeconds) {
         return Instant.now().plusSeconds(ttlSeconds);
     }
 
+    /** 获取属性配置中定义的预览 URL 默认存活时间（秒） */
     public int previewTtlSeconds() {
         return properties.getPresignPreviewTtlSeconds();
     }
 
+    /** 获取属性配置中定义的下载 URL 默认存活时间（秒） */
     public int downloadTtlSeconds() {
         return properties.getPresignDownloadTtlSeconds();
     }
 
+    /**
+     * 生成旧版遗留系统的公共访问路径（伪路径）
+     */
     public String legacyPublicPath(String bucket, String objectKey) {
         return "/files/" + bucket + "/" + objectKey;
     }
 
+    /**
+     * 读取指定对象的全部字节内容
+     * 
+     * @param bucket    Bucket 名称
+     * @param objectKey 对象 Key
+     * @return 文件的 byte[] 数组
+     */
     public byte[] getObjectBytes(String bucket, String objectKey) {
         try (InputStream stream = getObjectStream(bucket, objectKey)) {
             return stream.readAllBytes();
@@ -182,6 +271,13 @@ public class EvidenceStorageService {
         }
     }
 
+    /**
+     * 获取指定对象的输入流（用于服务端读取或转发）
+     * 
+     * @param bucket    Bucket 名称
+     * @param objectKey 对象 Key
+     * @return 文件的 {@link InputStream} 输入流
+     */
     public InputStream getObjectStream(String bucket, String objectKey) {
         try {
             return minioClient.getObject(
@@ -197,6 +293,14 @@ public class EvidenceStorageService {
         }
     }
 
+    /**
+     * 将字节数组直接写入（put）到 MinIO 指定对象中（常用于生成缩略图、衍生报表等场景）
+     * 
+     * @param bucket      Bucket 名称
+     * @param objectKey   目标对象 Key
+     * @param bytes       待写入的字节数组
+     * @param contentType 对象的 MIME 类型
+     */
     public void putObject(
             String bucket,
             String objectKey,
@@ -211,7 +315,7 @@ public class EvidenceStorageService {
                             .stream(
                                     new ByteArrayInputStream(bytes),
                                     (long) bytes.length, // 显式转换为 long 解决类型不匹配
-                                    -1L                  // 确保为 Long 类型
+                                    -1L                  // partSize 设为 -1L 采用默认分片大小
                             )
                             .contentType(contentType)
                             .build()
@@ -223,11 +327,20 @@ public class EvidenceStorageService {
         }
     }
 
+    /**
+     * 将本地文件直接上传到 MinIO (常用于归档文件上传)
+     * 
+     * @param bucket      Bucket 名称
+     * @param objectKey   目标对象 Key
+     * @param sourceFile  本地文件 {@link Path} 路径
+     * @param contentType 对象的 MIME 类型
+     */
     public void uploadObject(
             String bucket,
             String objectKey,
             Path sourceFile,
             String contentType) {
+        // 校验本地文件是否存在且为常规文件
         if (sourceFile == null || !Files.isRegularFile(sourceFile)) {
             throw new IllegalArgumentException("待上传的本地文件不存在");
         }
@@ -249,8 +362,16 @@ public class EvidenceStorageService {
         }
     }
 
+    /**
+     * 检查指定的对象在 MinIO 中是否存在
+     * 
+     * @param bucket    Bucket 名称
+     * @param objectKey 对象 Key
+     * @return 存在返回 true，否则返回 false
+     */
     public boolean objectExists(String bucket, String objectKey) {
         try {
+            // 通过获取对象元数据（statObject）来判定是否存在
             minioClient.statObject(
                     StatObjectArgs.builder()
                             .bucket(bucket)
@@ -260,6 +381,7 @@ public class EvidenceStorageService {
             return true;
         } catch (ErrorResponseException exception) {
             String code = exception.errorResponse().code();
+            // 如果错误码属于“找不到 Key/Object/Bucket”，则认为文件不存在，返回 false
             if ("NoSuchKey".equals(code)
                     || "NoSuchObject".equals(code)
                     || "NoSuchBucket".equals(code)) {
@@ -275,10 +397,20 @@ public class EvidenceStorageService {
         }
     }
 
+    /**
+     * 物理删除指定的证据对象
+     * <p>
+     * 保护机制：如果 objectKey 以 "archives/" 开头，属于归档产物，触发安全拦截禁止删除。
+     * </p>
+     * 
+     * @param bucket    Bucket 名称
+     * @param objectKey 对象 Key
+     */
     public void removeEvidenceObject(String bucket, String objectKey) {
         if (objectKey == null || objectKey.isBlank()) {
             return;
         }
+        // 安全拦截：清理任务禁止删除归档产物
         if (objectKey.startsWith("archives/")) {
             throw new IllegalArgumentException("清理任务禁止删除归档产物");
         }
@@ -297,16 +429,23 @@ public class EvidenceStorageService {
         }
     }
 
+    /**
+     * 私有辅助方法：确保目标 Bucket 存在；若不存在则自动创建；
+     * 若配置了公共读权限（publicReadEnabled），则自动应用公开的 S3 Bucket Policy 策略。
+     */
     private void ensureBucket() throws Exception {
         String bucket = properties.getEvidenceBucket();
+        // 1. 检查 Bucket 是否已存在
         boolean exists = minioClient.bucketExists(
                 BucketExistsArgs.builder().bucket(bucket).build()
         );
+        // 2. 不存在则创建
         if (!exists) {
             minioClient.makeBucket(
                     MakeBucketArgs.builder().bucket(bucket).build()
             );
         }
+        // 3. 如果开启了公共读取权限，配置相应的 JSON 访问策略
         if (properties.isPublicReadEnabled()) {
             String policy = """
                     {
@@ -328,10 +467,16 @@ public class EvidenceStorageService {
         }
     }
 
+    /**
+     * 对比内部和外部 Endpoint 是否相同（用于判断是否需要构建独立的 presignClient）
+     */
     private static boolean sameEndpoint(String internal, String external) {
         return normalizeEndpoint(internal).equals(normalizeEndpoint(external));
     }
 
+    /**
+     * 规范化 Endpoint 地址（去除末尾可能多余的斜杠 /）
+     */
     private static String normalizeEndpoint(String endpoint) {
         if (endpoint == null) {
             return "";
