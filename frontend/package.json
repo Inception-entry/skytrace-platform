@@ -17,7 +17,7 @@
     "cesium": "~1.146.0",
     "cesium-navigation-es6": "^3.0.9",
     "i18next": "^26.6.0",
-    "i18next-browser-languagedetector": "^8.2.4",
+    "i18next-browser-languagedetector": "^8.3.0",
     "i18next-vue": "^5.3.0",
     "js-cookie": "^3.0.5",
     "keycloak-js": "26.2.5",
