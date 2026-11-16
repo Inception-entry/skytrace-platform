@@ -20,7 +20,7 @@
         <java.version>21</java.version>
         <spring-cloud.version>2025.1.4</spring-cloud.version>
         <!-- CVE-2026-8763 / CVE-2026-13506: spring-cloud-starter 传递锁 1.80.2，修复线 1.85+ -->
-        <bouncycastle.version>1.86</bouncycastle.version>
+        <bouncycastle.version>1.87</bouncycastle.version>
         <!-- CVE-2026-89407 等：Boot 4.1.1 的 Jackson 2 BOM 仍锁 2.21.5，修复线是 2.21.7。 -->
         <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
         <!-- 同上 CVE 也影响 Boot 4.1.1 锁的 Jackson 3.1.5。3.1 线修复是 3.1.7。 -->
