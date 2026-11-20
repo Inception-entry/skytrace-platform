@@ -17,7 +17,7 @@
         <temporal.version>1.40.0</temporal.version>
         <minio.version>8.6.0</minio.version>
         <!-- CVE-2025-14813: override MinIO's transitive 1.81 -->
-        <bouncycastle.version>1.86</bouncycastle.version>
+        <bouncycastle.version>1.87</bouncycastle.version>
         <!-- CVE-2026-63337 / CVE-2026-69219 / CVE-2026-69220: Boot 4.1.1 仍锁 5.30.0 -->
         <rabbit-amqp-client.version>5.37.1</rabbit-amqp-client.version>
         <!-- CVE-2026-89407 / CVE-2026-89425 / CVE-2026-68497 / CVE-2026-91776 / CVE-2026-91777:
