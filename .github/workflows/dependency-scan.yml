@@ -39,6 +39,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+        mvn-mirrors: |
+          google-central:https://maven-central.storage-download.googleapis.com/maven2/:central
       - name: Populate Maven dependency cache
         if: endsWith(matrix.name, '-java')
         run: scripts/ci/mvn-with-retry.sh -f "${{ matrix.path }}/pom.xml" dependency:resolve
