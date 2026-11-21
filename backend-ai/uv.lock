@@ -1601,7 +1601,7 @@ requires-dist = [
     { name = "msgpack", specifier = ">=1.2.3" },
     { name = "pillow", specifier = ">=13,<14" },
     { name = "pydantic-settings", specifier = ">=2.10,<3" },
-    { name = "pypdf", specifier = ">=6.21.4,<7" },
+    { name = "pypdf", specifier = ">=6.21.4,<8" },
     { name = "python-multipart", specifier = ">=0.0.20,<1" },
     { name = "qdrant-client", specifier = ">=1.18,<2" },
     { name = "redis", specifier = ">=5,<8" },
