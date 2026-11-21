@@ -31,6 +31,11 @@ RUN set -eux; \
 RUN pip install --no-cache-dir --break-system-packages --ignore-installed --upgrade "setuptools>=78.1.1"
 
 COPY pyproject.toml uv.lock ./
+
+RUN uv --version \
+    && sha256sum pyproject.toml uv.lock \
+    && uv lock --check -v
+
 RUN if [ "$INSTALL_VISION" = "1" ]; then \
       uv sync --locked --group vision --no-dev --no-install-project; \
     else \
