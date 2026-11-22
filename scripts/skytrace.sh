@@ -55,7 +55,7 @@ show_help() {
 用法：
   skytrace.sh start [服务...]      启动服务，不重新构建镜像
   skytrace.sh rebuild [服务...]    重新构建镜像并启动服务
-  skytrace.sh stop [服务...]       停止服务；未指定服务时关闭整套环境
+  skytrace.sh stop [服务...]       停止指定服务并保留容器。省略服务时移除整套容器和项目网络，保留数据卷
   skytrace.sh restart [服务...]    重启现有服务
   skytrace.sh status               查看服务状态
   skytrace.sh logs [服务...]       持续查看日志
@@ -66,15 +66,18 @@ show_help() {
   skytrace.sh auth-verify          执行 ADMIN/OPERATOR/VIEWER 权限验收
   skytrace.sh auth-token           获取 skytrace-service 的 Bearer Token
   skytrace.sh mqtt-start           启动 Mosquitto + device-sim，并启用 Java MQTT
-  skytrace.sh mqtt-tls-start       同上，并启用本地自签 mqtts（需先 mqtt-gen-certs）
-  skytrace.sh mqtt-stop            停止 Mosquitto + device-sim
+  skytrace.sh mqtt-tls-start       同上，并生成本地证书启用 mqtts
+  skytrace.sh mqtt-stop            停止 Mosquitto 和 device-sim，关闭运行中的 Java 后端的 MQTT 订阅
   skytrace.sh mqtt-logs            查看 MQTT / device-sim 日志
   skytrace.sh backup               备份 MySQL 业务库到 MinIO
   skytrace.sh rollback-plan        查看发布机上的回退单（只判断，不改运行中的服务）
   skytrace.sh monitoring-start     启动 Prometheus / Grafana / Loki
   skytrace.sh monitoring-stop      停止监控栈
-  skytrace.sh cleanup              停栈并清理 orphan（端口 500 时先跑这个）
+  skytrace.sh cleanup              停栈并移除项目容器、网络和孤立容器，保留数据卷
   skytrace.sh help                 显示帮助
+
+macOS 默认使用 Docker 上下文 colima 和 Compose 项目名 deploy。
+可用 DOCKER_CONTEXT（或 DOCKER_HOST）和 COMPOSE_PROJECT_NAME 覆盖。
 
 示例：
   skytrace.sh start
@@ -144,14 +147,28 @@ require_local_keycloak_secrets() {
   require_service_client_secret
 }
 
-require_env
-
 ACTION="${1:-help}"
 shift || true
 
 case "$ACTION" in
+  help | -h | --help)
+    show_help
+    exit 0
+    ;;
+esac
+
+require_env
+
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  if [[ -z "${DOCKER_CONTEXT:-}" && -z "${DOCKER_HOST:-}" ]]; then
+    export DOCKER_CONTEXT=colima
+  fi
+  export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-deploy}"
+fi
+
+case "$ACTION" in
   start)
-    compose up -d "$@"
+    compose up -d --no-build "$@"
     ;;
   rebuild)
     compose up -d --build "$@"
@@ -164,15 +181,8 @@ case "$ACTION" in
     fi
     ;;
   cleanup)
-    # WSL + Docker Engine 常见：容器已停但端口转发残留，表现为 expose status 500
-    compose down --remove-orphans || true
-    if [[ -f "$MQTT_COMPOSE_FILE" ]]; then
-      compose_mqtt down --remove-orphans || true
-    fi
-    echo "已执行 compose down --remove-orphans"
-    echo "若 start 仍报 ports ... status 500："
-    echo "  1) sudo systemctl restart docker"
-    echo "  2) 仍不行则 Windows PowerShell: wsl --shutdown，再开 WSL 并确认 docker 服务已启动"
+    compose down --remove-orphans
+    echo "已停止并移除项目容器和网络，保留数据卷"
     ;;
   restart)
     compose restart "$@"
@@ -272,12 +282,14 @@ print(token)
       echo "缺少 MQTT 叠加文件：$MQTT_COMPOSE_FILE"
       exit 1
     fi
-    if [[ -f "$MQTT_TLS_COMPOSE_FILE" ]]; then
-      compose_mqtt_tls stop device-sim mqtt || true
-    fi
+    # TLS 叠加文件仍使用同一个项目和服务名。
     compose_mqtt stop device-sim mqtt
+    running_java="$(compose ps --status running --quiet backend-java)"
+    if [[ -n "$running_java" ]]; then
+      # 以主 Compose 配置重建，去掉 MQTT 叠加配置。
+      MQTT_ENABLED=false compose up -d --no-build --no-deps backend-java
+    fi
     echo "MQTT 已停止：skytrace-mqtt / skytrace-device-sim"
-    echo "提示：backend-java 仍可能保持 MQTT_ENABLED；若要关闭订阅，执行 skytrace.sh restart backend-java"
     ;;
   mqtt-logs)
     if [[ ! -f "$MQTT_COMPOSE_FILE" ]]; then
@@ -305,11 +317,8 @@ print(token)
       echo "缺少监控叠加文件：$MONITORING_COMPOSE_FILE"
       exit 1
     fi
-    compose_monitoring stop prometheus grafana loki promtail alertmanager cadvisor node-exporter || true
+    compose_monitoring stop prometheus grafana loki promtail alertmanager cadvisor node-exporter
     echo "监控栈已停止"
-    ;;
-  help | -h | --help)
-    show_help
     ;;
   *)
     echo "未知操作：$ACTION"
